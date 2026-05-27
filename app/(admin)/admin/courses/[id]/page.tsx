@@ -1,3 +1,1 @@
-export default function Page() {
-  return <h1 className="text-xl font-semibold">Exceed</h1>;
-}
+import { prisma } from "@/lib/prisma";export default async function CourseDetail({params}:{params:Promise<{id:string}>}){const {id}=await params;const c=await prisma.course.findUnique({where:{id},include:{enrollments:{include:{student:{include:{user:true}}}},schedules:{include:{teacher:{include:{user:true}}}},materials:true}});if(!c) return null;return <div><h2>{c.title}</h2><p>{c.description}</p></div>}

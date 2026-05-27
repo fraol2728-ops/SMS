@@ -1,0 +1,5 @@
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { updateStudent } from "@/lib/actions/admin";
+export default async function EditStudent({params}:{params:Promise<{id:string}>}){const {id}=await params;const s=await prisma.user.findUnique({where:{id},include:{studentProfile:true}});if(!s) return null;async function action(fd:FormData){"use server";const r=await updateStudent(id,fd);if(r.success) redirect(`/admin/students/${id}`)}
+return <form action={action} className="grid gap-2 max-w-2xl"><input name="firstName" defaultValue={s.firstName} className="border p-2"/><input name="lastName" defaultValue={s.lastName} className="border p-2"/><input name="email" defaultValue={s.email} className="border p-2"/><input name="phone" defaultValue={s.phone??''} className="border p-2"/><textarea name="address" defaultValue={s.address??''} className="border p-2"/><input name="guardianName" defaultValue={s.studentProfile?.guardianName??''} className="border p-2"/><button type="submit" className="bg-black text-white p-2">Update</button></form>}

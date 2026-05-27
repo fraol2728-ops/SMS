@@ -1,0 +1,2 @@
+import { redirect } from "next/navigation";import { createTeacher } from "@/lib/actions/admin";
+export default function NewTeacher(){async function action(fd:FormData){"use server";const r=await createTeacher(fd);if(r.success) redirect('/admin/teachers')}return <form action={action} className='grid gap-2 max-w-xl'>{['firstName','lastName','email','phone','specialty'].map(n=><input key={n} name={n} placeholder={n} className='border p-2'/>)}<textarea name='bio' className='border p-2'/><button>Save</button></form>}
