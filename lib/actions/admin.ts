@@ -16,3 +16,7 @@ export async function createSchedule(formData:FormData){try{const v=scheduleSche
 export async function replyToReport(reportId:string, content:string){try{if(!content) return err("Content required"); await prisma.report.update({where:{id:reportId},data:{replyContent:content,repliedAt:new Date(),status:"REPLIED"}}); revalidatePath(`/admin/reports/${reportId}`); return ok;}catch(e){return err("Failed");}}
 
 export async function markReportRead(reportId:string){try{const report=await prisma.report.findUnique({where:{id:reportId}});if(report?.status==="UNREAD"){await prisma.report.update({where:{id:reportId},data:{status:"READ"}});} revalidatePath("/admin/reports"); return { success: true as const };}catch(e){return { success: false as const, error:"Failed" };}}
+
+export async function dropEnrollment(enrollmentId:string){try{await prisma.enrollment.update({where:{id:enrollmentId},data:{status:"DROPPED",endDate:new Date()}}); revalidatePath("/admin/students"); return ok;}catch(e){return err("Failed");}}
+
+export async function toggleCourseStatus(courseId:string,isActive:boolean){try{await prisma.course.update({where:{id:courseId},data:{isActive}}); revalidatePath("/admin/courses"); return ok;}catch(e){return err("Failed");}}

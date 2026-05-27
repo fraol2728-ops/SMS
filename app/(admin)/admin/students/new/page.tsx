@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createStudent } from "@/lib/actions/admin";
+import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { StudentForm } from "@/components/admin/students/StudentForm";
 import { prisma } from "@/lib/prisma";
-export default async function NewStudentPage(){const courses=await prisma.course.findMany({where:{isActive:true}});async function action(fd:FormData){"use server";const res=await createStudent(fd);if(res.success) redirect('/admin/students');}
-return <form action={action} className="grid gap-3 max-w-2xl">{['firstName','lastName','email','phone','guardianName','guardianPhone','emergencyContact'].map(n=><input key={n} name={n} placeholder={n} className="border p-2"/>)}<select name="gender" className="border p-2"><option value="">Gender</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option></select><input type="date" name="dateOfBirth" className="border p-2"/><textarea name="address" placeholder="Address" className="border p-2"/><select name="courseId" className="border p-2">{courses.map(c=><option key={c.id} value={c.id}>{c.title} ({c.classType})</option>)}</select><input type="date" name="startDate" className="border p-2"/><textarea name="notes" placeholder="Notes" className="border p-2"/><button type="submit" className="rounded bg-black px-3 py-2 text-white">Save</button></form>}
+export default async function NewStudentPage(){const courses=await prisma.course.findMany({where:{isActive:true}});return <div className="space-y-6"><PageHeader title="Register new student" /><StudentForm courses={courses} /></div>}
