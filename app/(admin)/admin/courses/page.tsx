@@ -1,3 +1,2 @@
-export default function Page() {
-  return <h1 className="text-xl font-semibold">Exceed</h1>;
-}
+import Link from "next/link";import { prisma } from "@/lib/prisma";import { PageHeader } from "@/components/admin/shared/PageHeader";import { Button } from "@/components/ui/button";import { StatusBadge } from "@/components/admin/shared/StatusBadge";
+export default async function CoursesPage(){const c=await prisma.course.findMany({include:{enrollments:true}});return <div><PageHeader title="Courses" action={<Button asChild><Link href='/admin/courses/new'>Add course</Link></Button>} /><table className='w-full'>{c.map(x=><tr key={x.id}><td><Link href={`/admin/courses/${x.id}`}>{x.title}</Link></td><td>{x.classType}</td><td>{x.durationWeeks}</td><td>{x.fee}</td><td>{x.enrollments.filter(e=>e.status==='ACTIVE').length}</td><td><StatusBadge status={x.isActive?'ACTIVE':'ON_HOLD'}/></td><td><Link href={`/admin/courses/${x.id}/edit`}>Edit</Link></td></tr>)}</table></div>}

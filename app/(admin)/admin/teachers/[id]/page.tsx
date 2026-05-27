@@ -1,0 +1,1 @@
+import { prisma } from "@/lib/prisma";export default async function TeacherDetail({params}:{params:Promise<{id:string}>}){const {id}=await params;const t=await prisma.user.findUnique({where:{id},include:{teacherProfile:{include:{schedules:{include:{course:true}}}}}});if(!t) return null;return <div><h2>{t.firstName} {t.lastName}</h2><p>{t.teacherProfile?.specialty}</p></div>}
