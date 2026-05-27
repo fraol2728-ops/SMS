@@ -2,7 +2,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { courseSchema, scheduleSchema, studentSchema, teacherSchema, updateStudentSchema } from "@/lib/validations";
+import { courseSchema, scheduleSchema, studentSchema, teacherSchema, updateStudentSchema } from "@/lib/validations/admin";
 
 const ok = { success: true as const };
 const err = (error: string) => ({ success: false as const, error });
@@ -14,3 +14,5 @@ export async function updateCourse(id:string,formData:FormData){try{const v=cour
 export async function createTeacher(formData:FormData){try{const v=teacherSchema.parse(Object.fromEntries(formData)); const clerk=await clerkClient(); const cu=await clerk.users.createUser({emailAddress:[v.email],publicMetadata:{role:"TEACHER"},firstName:v.firstName,lastName:v.lastName}); const c=await prisma.teacherProfile.count(); await prisma.user.create({data:{clerkId:cu.id,role:"TEACHER",firstName:v.firstName,lastName:v.lastName,email:v.email,phone:v.phone,gender:v.gender,teacherProfile:{create:{teacherCode:`TCH-${String(c+1).padStart(3,"0")}`,specialty:v.specialty,bio:v.bio}}}}); revalidatePath("/admin/teachers"); return ok;}catch(e){return err("Failed");}}
 export async function createSchedule(formData:FormData){try{const v=scheduleSchema.parse(Object.fromEntries(formData)); await prisma.schedule.create({data:v}); revalidatePath("/admin/schedules"); return ok;}catch(e){return err("Failed");}}
 export async function replyToReport(reportId:string, content:string){try{if(!content) return err("Content required"); await prisma.report.update({where:{id:reportId},data:{replyContent:content,repliedAt:new Date(),status:"REPLIED"}}); revalidatePath(`/admin/reports/${reportId}`); return ok;}catch(e){return err("Failed");}}
+
+export async function markReportRead(reportId:string){try{const report=await prisma.report.findUnique({where:{id:reportId}});if(report?.status==="UNREAD"){await prisma.report.update({where:{id:reportId},data:{status:"READ"}});} revalidatePath("/admin/reports"); return { success: true as const };}catch(e){return { success: false as const, error:"Failed" };}}
