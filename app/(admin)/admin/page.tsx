@@ -1,18 +1,11 @@
-import { BookOpen, CreditCard, UserCheck, Users } from "lucide-react";
+import { BookOpen, CreditCard, GraduationCap, Users } from "lucide-react";
 import { KpiCard } from "@/components/admin/shared/KpiCard";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
 
-export default async function AdminPage() {
-  const now = new Date(); const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const [students, activeEnrollments, courses, paidAgg, recentEnrollments, recentPayments] = await Promise.all([
-    prisma.user.count({ where: { role: "STUDENT" } }),
-    prisma.enrollment.count({ where: { status: "ACTIVE" } }),
-    prisma.course.count({ where: { isActive: true } }),
-    prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "PAID", paidAt: { gte: start } } }),
-    prisma.enrollment.findMany({ take: 10, orderBy: { createdAt: "desc" }, include: { student: { include: { user: true } }, course: true } }),
-    prisma.payment.findMany({ take: 10, orderBy: { createdAt: "desc" }, include: { user: true } })
-  ]);
-  return <div className="space-y-6"><div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"><KpiCard title="Total students" value={students} icon={Users} color="bg-blue-50"/><KpiCard title="Active enrollments" value={activeEnrollments} icon={UserCheck} color="bg-green-50"/><KpiCard title="Courses offered" value={courses} icon={BookOpen} color="bg-purple-50"/><KpiCard title="Payments this month" value={`$${paidAgg._sum.amount ?? 0}`} icon={CreditCard} color="bg-yellow-50"/></div><div className="rounded-lg border bg-white p-4"><h2 className="mb-3 font-semibold">Recent enrollments</h2><Table><TableHeader><TableRow><TableHead>Student</TableHead><TableHead>Course</TableHead><TableHead>Start date</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{recentEnrollments.map(e=><TableRow key={e.id}><TableCell>{e.student.user.firstName} {e.student.user.lastName}</TableCell><TableCell>{e.course.title}</TableCell><TableCell>{e.startDate.toLocaleDateString()}</TableCell><TableCell><StatusBadge status={e.status}/></TableCell></TableRow>)}</TableBody></Table></div><div className="rounded-lg border bg-white p-4"><h2 className="mb-3 font-semibold">Recent payments</h2><Table><TableHeader><TableRow><TableHead>Student</TableHead><TableHead>Amount</TableHead><TableHead>Method</TableHead><TableHead>Status</TableHead><TableHead>Date</TableHead></TableRow></TableHeader><TableBody>{recentPayments.map(p=><TableRow key={p.id}><TableCell>{p.user.firstName} {p.user.lastName}</TableCell><TableCell>${p.amount}</TableCell><TableCell>{p.method}</TableCell><TableCell><StatusBadge status={p.status}/></TableCell><TableCell>{p.createdAt.toLocaleDateString()}</TableCell></TableRow>)}</TableBody></Table></div></div>;
-}
+export default async function AdminPage(){const now=new Date(); const firstDay=new Date(now.getFullYear(),now.getMonth(),1); const [totalStudents,activeEnrollments,activeCourses,monthlyRevenue,recentEnrollments,recentPayments]=await Promise.all([
+prisma.user.count({where:{role:'STUDENT'}}),prisma.enrollment.count({where:{status:'ACTIVE'}}),prisma.course.count({where:{isActive:true}}),prisma.payment.aggregate({where:{status:'PAID',paidAt:{gte:firstDay}},_sum:{amount:true}}),prisma.enrollment.findMany({take:10,orderBy:{createdAt:'desc'},include:{student:{include:{user:true}},course:true}}),prisma.payment.findMany({take:10,orderBy:{createdAt:'desc'},include:{user:true,enrollment:{include:{course:true}}}})
+]);
+return <div className='space-y-6'><div className='grid grid-cols-2 lg:grid-cols-4 gap-4'><KpiCard title='Total Students' value={totalStudents} icon={Users} color='blue'/><KpiCard title='Active Enrollments' value={activeEnrollments} icon={BookOpen} color='green'/><KpiCard title='Active Courses' value={activeCourses} icon={GraduationCap} color='purple'/><KpiCard title='Monthly Revenue' value={`ETB ${(monthlyRevenue._sum.amount??0).toLocaleString()}`} icon={CreditCard} color='amber'/></div>
+<div><h3 className='mb-2 font-semibold'>Recent enrollments</h3><table className='w-full text-sm'><thead><tr><th>Student name</th><th>Course</th><th>Start date</th><th>Status</th></tr></thead><tbody>{recentEnrollments.map((e:any)=><tr key={e.id}><td>{e.student.user.firstName} {e.student.user.lastName}</td><td>{e.course.title}</td><td>{e.startDate.toLocaleDateString()}</td><td><StatusBadge status={e.status}/></td></tr>)}</tbody></table></div>
+<div><h3 className='mb-2 font-semibold'>Recent payments</h3><table className='w-full text-sm'><thead><tr><th>Student name</th><th>Course</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead><tbody>{recentPayments.map((p:any)=><tr key={p.id}><td>{p.user.firstName} {p.user.lastName}</td><td>{p.enrollment.course.title}</td><td>ETB {p.amount.toLocaleString()}</td><td>{p.method}</td><td><StatusBadge status={p.status}/></td><td>{p.createdAt.toLocaleDateString()}</td></tr>)}</tbody></table></div></div>}
