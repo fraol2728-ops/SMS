@@ -200,7 +200,7 @@ import {
   useDocuments,       // List all documents of a type
   useQuery,           // Run GROQ queries
   useApplyDocumentActions,  // Apply document mutations
-} from "@sanity/sdk-react";
+} from "<removed-sanity-sdk-react>";
 
 // Document actions
 import {
@@ -209,7 +209,7 @@ import {
   discardDocument,
   deleteDocument,
   createDocument,
-} from "@sanity/sdk-react";
+} from "<removed-sanity-sdk-react>";
 ```
 
 #### Custom Admin Components
