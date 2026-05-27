@@ -5,7 +5,6 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/setup',
 ])
 
 export default clerkMiddleware(async (auth, req) => {
@@ -17,11 +16,10 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL('/sign-in', req.url))
   }
 
-  const role = (sessionClaims?.unsafeMetadata as { role?: string })?.role
+  const role = (sessionClaims?.metadata as { role?: string })?.role
 
   if (!role) {
-    if (req.nextUrl.pathname === '/setup') return NextResponse.next()
-    return NextResponse.redirect(new URL('/setup', req.url))
+    return NextResponse.redirect(new URL('/', req.url))
   }
 
   const path = req.nextUrl.pathname
