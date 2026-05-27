@@ -1,0 +1,2 @@
+import { prisma } from "@/lib/prisma";import { updateCourse } from "@/lib/actions/admin";import { redirect } from "next/navigation";
+export default async function EditCourse({params}:{params:Promise<{id:string}>}){const {id}=await params;const c=await prisma.course.findUnique({where:{id}});if(!c) return null;async function action(fd:FormData){"use server";const r=await updateCourse(id,fd);if(r.success) redirect(`/admin/courses/${id}`)}return <form action={action}><input name='title' defaultValue={c.title}/><button>Update</button></form>}
