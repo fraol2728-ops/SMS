@@ -1,0 +1,9 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { createCourse, updateCourse } from "@/lib/actions/admin";
+import { Input } from "@/components/ui/input";import { Textarea } from "@/components/ui/textarea";import { Switch } from "@/components/ui/switch";import { Button } from "@/components/ui/button";
+export function CourseForm({ defaultValues }: { defaultValues?: any }) { const [title,setTitle]=useState(defaultValues?.title??""); const [slug,setSlug]=useState(defaultValues?.slug??""); const [isActive,setIsActive]=useState(defaultValues?.isActive??true); const r=useRouter(); const isEdit=!!defaultValues;
+async function submit(fd:FormData){fd.set("isActive",String(isActive)); const res=isEdit?await updateCourse(defaultValues.id,fd):await createCourse(fd); if(res.success) r.push('/admin/courses'); else toast.error(res.error)}
+return <form action={submit} className="space-y-3 max-w-2xl"><Input name="title" value={title} onChange={e=>{setTitle(e.target.value);setSlug(e.target.value.toLowerCase().replaceAll(' ','-'));}}/><Input name="slug" value={slug} onChange={e=>setSlug(e.target.value)}/><Textarea name="description" defaultValue={defaultValues?.description}/><select name="classType" defaultValue={defaultValues?.classType??'PERSONAL'} className="h-10 rounded-md border px-3"><option value="PERSONAL">PERSONAL</option><option value="GROUP">GROUP</option></select><Input name="durationWeeks" type="number" min={1} defaultValue={defaultValues?.durationWeeks??1}/><Input name="fee" type="number" min={0} defaultValue={defaultValues?.fee??0}/><div className="flex items-center gap-2"><Switch checked={isActive} onCheckedChange={setIsActive}/>Active</div><Button type="submit">{isEdit?"Update":"Create"} course</Button></form> }
