@@ -36,10 +36,12 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.555.0",
     "next": "16.0.5",
+    "next-themes": "^0.4.6",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-markdown": "^10.1.0",
     "sanity-plugin-mux-input": "^2.12.0",
+    "sonner": "^2.0.7",
     "styled-components": "^6.1.19",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.1.13"
