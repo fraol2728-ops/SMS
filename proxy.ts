@@ -1,18 +1,40 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
 
-const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/lessons(.*)"]);
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+])
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
-    await auth.protect();
+  if (isPublicRoute(req)) return NextResponse.next()
+
+  const { userId, sessionClaims } = await auth()
+
+  if (!userId) {
+    return NextResponse.redirect(new URL('/sign-in', req.url))
   }
-});
+
+  const role = (sessionClaims?.metadata as { role?: string })?.role
+
+  const path = req.nextUrl.pathname
+
+  if (path.startsWith('/admin') && role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/', req.url))
+  }
+
+  if (path.startsWith('/teacher') && role !== 'TEACHER') {
+    return NextResponse.redirect(new URL('/', req.url))
+  }
+
+  if (path.startsWith('/student') && role !== 'STUDENT') {
+    return NextResponse.redirect(new URL('/', req.url))
+  }
+
+  return NextResponse.next()
+})
 
 export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
-  ],
-};
+  matcher: ['/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)', '/(api|trpc)(.*)'],
+}
