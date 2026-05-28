@@ -3,6 +3,8 @@ import { SignInButton } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 
+export const dynamic = 'force-dynamic'
+
 export default async function HomePage() {
   const { userId, sessionClaims } = await auth()
 

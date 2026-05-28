@@ -3,6 +3,8 @@ import { KpiCard } from "@/components/admin/shared/KpiCard";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminPage(){const now=new Date(); const firstDay=new Date(now.getFullYear(),now.getMonth(),1); const [totalStudents,activeEnrollments,activeCourses,monthlyRevenue,recentEnrollments,recentPayments]=await Promise.all([
 prisma.user.count({where:{role:'STUDENT'}}),prisma.enrollment.count({where:{status:'ACTIVE'}}),prisma.course.count({where:{isActive:true}}),prisma.payment.aggregate({where:{status:'PAID',paidAt:{gte:firstDay}},_sum:{amount:true}}),prisma.enrollment.findMany({take:10,orderBy:{createdAt:'desc'},include:{student:{include:{user:true}},course:true}}),prisma.payment.findMany({take:10,orderBy:{createdAt:'desc'},include:{user:true,enrollment:{include:{course:true}}}})
 ]);

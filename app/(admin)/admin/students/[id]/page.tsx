@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { dropEnrollment } from "@/lib/actions/admin";
 
+export const dynamic = 'force-dynamic'
+
 export default async function StudentDetailPage({params}:{params:Promise<{id:string}>}){const {id}=await params;const s=await prisma.user.findUnique({where:{id},include:{studentProfile:{include:{enrollments:{include:{course:true,attendance:{include:{schedule:true}},payments:true}}}}}});if(!s) notFound();
 return <div className="space-y-6"><Card><CardContent className="p-6"><div className="flex justify-between"><div><div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-muted text-xl font-bold">{s.firstName[0]}{s.lastName[0]}</div><h2 className="text-2xl font-semibold">{s.firstName} {s.lastName}</h2><p>{s.studentProfile?.studentCode}</p><p>{s.email}</p><p>{s.phone}</p><p>{s.gender}</p><p>{s.address}</p></div><div><p>Guardian: {s.studentProfile?.guardianName ?? "-"}</p><p>Phone: {s.studentProfile?.guardianPhone ?? "-"}</p><p>Emergency: {s.studentProfile?.emergencyContact ?? "-"}</p></div><Button asChild><Link href={`/admin/students/${s.id}/edit`}>Edit</Link></Button></div></CardContent></Card>
 <Tabs defaultValue="enrollments"><TabsList><TabsTrigger value="enrollments">Enrollments</TabsTrigger><TabsTrigger value="attendance">Attendance</TabsTrigger><TabsTrigger value="payments">Payments</TabsTrigger></TabsList>

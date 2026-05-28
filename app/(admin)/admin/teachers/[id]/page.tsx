@@ -1,2 +1,4 @@
 import { notFound } from "next/navigation";import { Card, CardContent } from "@/components/ui/card";import { DataTable } from "@/components/admin/shared/DataTable";import { prisma } from "@/lib/prisma";
+export const dynamic = 'force-dynamic'
+
 export default async function TeacherDetail({params}:{params:Promise<{id:string}>}){const {id}=await params;const t=await prisma.user.findUnique({where:{id},include:{teacherProfile:{include:{schedules:{include:{course:true}}}}}});if(!t) notFound();return <div className='space-y-6'><Card><CardContent className='p-6'><h1 className='text-2xl font-bold'>{t.firstName} {t.lastName}</h1><p>{t.email}</p><p>{t.teacherProfile?.specialty}</p><p>{t.teacherProfile?.bio}</p></CardContent></Card><DataTable data={t.teacherProfile?.schedules??[]} columns={[{key:'course',label:'Course',render:r=>r.course.title},{key:'dayOfWeek',label:'Day'},{key:'time',label:'Time',render:r=>`${r.startTime}-${r.endTime}`},{key:'room',label:'Room'}]} /></div>}
