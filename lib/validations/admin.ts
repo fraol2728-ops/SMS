@@ -11,7 +11,7 @@ export const studentSchema = z.object({
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
   emergencyContact: z.string().optional(),
-  courseId: z.string().min(1),
+  courseId: z.string().min(1, "Please select a course"),
   startDate: z.string().min(1),
   notes: z.string().optional(),
 });
