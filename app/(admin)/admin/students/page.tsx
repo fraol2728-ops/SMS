@@ -2,6 +2,8 @@ import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StudentsTable } from "@/components/admin/students/StudentsTable";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic'
+
 export default async function StudentsPage() {
   const students = await prisma.user.findMany({ where: { role: "STUDENT" }, include: { studentProfile: { include: { enrollments: { include: { course: true } } } } }, orderBy: { createdAt: "desc" } });
   const rows = students.map((s:any) => {

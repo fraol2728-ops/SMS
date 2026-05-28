@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server'
 
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 const isRole = (value: string): value is Role => {
   return value === 'ADMIN' || value === 'TEACHER' || value === 'STUDENT'
 }

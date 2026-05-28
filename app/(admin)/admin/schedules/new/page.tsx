@@ -1,2 +1,4 @@
 import { PageHeader } from "@/components/admin/shared/PageHeader";import { ScheduleForm } from "@/components/admin/schedules/ScheduleForm";import { prisma } from "@/lib/prisma";
+export const dynamic = 'force-dynamic'
+
 export default async function NewSchedulePage(){const [courses,teachers]=await Promise.all([prisma.course.findMany({where:{isActive:true}}),prisma.teacherProfile.findMany({include:{user:true}})]);return <div className='space-y-6'><PageHeader title='Add schedule'/><ScheduleForm courses={courses} teachers={teachers}/></div>}
