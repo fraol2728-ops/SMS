@@ -38,12 +38,8 @@ export function StudentForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [selectedCourseId, setSelectedCourseId] = useState(
-    courses[0]?.id ?? "",
-  );
-  const [paymentAmount, setPaymentAmount] = useState(
-    String(courses[0]?.fee ?? 0),
-  );
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("0");
   const [paymentStatus, setPaymentStatus] = useState("PENDING");
   async function onSubmit(formData: FormData) {
     setLoading(true);
