@@ -76,16 +76,24 @@ export async function createStudent(input: ActionInput) {
     const normalizedPhone = v.phone.trim().replace(/\s+/g, "");
     const email = v.email?.trim()
       ? v.email.trim()
-      : `${normalizedPhone}.${Date.now()}@exceed.local`;
-
-    const existingUser = await prisma.user.findFirst({
-      where: { email },
-    });
-    if (existingUser) {
-      return err("A student with this email or phone is already registered.");
-    }
+      : `student.${normalizedPhone}.${Date.now()}@exceed.local`;
 
     const clerk = await clerkClient();
+
+    // Check if email already exists in Clerk
+    try {
+      const existingClerkUsers = await clerk.users.getUserList({
+        emailAddress: [email],
+      });
+      if (existingClerkUsers.totalCount > 0) {
+        return err(
+          "This email or phone is already registered in the system. Please use different details.",
+        );
+      }
+    } catch {
+      // If check fails, proceed and let Clerk handle the duplicate error
+    }
+
     const clerkUser = await clerk.users.createUser({
       emailAddress: [email],
       publicMetadata: { role: "STUDENT" },
@@ -168,19 +176,24 @@ export async function createStudent(input: ActionInput) {
     }
   } catch (e) {
     if (e instanceof Error) {
+      const msg = e.message.toLowerCase();
       if (
-        e.message.includes("email") ||
-        e.message.includes("Unprocessable") ||
-        e.message.includes("duplicate") ||
-        e.message.includes("unique")
+        msg.includes("email") ||
+        msg.includes("unprocessable") ||
+        msg.includes("duplicate") ||
+        msg.includes("unique") ||
+        msg.includes("already")
       ) {
         return err(
-          "This email or phone is already registered. Please use a different email or phone number.",
+          "This email is already registered. Please use a different email address.",
         );
+      }
+      if (msg.includes("invalid") && msg.includes("email")) {
+        return err("Please enter a valid email address.");
       }
       return err(e.message);
     }
-    return err("Failed to create student");
+    return err("Something went wrong. Please try again.");
   }
 }
 
@@ -309,14 +322,22 @@ export async function createTeacher(formData: FormData) {
 
     const v = teacherSchema.parse(normalized);
 
-    const existingUser = await prisma.user.findFirst({
-      where: { email: v.email },
-    });
-    if (existingUser) {
-      return err("A teacher with this email is already registered.");
+    const clerk = await clerkClient();
+
+    // Check if email already exists in Clerk
+    try {
+      const existingClerkUsers = await clerk.users.getUserList({
+        emailAddress: [v.email],
+      });
+      if (existingClerkUsers.totalCount > 0) {
+        return err(
+          "A teacher with this email already exists. Please use a different email.",
+        );
+      }
+    } catch {
+      // If check fails, proceed and let Clerk handle the duplicate error
     }
 
-    const clerk = await clerkClient();
     const cu = await clerk.users.createUser({
       emailAddress: [v.email],
       publicMetadata: { role: "TEACHER" },
@@ -354,17 +375,24 @@ export async function createTeacher(formData: FormData) {
     return ok;
   } catch (e) {
     if (e instanceof Error) {
+      const msg = e.message.toLowerCase();
       if (
-        e.message.includes("email") ||
-        e.message.includes("Unprocessable") ||
-        e.message.includes("duplicate") ||
-        e.message.includes("unique")
+        msg.includes("email") ||
+        msg.includes("unprocessable") ||
+        msg.includes("duplicate") ||
+        msg.includes("unique") ||
+        msg.includes("already")
       ) {
-        return err("A teacher with this email already exists in the system.");
+        return err(
+          "This email is already registered. Please use a different email address.",
+        );
+      }
+      if (msg.includes("invalid") && msg.includes("email")) {
+        return err("Please enter a valid email address.");
       }
       return err(e.message);
     }
-    return err("Failed to create teacher");
+    return err("Something went wrong. Please try again.");
   }
 }
 
