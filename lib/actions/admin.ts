@@ -46,6 +46,20 @@ function slugify(value: string) {
     .replace(/-+/g, "-");
 }
 
+function generateSlug(title: string): string {
+  const suffix = Math.random().toString(36).substring(2, 7);
+  return `${slugify(title)}-${suffix}`;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2002"
+  );
+}
+
 export async function createStudent(input: ActionInput) {
   try {
     const raw = actionInputToObject(input);
@@ -190,20 +204,38 @@ export async function createCourse(input: ActionInput) {
       isActive: parseBoolean(raw.isActive, true),
     });
 
-    await prisma.course.create({
-      data: {
-        title: v.title,
-        fee: v.fee,
-        isActive: v.isActive,
-        slug: slugify(v.title),
-        durationWeeks: 8,
-        classType: "GROUP",
-        description: null,
-      },
-    });
+    const createCourseWithSlug = () =>
+      prisma.course.create({
+        data: {
+          title: v.title,
+          fee: v.fee,
+          isActive: v.isActive,
+          slug: generateSlug(v.title),
+          durationWeeks: 8,
+          classType: "GROUP",
+          description: null,
+        },
+      });
+
+    try {
+      await createCourseWithSlug();
+    } catch (e) {
+      if (!isUniqueConstraintError(e)) {
+        throw e;
+      }
+
+      await createCourseWithSlug();
+    }
+
     revalidatePath("/admin/courses");
     return ok;
   } catch (e) {
+    if (isUniqueConstraintError(e)) {
+      return err(
+        "A course with this name already exists. Please use a different name.",
+      );
+    }
+
     return err(e instanceof Error ? e.message : "Failed");
   }
 }
