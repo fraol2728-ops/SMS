@@ -1,18 +1,25 @@
 import { z } from "zod";
 
 export const studentSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  email: z.string().email(),
-  phone: z.string().optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  phone: z.string().min(1, "Phone number is required"),
+  email: z.string().email().optional().or(z.literal("")),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
-  dateOfBirth: z.string().optional(),
   address: z.string().optional(),
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
   emergencyContact: z.string().optional(),
-  courseId: z.string().min(1),
-  startDate: z.string().min(1),
+  courseId: z.string().min(1, "Please select a course"),
+  schedule: z.string().min(1, "Please select a schedule"),
+  days: z.string().min(1, "Please select days"),
+  classType: z.enum(["PERSONAL", "GROUP"]),
+  startDate: z.string().optional(),
+  paymentStatus: z.enum(["PENDING", "PAID", "OVERDUE", "CANCELLED"]),
+  paymentMethod: z
+    .enum(["CASH", "BANK_TRANSFER", "MOBILE_MONEY", "CARD"])
+    .optional(),
+  paymentAmount: z.number().min(0),
   notes: z.string().optional(),
 });
 
@@ -27,13 +34,9 @@ export const teacherSchema = z.object({
 });
 
 export const courseSchema = z.object({
-  title: z.string().min(1),
-  slug: z.string().min(1),
-  description: z.string().optional(),
-  classType: z.enum(["PERSONAL", "GROUP"]),
-  durationWeeks: z.coerce.number().min(1),
-  fee: z.coerce.number().min(0),
-  isActive: z.coerce.boolean().default(true),
+  title: z.string().min(1, "Course name is required"),
+  fee: z.number().min(0, "Fee is required"),
+  isActive: z.boolean().default(true),
 });
 
 export const scheduleSchema = z.object({
@@ -45,4 +48,13 @@ export const scheduleSchema = z.object({
   room: z.string().optional(),
 });
 
-export const updateStudentSchema = studentSchema.partial().omit({ courseId: true, startDate: true });
+export const updateStudentSchema = studentSchema.partial().omit({
+  courseId: true,
+  schedule: true,
+  days: true,
+  classType: true,
+  startDate: true,
+  paymentStatus: true,
+  paymentMethod: true,
+  paymentAmount: true,
+});
