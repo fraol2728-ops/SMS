@@ -1,9 +1,90 @@
 "use client";
-import { useState } from "react";
+
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import { createCourse, updateCourse } from "@/lib/actions/admin";
-import { Input } from "@/components/ui/input";import { Textarea } from "@/components/ui/textarea";import { Switch } from "@/components/ui/switch";import { Button } from "@/components/ui/button";
-export function CourseForm({ defaultValues }: { defaultValues?: any }) { const [title,setTitle]=useState(defaultValues?.title??""); const [slug,setSlug]=useState(defaultValues?.slug??""); const [isActive,setIsActive]=useState(defaultValues?.isActive??true); const r=useRouter(); const isEdit=!!defaultValues;
-async function submit(fd:FormData){fd.set("isActive",String(isActive)); const res=isEdit?await updateCourse(defaultValues.id,fd):await createCourse(fd); if(res.success) r.push('/admin/courses'); else toast.error(res.error)}
-return <form action={submit} className="space-y-3 max-w-2xl"><Input name="title" value={title} onChange={e=>{setTitle(e.target.value);setSlug(e.target.value.toLowerCase().replaceAll(' ','-'));}}/><Input name="slug" value={slug} onChange={e=>setSlug(e.target.value)}/><Textarea name="description" defaultValue={defaultValues?.description}/><select name="classType" defaultValue={defaultValues?.classType??'PERSONAL'} className="h-10 rounded-md border px-3"><option value="PERSONAL">PERSONAL</option><option value="GROUP">GROUP</option></select><Input name="durationWeeks" type="number" min={1} defaultValue={defaultValues?.durationWeeks??1}/><Input name="fee" type="number" min={0} defaultValue={defaultValues?.fee??0}/><div className="flex items-center gap-2"><Switch checked={isActive} onCheckedChange={setIsActive}/>Active</div><Button type="submit">{isEdit?"Update":"Create"} course</Button></form> }
+
+type CourseDefaults = {
+  id: string;
+  title?: string | null;
+  fee?: number | null;
+  isActive?: boolean | null;
+};
+
+export function CourseForm({
+  defaultValues,
+}: {
+  defaultValues?: CourseDefaults;
+}) {
+  const router = useRouter();
+  const isEdit = Boolean(defaultValues);
+  const [isActive, setIsActive] = useState(defaultValues?.isActive ?? true);
+  const [loading, setLoading] = useState(false);
+
+  async function submit(formData: FormData) {
+    setLoading(true);
+    formData.set("isActive", String(isActive));
+    const values = Object.fromEntries(formData.entries());
+    const res =
+      isEdit && defaultValues
+        ? await updateCourse(defaultValues.id, formData)
+        : await createCourse({
+            title: values.title,
+            fee: Number(values.fee),
+            isActive,
+          });
+    setLoading(false);
+
+    if (res.success) {
+      router.push("/admin/courses");
+      return;
+    }
+
+    toast.error(res.error);
+  }
+
+  return (
+    <form action={submit} className="max-w-xl space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="title">Course Name</Label>
+        <Input
+          id="title"
+          name="title"
+          required
+          type="text"
+          defaultValue={defaultValues?.title ?? ""}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="fee">Course Fee (ETB)</Label>
+        <Input
+          id="fee"
+          name="fee"
+          required
+          type="number"
+          min={0}
+          step="0.01"
+          defaultValue={defaultValues?.fee ?? ""}
+        />
+      </div>
+      <div className="flex items-center gap-3 rounded-md border p-4">
+        <Switch
+          id="isActive"
+          checked={isActive}
+          onCheckedChange={setIsActive}
+        />
+        <Label htmlFor="isActive">Active</Label>
+      </div>
+      <Button type="submit" disabled={loading}>
+        {loading ? <Spinner className="mr-2" /> : null}
+        Add Course
+      </Button>
+    </form>
+  );
+}
