@@ -47,20 +47,21 @@ export function StudentForm({
   const [paymentStatus, setPaymentStatus] = useState("PENDING");
   async function onSubmit(formData: FormData) {
     setLoading(true);
-    const values = Object.fromEntries(formData.entries());
-    const res = await createStudent({
-      ...values,
-      paymentAmount: Number(values.paymentAmount),
-    });
-    setLoading(false);
-
-    if (res.success) {
-      toast.success("Student registered successfully");
-      router.push("/admin/students");
-      return;
+    try {
+      const values = Object.fromEntries(formData.entries());
+      const res = await createStudent({
+        ...values,
+        paymentAmount: Number(values.paymentAmount),
+      });
+      if (res.success) {
+        toast.success("Student registered successfully");
+        router.push("/admin/students");
+      } else {
+        toast.error(res.error);
+      }
+    } finally {
+      setLoading(false);
     }
-
-    toast.error(res.error);
   }
 
   return (
