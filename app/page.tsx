@@ -12,11 +12,8 @@ export default async function HomePage() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gray-50">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Exceed</h1>
-          <p className="text-gray-500 mb-2">
+          <p className="text-gray-500 mb-8">
             Training Center Management System
-          </p>
-          <p className="text-sm text-gray-400 mb-8">
-            Sign in with the email provided by your administrator
           </p>
           <SignInButton mode="modal">
             <button
@@ -31,6 +28,7 @@ export default async function HomePage() {
     );
   }
 
+  // Get full user to read publicMetadata
   const user = await currentUser();
   const role = user?.publicMetadata?.role as string | undefined;
 
@@ -38,5 +36,14 @@ export default async function HomePage() {
   if (role === "TEACHER") redirect("/teacher");
   if (role === "STUDENT") redirect("/student");
 
-  redirect("/unauthorized");
+  // Signed in but no role set
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <h1 className="text-2xl font-bold">Welcome to Exceed</h1>
+      <p className="text-gray-500">Your account has no role assigned yet.</p>
+      <p className="text-sm text-gray-400">
+        Please contact your administrator to get access.
+      </p>
+    </div>
+  );
 }
