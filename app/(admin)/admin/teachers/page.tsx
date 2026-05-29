@@ -1,2 +1,58 @@
-import Link from "next/link";import { PageHeader } from "@/components/admin/shared/PageHeader";import { DataTable } from "@/components/admin/shared/DataTable";import { Button } from "@/components/ui/button";import { prisma } from "@/lib/prisma";
-export default async function TeachersPage(){const rows=await prisma.user.findMany({where:{role:'TEACHER'},include:{teacherProfile:{include:{schedules:true}}},orderBy:{createdAt:'desc'}});return <div className='space-y-6'><PageHeader title='Teachers' action={{label:'Add teacher',href:'/admin/teachers/new'}}/><DataTable data={rows} columns={[{key:'code',label:'Code',render:r=>r.teacherProfile?.teacherCode??'-'},{key:'name',label:'Name',render:r=>`${r.firstName} ${r.lastName}`},{key:'email',label:'Email'},{key:'specialty',label:'Specialty',render:r=>r.teacherProfile?.specialty??'-'},{key:'schedules',label:'Schedules count',render:r=>r.teacherProfile?.schedules.length??0},{key:'actions',label:'Actions',render:r=><Button asChild size='sm' variant='outline'><Link href={`/admin/teachers/${r.id}`}>View</Link></Button>}]} /></div>}
+import Link from "next/link";
+import { DataTable } from "@/components/admin/shared/DataTable";
+import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { Button } from "@/components/ui/button";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+
+export default async function TeachersPage() {
+  const rows = await prisma.user.findMany({
+    where: { role: "TEACHER" },
+    include: { teacherProfile: { include: { schedules: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Teachers"
+        action={{ label: "Add teacher", href: "/admin/teachers/new" }}
+      />
+      <DataTable
+        data={rows}
+        columns={[
+          {
+            key: "code",
+            label: "Code",
+            render: (r) => r.teacherProfile?.teacherCode ?? "-",
+          },
+          {
+            key: "name",
+            label: "Name",
+            render: (r) => `${r.firstName} ${r.lastName}`,
+          },
+          { key: "email", label: "Email" },
+          {
+            key: "specialty",
+            label: "Specialty",
+            render: (r) => r.teacherProfile?.specialty ?? "-",
+          },
+          {
+            key: "schedules",
+            label: "Schedules count",
+            render: (r) => r.teacherProfile?.schedules.length ?? 0,
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            render: (r) => (
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/admin/teachers/${r.id}`}>View</Link>
+              </Button>
+            ),
+          },
+        ]}
+      />
+    </div>
+  );
+}
