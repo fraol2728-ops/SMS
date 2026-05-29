@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StudentForm } from "@/components/admin/students/StudentForm";
+import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewStudentPage() {
+  const campusId = await getCurrentUserCampusId();
   const courses = await prisma.course.findMany({
-    where: { isActive: true },
+    where: { isActive: true, ...(campusId ? { campusId } : {}) },
     orderBy: { title: "asc" },
     select: { id: true, title: true, fee: true },
   });

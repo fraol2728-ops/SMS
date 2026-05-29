@@ -1,27 +1,24 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { DataTable } from "@/components/admin/shared/DataTable";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
-
-export default async function TeachersPage() {
-  const campusId = await getCurrentUserCampusId();
-  const rows = await prisma.user.findMany({
-    where: { role: "TEACHER", ...(campusId ? { campusId } : {}) },
-    include: { teacherProfile: { include: { schedules: true } } },
+export default async function SuperAdminTeachersPage() {
+  const teachers = await prisma.user.findMany({
+    where: { role: "TEACHER" },
+    include: { campus: true, teacherProfile: true },
     orderBy: { createdAt: "desc" },
   });
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Teachers"
-        action={{ label: "Add teacher", href: "/admin/teachers/new" }}
-      />
+      <PageHeader title="All Teachers" />
       <DataTable
-        data={rows}
+        data={teachers}
+        emptyMessage="No teachers yet."
         columns={[
           {
             key: "code",
@@ -35,14 +32,9 @@ export default async function TeachersPage() {
           },
           { key: "email", label: "Email" },
           {
-            key: "specialty",
-            label: "Specialty",
-            render: (r) => r.teacherProfile?.specialty ?? "-",
-          },
-          {
-            key: "schedules",
-            label: "Schedules count",
-            render: (r) => r.teacherProfile?.schedules.length ?? 0,
+            key: "campus",
+            label: "Campus",
+            render: (r) => r.campus?.name ?? "Unassigned",
           },
           {
             key: "actions",

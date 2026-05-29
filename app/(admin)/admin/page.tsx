@@ -1,11 +1,32 @@
 import { BookOpen, CreditCard, GraduationCap, Users } from "lucide-react";
 import { KpiCard } from "@/components/admin/shared/KpiCard";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
+import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
+
+type RecentEnrollment = {
+  id: string;
+  startDate: Date;
+  status: string;
+  student: { user: { firstName: string; lastName: string } };
+  course: { title: string };
+};
+
+type RecentPayment = {
+  id: string;
+  amount: number;
+  method: string | null;
+  status: string;
+  createdAt: Date;
+  user: { firstName: string; lastName: string };
+  enrollment: { course: { title: string } };
+};
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  const campusId = await getCurrentUserCampusId();
+  const campusCourseWhere = campusId ? { course: { campusId } } : {};
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
   const [
@@ -16,19 +37,31 @@ export default async function AdminPage() {
     recentEnrollments,
     recentPayments,
   ] = await Promise.all([
-    prisma.user.count({ where: { role: "STUDENT" } }),
-    prisma.enrollment.count({ where: { status: "ACTIVE" } }),
-    prisma.course.count({ where: { isActive: true } }),
+    prisma.user.count({
+      where: { role: "STUDENT", ...(campusId ? { campusId } : {}) },
+    }),
+    prisma.enrollment.count({
+      where: { status: "ACTIVE", ...campusCourseWhere },
+    }),
+    prisma.course.count({
+      where: { isActive: true, ...(campusId ? { campusId } : {}) },
+    }),
     prisma.payment.aggregate({
-      where: { status: "PAID", paidAt: { gte: firstDay } },
+      where: {
+        status: "PAID",
+        paidAt: { gte: firstDay },
+        ...(campusId ? { enrollment: { course: { campusId } } } : {}),
+      },
       _sum: { amount: true },
     }),
     prisma.enrollment.findMany({
+      where: campusId ? { course: { campusId } } : undefined,
       take: 10,
       orderBy: { createdAt: "desc" },
       include: { student: { include: { user: true } }, course: true },
     }),
     prisma.payment.findMany({
+      where: campusId ? { enrollment: { course: { campusId } } } : undefined,
       take: 10,
       orderBy: { createdAt: "desc" },
       include: { user: true, enrollment: { include: { course: true } } },
@@ -74,7 +107,7 @@ export default async function AdminPage() {
             </tr>
           </thead>
           <tbody>
-            {recentEnrollments.map((e: any) => (
+            {(recentEnrollments as RecentEnrollment[]).map((e) => (
               <tr key={e.id}>
                 <td>
                   {e.student.user.firstName} {e.student.user.lastName}
@@ -103,7 +136,7 @@ export default async function AdminPage() {
             </tr>
           </thead>
           <tbody>
-            {recentPayments.map((p: any) => (
+            {(recentPayments as RecentPayment[]).map((p) => (
               <tr key={p.id}>
                 <td>
                   {p.user.firstName} {p.user.lastName}
