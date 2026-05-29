@@ -78,6 +78,13 @@ export async function createStudent(input: ActionInput) {
       ? v.email.trim()
       : `${normalizedPhone}.${Date.now()}@exceed.local`;
 
+    const existingUser = await prisma.user.findFirst({
+      where: { email },
+    });
+    if (existingUser) {
+      return err("A student with this email or phone is already registered.");
+    }
+
     const clerk = await clerkClient();
     const clerkUser = await clerk.users.createUser({
       emailAddress: [email],
@@ -161,8 +168,15 @@ export async function createStudent(input: ActionInput) {
     }
   } catch (e) {
     if (e instanceof Error) {
-      if (e.message.includes("email") || e.message.includes("Unprocessable")) {
-        return err("A student with this email or phone already exists.");
+      if (
+        e.message.includes("email") ||
+        e.message.includes("Unprocessable") ||
+        e.message.includes("duplicate") ||
+        e.message.includes("unique")
+      ) {
+        return err(
+          "This email or phone is already registered. Please use a different email or phone number.",
+        );
       }
       return err(e.message);
     }
@@ -295,6 +309,13 @@ export async function createTeacher(formData: FormData) {
 
     const v = teacherSchema.parse(normalized);
 
+    const existingUser = await prisma.user.findFirst({
+      where: { email: v.email },
+    });
+    if (existingUser) {
+      return err("A teacher with this email is already registered.");
+    }
+
     const clerk = await clerkClient();
     const cu = await clerk.users.createUser({
       emailAddress: [v.email],
@@ -333,13 +354,29 @@ export async function createTeacher(formData: FormData) {
     return ok;
   } catch (e) {
     if (e instanceof Error) {
-      if (e.message.includes("email")) {
-        return err("A teacher with this email already exists.");
+      if (
+        e.message.includes("email") ||
+        e.message.includes("Unprocessable") ||
+        e.message.includes("duplicate") ||
+        e.message.includes("unique")
+      ) {
+        return err("A teacher with this email already exists in the system.");
       }
       return err(e.message);
     }
     return err("Failed to create teacher");
   }
+}
+
+export async function syncClerkUsers() {
+  // This action finds Clerk users that don't have a matching DB user
+  // and can be called manually to diagnose sync issues
+  // For now just return a helpful message
+  return {
+    success: true,
+    message:
+      "Use Clerk Dashboard to manually delete orphan users at dashboard.clerk.com",
+  };
 }
 
 export async function createSchedule(formData: FormData) {
