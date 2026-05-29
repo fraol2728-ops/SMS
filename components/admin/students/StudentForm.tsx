@@ -83,8 +83,18 @@ export function StudentForm({
             <Input id="phone" name="phone" required type="text" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" />
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              placeholder="Student email address (required for login)"
+            />
+            <p className="text-xs text-muted-foreground">
+              The student will receive an invitation to this email to access
+              their portal.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>
