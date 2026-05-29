@@ -72,104 +72,128 @@ export async function createStudent(input: ActionInput) {
       paymentAmount: Number(raw.paymentAmount),
     });
 
-    if (!v.email?.trim()) {
-      return err(
-        "Email is required to send the student their login invitation.",
-      );
-    }
-
-    const email = v.email.trim().toLowerCase();
-
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return err("A user with this email is already registered.");
-    }
-
     const startDate = v.startDate ? new Date(v.startDate) : new Date();
-    const studentCount = await prisma.studentProfile.count();
-    const currentYear = new Date().getFullYear();
-    const studentCode = `EXC-${currentYear}-${String(studentCount + 1).padStart(3, "0")}`;
+    const normalizedPhone = v.phone.trim().replace(/\s+/g, "");
+    const email = v.email?.trim()
+      ? v.email.trim()
+      : `student.${normalizedPhone}.${Date.now()}@exceed.local`;
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const newUser = await tx.user.create({
-        data: {
-          clerkId: `pending_${Date.now()}`,
-          role: "STUDENT",
-          firstName: v.firstName,
-          lastName: v.lastName,
-          email,
-          phone: v.phone,
-          gender: v.gender,
-          address: v.address,
-          studentProfile: {
-            create: {
-              studentCode,
-              guardianName: v.guardianName,
-              guardianPhone: v.guardianPhone,
-              emergencyContact: v.emergencyContact,
-              notes: v.notes,
-              enrollments: {
-                create: {
-                  courseId: v.courseId,
-                  startDate,
-                  status: "ACTIVE",
-                  schedule: v.schedule,
-                  days: v.days,
-                  classType: v.classType,
+    const clerk = await clerkClient();
+
+    // Check if email already exists in Clerk
+    try {
+      const existingClerkUsers = await clerk.users.getUserList({
+        emailAddress: [email],
+      });
+      if (existingClerkUsers.totalCount > 0) {
+        return err(
+          "This email or phone is already registered in the system. Please use different details.",
+        );
+      }
+    } catch {
+      // If check fails, proceed and let Clerk handle the duplicate error
+    }
+
+    const clerkUser = await clerk.users.createUser({
+      emailAddress: [email],
+      publicMetadata: { role: "STUDENT" },
+      firstName: v.firstName,
+      lastName: v.lastName,
+    });
+
+    try {
+      const studentCount = await prisma.studentProfile.count();
+      const currentYear = new Date().getFullYear();
+      const studentCode = `EXC-${currentYear}-${String(studentCount + 1).padStart(3, "0")}`;
+
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const user = await tx.user.create({
+          data: {
+            clerkId: clerkUser.id,
+            role: "STUDENT",
+            firstName: v.firstName,
+            lastName: v.lastName,
+            email,
+            phone: v.phone,
+            gender: v.gender,
+            address: v.address,
+            studentProfile: {
+              create: {
+                studentCode,
+                guardianName: v.guardianName,
+                guardianPhone: v.guardianPhone,
+                emergencyContact: v.emergencyContact,
+                notes: v.notes,
+                enrollments: {
+                  create: {
+                    courseId: v.courseId,
+                    startDate,
+                    status: "ACTIVE",
+                    schedule: v.schedule,
+                    days: v.days,
+                    classType: v.classType,
+                  },
                 },
               },
             },
           },
-        },
-        include: {
-          studentProfile: {
-            include: {
-              enrollments: { orderBy: { createdAt: "desc" }, take: 1 },
+          include: {
+            studentProfile: {
+              include: {
+                enrollments: {
+                  orderBy: { createdAt: "desc" },
+                  take: 1,
+                },
+              },
             },
           },
-        },
+        });
+
+        const enrollmentId = user.studentProfile?.enrollments[0]?.id;
+        if (!enrollmentId) throw new Error("Failed to create enrollment");
+
+        await tx.payment.create({
+          data: {
+            userId: user.id,
+            enrollmentId,
+            amount: v.paymentAmount,
+            method: v.paymentMethod,
+            status: v.paymentStatus,
+            paidAt: v.paymentStatus === "PAID" ? new Date() : undefined,
+          },
+        });
+
+        return user;
       });
 
-      const enrollmentId = newUser.studentProfile?.enrollments[0]?.id;
-      if (!enrollmentId) throw new Error("Failed to create enrollment");
-
-      await tx.payment.create({
-        data: {
-          userId: newUser.id,
-          enrollmentId,
-          amount: v.paymentAmount,
-          method: v.paymentMethod,
-          status: v.paymentStatus,
-          paidAt: v.paymentStatus === "PAID" ? new Date() : undefined,
-        },
-      });
-
-      return newUser;
-    });
-
-    try {
-      const clerk = await clerkClient();
-      await clerk.invitations.createInvitation({
-        emailAddress: email,
-        publicMetadata: { role: "STUDENT" },
-        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student`,
-        ignoreExisting: true,
-      });
-    } catch (clerkError) {
-      console.error("Clerk invitation failed:", clerkError);
+      revalidatePath("/admin/students");
+      revalidatePath("/admin/courses");
+      return ok;
+    } catch (dbError) {
+      // Rollback: delete Clerk user if DB transaction fails
+      await clerk.users.deleteUser(clerkUser.id);
+      throw dbError;
     }
-
-    revalidatePath("/admin/students");
-    revalidatePath("/admin/courses");
-    return { success: true as const, studentCode };
   } catch (e) {
     if (e instanceof Error) {
-      if (e.message.includes("email") || e.message.includes("unique")) {
-        return err("A user with this email already exists.");
+      const msg = e.message.toLowerCase();
+      if (
+        msg.includes("email") ||
+        msg.includes("unprocessable") ||
+        msg.includes("duplicate") ||
+        msg.includes("unique") ||
+        msg.includes("already")
+      ) {
+        return err(
+          "This email is already registered. Please use a different email address.",
+        );
+      }
+      if (msg.includes("invalid") && msg.includes("email")) {
+        return err("Please enter a valid email address.");
       }
       return err(e.message);
     }
-    return err("Failed to register student. Please try again.");
+    return err("Something went wrong. Please try again.");
   }
 }
 
@@ -286,6 +310,8 @@ export async function updateCourse(id: string, formData: FormData) {
 export async function createTeacher(formData: FormData) {
   try {
     const raw = actionInputToObject(formData);
+
+    // Normalize empty strings to undefined
     const normalized = {
       ...raw,
       gender: emptyToUndefined(raw.gender),
@@ -293,57 +319,80 @@ export async function createTeacher(formData: FormData) {
       specialty: emptyToUndefined(raw.specialty),
       bio: emptyToUndefined(raw.bio),
     };
+
     const v = teacherSchema.parse(normalized);
 
-    const email = v.email.trim().toLowerCase();
+    const clerk = await clerkClient();
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return err("A user with this email is already registered.");
+    // Check if email already exists in Clerk
+    try {
+      const existingClerkUsers = await clerk.users.getUserList({
+        emailAddress: [v.email],
+      });
+      if (existingClerkUsers.totalCount > 0) {
+        return err(
+          "A teacher with this email already exists. Please use a different email.",
+        );
+      }
+    } catch {
+      // If check fails, proceed and let Clerk handle the duplicate error
     }
 
-    const c = await prisma.teacherProfile.count();
-    await prisma.user.create({
-      data: {
-        clerkId: `pending_${Date.now()}`,
-        role: "TEACHER",
-        firstName: v.firstName,
-        lastName: v.lastName,
-        email,
-        phone: v.phone,
-        gender: v.gender,
-        teacherProfile: {
-          create: {
-            teacherCode: `TCH-${String(c + 1).padStart(3, "0")}`,
-            specialty: v.specialty,
-            bio: v.bio,
-          },
-        },
-      },
+    const cu = await clerk.users.createUser({
+      emailAddress: [v.email],
+      publicMetadata: { role: "TEACHER" },
+      firstName: v.firstName,
+      lastName: v.lastName,
     });
 
     try {
-      const clerk = await clerkClient();
-      await clerk.invitations.createInvitation({
-        emailAddress: email,
-        publicMetadata: { role: "TEACHER" },
-        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/teacher`,
-        ignoreExisting: true,
+      const c = await prisma.teacherProfile.count();
+      await prisma.user.create({
+        data: {
+          clerkId: cu.id,
+          role: "TEACHER",
+          firstName: v.firstName,
+          lastName: v.lastName,
+          email: v.email,
+          phone: v.phone,
+          gender: v.gender,
+          teacherProfile: {
+            create: {
+              teacherCode: `TCH-${String(c + 1).padStart(3, "0")}`,
+              specialty: v.specialty,
+              bio: v.bio,
+            },
+          },
+        },
       });
-    } catch (clerkError) {
-      console.error("Clerk invitation failed:", clerkError);
+    } catch (dbError) {
+      // Rollback: delete Clerk user if DB creation fails
+      await clerk.users.deleteUser(cu.id);
+      throw dbError;
     }
 
     revalidatePath("/admin/teachers");
     return ok;
   } catch (e) {
     if (e instanceof Error) {
-      if (e.message.includes("email") || e.message.includes("unique")) {
-        return err("A user with this email already exists.");
+      const msg = e.message.toLowerCase();
+      if (
+        msg.includes("email") ||
+        msg.includes("unprocessable") ||
+        msg.includes("duplicate") ||
+        msg.includes("unique") ||
+        msg.includes("already")
+      ) {
+        return err(
+          "This email is already registered. Please use a different email address.",
+        );
+      }
+      if (msg.includes("invalid") && msg.includes("email")) {
+        return err("Please enter a valid email address.");
       }
       return err(e.message);
     }
-    return err("Failed to add teacher. Please try again.");
+    return err("Something went wrong. Please try again.");
   }
 }
 
