@@ -56,6 +56,21 @@ function generateSlug(title: string): string {
   return `${slugify(title)}-${suffix}`;
 }
 
+async function getCurrentAdminCampusId(): Promise<string | null> {
+  try {
+    const { auth } = await import("@clerk/nextjs/server");
+    const { userId } = await auth();
+    if (!userId) return null;
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      select: { campusId: true },
+    });
+    return user?.campusId ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function isUniqueConstraintError(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -83,6 +98,17 @@ export async function createStudent(input: ActionInput) {
     }
 
     const email = v.email.trim().toLowerCase();
+    const campusId = await getCurrentAdminCampusId();
+    if (!campusId) {
+      return err(
+        "Could not determine your campus. Please contact super admin.",
+      );
+    }
+
+    const course = await prisma.course.findFirst({
+      where: { id: v.courseId, campusId },
+    });
+    if (!course) return err("This course does not belong to your campus.");
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -105,6 +131,7 @@ export async function createStudent(input: ActionInput) {
           phone: v.phone,
           gender: v.gender,
           address: v.address,
+          campusId,
           studentProfile: {
             create: {
               studentCode,
@@ -155,7 +182,7 @@ export async function createStudent(input: ActionInput) {
       const clerk = await clerkClient();
       await clerk.invitations.createInvitation({
         emailAddress: email,
-        publicMetadata: { role: "STUDENT" },
+        publicMetadata: { role: "STUDENT", campusId },
         redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student`,
         ignoreExisting: true,
       });
@@ -228,6 +255,9 @@ export async function createCourse(input: ActionInput) {
       isActive: parseBoolean(raw.isActive, true),
     });
 
+    const campusId = await getCurrentAdminCampusId();
+    if (!campusId) return err("Could not determine your campus.");
+
     const createCourseWithSlug = () =>
       prisma.course.create({
         data: {
@@ -238,6 +268,7 @@ export async function createCourse(input: ActionInput) {
           durationWeeks: 8,
           classType: "GROUP",
           description: null,
+          campusId,
         },
       });
 
@@ -300,6 +331,12 @@ export async function createTeacher(formData: FormData) {
     const v = teacherSchema.parse(normalized);
 
     const email = v.email.trim().toLowerCase();
+    const campusId = await getCurrentAdminCampusId();
+    if (!campusId) {
+      return err(
+        "Could not determine your campus. Please contact super admin.",
+      );
+    }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -316,6 +353,7 @@ export async function createTeacher(formData: FormData) {
         email,
         phone: v.phone,
         gender: v.gender,
+        campusId,
         teacherProfile: {
           create: {
             teacherCode: `TCH-${String(c + 1).padStart(3, "0")}`,
@@ -330,7 +368,7 @@ export async function createTeacher(formData: FormData) {
       const clerk = await clerkClient();
       await clerk.invitations.createInvitation({
         emailAddress: email,
-        publicMetadata: { role: "TEACHER" },
+        publicMetadata: { role: "TEACHER", campusId },
         redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/teacher`,
         ignoreExisting: true,
       });

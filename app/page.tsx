@@ -34,6 +34,7 @@ export default async function HomePage() {
   const user = await currentUser();
   const role = user?.publicMetadata?.role as string | undefined;
 
+  if (role === "SUPER_ADMIN") redirect("/super-admin");
   if (role === "ADMIN") redirect("/admin");
   if (role === "TEACHER") redirect("/teacher");
   if (role === "STUDENT") redirect("/student");
