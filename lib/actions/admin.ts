@@ -1,6 +1,7 @@
 "use server";
 
 import { clerkClient } from "@clerk/nextjs/server";
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
@@ -70,11 +71,12 @@ export async function createStudent(input: ActionInput) {
       paymentMethod: emptyToUndefined(raw.paymentMethod),
       paymentAmount: Number(raw.paymentAmount),
     });
+
     const startDate = v.startDate ? new Date(v.startDate) : new Date();
     const normalizedPhone = v.phone.trim().replace(/\s+/g, "");
     const email = v.email?.trim()
       ? v.email.trim()
-      : `${normalizedPhone}@exceed.local`;
+      : `${normalizedPhone}.${Date.now()}@exceed.local`;
 
     const clerk = await clerkClient();
     const clerkUser = await clerk.users.createUser({
@@ -84,72 +86,87 @@ export async function createStudent(input: ActionInput) {
       lastName: v.lastName,
     });
 
-    const studentCount = await prisma.studentProfile.count();
-    const currentYear = new Date().getFullYear();
-    const studentCode = `EXC-${currentYear}-${String(studentCount + 1).padStart(3, "0")}`;
+    try {
+      const studentCount = await prisma.studentProfile.count();
+      const currentYear = new Date().getFullYear();
+      const studentCode = `EXC-${currentYear}-${String(studentCount + 1).padStart(3, "0")}`;
 
-    const user = await prisma.user.create({
-      data: {
-        clerkId: clerkUser.id,
-        role: "STUDENT",
-        firstName: v.firstName,
-        lastName: v.lastName,
-        email,
-        phone: v.phone,
-        gender: v.gender,
-        address: v.address,
-        studentProfile: {
-          create: {
-            studentCode,
-            guardianName: v.guardianName,
-            guardianPhone: v.guardianPhone,
-            emergencyContact: v.emergencyContact,
-            notes: v.notes,
-            enrollments: {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const user = await tx.user.create({
+          data: {
+            clerkId: clerkUser.id,
+            role: "STUDENT",
+            firstName: v.firstName,
+            lastName: v.lastName,
+            email,
+            phone: v.phone,
+            gender: v.gender,
+            address: v.address,
+            studentProfile: {
               create: {
-                courseId: v.courseId,
-                startDate,
-                status: "ACTIVE",
-                schedule: v.schedule,
-                days: v.days,
-                classType: v.classType,
+                studentCode,
+                guardianName: v.guardianName,
+                guardianPhone: v.guardianPhone,
+                emergencyContact: v.emergencyContact,
+                notes: v.notes,
+                enrollments: {
+                  create: {
+                    courseId: v.courseId,
+                    startDate,
+                    status: "ACTIVE",
+                    schedule: v.schedule,
+                    days: v.days,
+                    classType: v.classType,
+                  },
+                },
               },
             },
           },
-        },
-      },
-      include: {
-        studentProfile: {
           include: {
-            enrollments: {
-              orderBy: { createdAt: "desc" },
-              take: 1,
+            studentProfile: {
+              include: {
+                enrollments: {
+                  orderBy: { createdAt: "desc" },
+                  take: 1,
+                },
+              },
             },
           },
-        },
-      },
-    });
+        });
 
-    const enrollmentId = user.studentProfile?.enrollments[0]?.id;
-    if (!enrollmentId) {
-      throw new Error("Failed to create enrollment");
+        const enrollmentId = user.studentProfile?.enrollments[0]?.id;
+        if (!enrollmentId) throw new Error("Failed to create enrollment");
+
+        await tx.payment.create({
+          data: {
+            userId: user.id,
+            enrollmentId,
+            amount: v.paymentAmount,
+            method: v.paymentMethod,
+            status: v.paymentStatus,
+            paidAt: v.paymentStatus === "PAID" ? new Date() : undefined,
+          },
+        });
+
+        return user;
+      });
+
+      revalidatePath("/admin/students");
+      revalidatePath("/admin/courses");
+      return ok;
+    } catch (dbError) {
+      // Rollback: delete Clerk user if DB transaction fails
+      await clerk.users.deleteUser(clerkUser.id);
+      throw dbError;
     }
-
-    await prisma.payment.create({
-      data: {
-        userId: user.id,
-        enrollmentId,
-        amount: v.paymentAmount,
-        method: v.paymentMethod,
-        status: v.paymentStatus,
-        paidAt: v.paymentStatus === "PAID" ? new Date() : undefined,
-      },
-    });
-
-    revalidatePath("/admin/students");
-    return ok;
   } catch (e) {
-    return err(e instanceof Error ? e.message : "Failed to create student");
+    if (e instanceof Error) {
+      if (e.message.includes("email") || e.message.includes("Unprocessable")) {
+        return err("A student with this email or phone already exists.");
+      }
+      return err(e.message);
+    }
+    return err("Failed to create student");
   }
 }
 
@@ -228,6 +245,7 @@ export async function createCourse(input: ActionInput) {
     }
 
     revalidatePath("/admin/courses");
+    revalidatePath("/admin/students/new");
     return ok;
   } catch (e) {
     if (isUniqueConstraintError(e)) {
@@ -264,7 +282,19 @@ export async function updateCourse(id: string, formData: FormData) {
 
 export async function createTeacher(formData: FormData) {
   try {
-    const v = teacherSchema.parse(actionInputToObject(formData));
+    const raw = actionInputToObject(formData);
+
+    // Normalize empty strings to undefined
+    const normalized = {
+      ...raw,
+      gender: emptyToUndefined(raw.gender),
+      phone: emptyToUndefined(raw.phone),
+      specialty: emptyToUndefined(raw.specialty),
+      bio: emptyToUndefined(raw.bio),
+    };
+
+    const v = teacherSchema.parse(normalized);
+
     const clerk = await clerkClient();
     const cu = await clerk.users.createUser({
       emailAddress: [v.email],
@@ -272,31 +302,46 @@ export async function createTeacher(formData: FormData) {
       firstName: v.firstName,
       lastName: v.lastName,
     });
-    const c = await prisma.teacherProfile.count();
-    await prisma.user.create({
-      data: {
-        clerkId: cu.id,
-        role: "TEACHER",
-        firstName: v.firstName,
-        lastName: v.lastName,
-        email: v.email,
-        phone: v.phone,
-        gender: v.gender,
-        teacherProfile: {
-          create: {
-            teacherCode: `TCH-${String(c + 1).padStart(3, "0")}`,
-            specialty: v.specialty,
-            bio: v.bio,
+
+    try {
+      const c = await prisma.teacherProfile.count();
+      await prisma.user.create({
+        data: {
+          clerkId: cu.id,
+          role: "TEACHER",
+          firstName: v.firstName,
+          lastName: v.lastName,
+          email: v.email,
+          phone: v.phone,
+          gender: v.gender,
+          teacherProfile: {
+            create: {
+              teacherCode: `TCH-${String(c + 1).padStart(3, "0")}`,
+              specialty: v.specialty,
+              bio: v.bio,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (dbError) {
+      // Rollback: delete Clerk user if DB creation fails
+      await clerk.users.deleteUser(cu.id);
+      throw dbError;
+    }
+
     revalidatePath("/admin/teachers");
     return ok;
-  } catch (_e) {
-    return err("Failed");
+  } catch (e) {
+    if (e instanceof Error) {
+      if (e.message.includes("email")) {
+        return err("A teacher with this email already exists.");
+      }
+      return err(e.message);
+    }
+    return err("Failed to create teacher");
   }
 }
+
 export async function createSchedule(formData: FormData) {
   try {
     const v = scheduleSchema.parse(actionInputToObject(formData));

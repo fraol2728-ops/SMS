@@ -25,6 +25,8 @@ type EnrollmentRecord = {
   payments: { status: string }[];
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function StudentsPage() {
   const students = (await prisma.user.findMany({
     where: { role: "STUDENT" },
