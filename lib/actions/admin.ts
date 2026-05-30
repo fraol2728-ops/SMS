@@ -2,8 +2,10 @@
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { generateReport } from "@/lib/reports";
 import {
   courseSchema,
   studentSchema,
@@ -21,6 +23,11 @@ type ActionInput =
 type StudentCreationTransaction = {
   user: { create: typeof prisma.user.create };
   payment: { create: typeof prisma.payment.create };
+};
+
+type ClassTransferTransaction = {
+  enrollment: { update: typeof prisma.enrollment.update };
+  attendance: { updateMany: typeof prisma.attendance.updateMany };
 };
 
 function actionInputToObject(input: ActionInput) {
@@ -62,8 +69,9 @@ async function getCurrentAdminCampusId(): Promise<string | null> {
     if (!userId) return null;
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
-      select: { campusId: true },
+      select: { campusId: true, role: true },
     });
+    if (user?.role === "SUPER_ADMIN") return null;
     return user?.campusId ?? null;
   } catch {
     return null;
@@ -90,22 +98,23 @@ export async function createStudent(input: ActionInput) {
       paymentAmount: Number(raw.paymentAmount),
     });
 
-    if (!v.email?.trim()) {
-      return err(
-        "Email is required to send the student their login invitation.",
-      );
+    const currentUser = await getCurrentUser();
+    if (!currentUser || !["ADMIN", "SUPER_ADMIN"].includes(currentUser.role)) {
+      return err("Not authorized.");
     }
+    const adminCampusId =
+      currentUser.role === "SUPER_ADMIN" ? null : currentUser.campusId;
 
-    const email = v.email.trim().toLowerCase();
-    const campusId = await getCurrentAdminCampusId();
-    if (!campusId) {
-      return err(
-        "Could not determine your campus. Please contact super admin.",
-      );
-    }
+    const studentCount = await prisma.studentProfile.count();
+    const currentYear = new Date().getFullYear();
+    const studentCode = `EXC-${currentYear}-${String(studentCount + 1).padStart(3, "0")}`;
+
+    const email = v.email?.trim()
+      ? v.email.trim().toLowerCase()
+      : `${studentCode.toLowerCase().replace(/-/g, ".")}@exceed.local`;
 
     const classRecord = await prisma.class.findFirst({
-      where: { id: v.classId, campusId },
+      where: { id: v.classId, campusId: adminCampusId ?? undefined },
       include: {
         _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
       },
@@ -120,10 +129,8 @@ export async function createStudent(input: ActionInput) {
       return err("A user with this email is already registered.");
     }
 
+    const campusId = classRecord.campusId;
     const startDate = v.startDate ? new Date(v.startDate) : new Date();
-    const studentCount = await prisma.studentProfile.count();
-    const currentYear = new Date().getFullYear();
-    const studentCode = `EXC-${currentYear}-${String(studentCount + 1).padStart(3, "0")}`;
 
     await prisma.$transaction(async (tx: StudentCreationTransaction) => {
       const newUser = await tx.user.create({
@@ -181,16 +188,20 @@ export async function createStudent(input: ActionInput) {
       return newUser;
     });
 
-    try {
-      const clerk = await clerkClient();
-      await clerk.invitations.createInvitation({
-        emailAddress: email,
-        publicMetadata: { role: "STUDENT", campusId },
-        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student`,
-        ignoreExisting: true,
-      });
-    } catch (clerkError) {
-      console.error("Clerk invitation failed:", clerkError);
+    const isRealEmail = v.email?.trim() && !v.email.includes("@exceed.local");
+
+    if (isRealEmail) {
+      try {
+        const clerk = await clerkClient();
+        await clerk.invitations.createInvitation({
+          emailAddress: email,
+          publicMetadata: { role: "STUDENT", campusId },
+          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student`,
+          ignoreExisting: true,
+        });
+      } catch (clerkError) {
+        console.error("Clerk invitation failed:", clerkError);
+      }
     }
 
     revalidatePath("/admin/students");
@@ -246,6 +257,81 @@ export async function deleteStudent(id: string) {
     return ok;
   } catch (_e) {
     return err("Failed");
+  }
+}
+
+export async function changeStudentClass(
+  enrollmentId: string,
+  newClassId: string,
+) {
+  try {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+      include: {
+        class: true,
+        attendance: true,
+        payments: true,
+      },
+    });
+
+    if (!enrollment) return err("Enrollment not found.");
+    if (enrollment.classId === newClassId) {
+      return err("Student is already in this class.");
+    }
+
+    const newClass = await prisma.class.findUnique({
+      where: { id: newClassId },
+      include: {
+        _count: {
+          select: { enrollments: { where: { status: "ACTIVE" } } },
+        },
+      },
+    });
+
+    if (!newClass) return err("Selected class not found.");
+    if (newClass._count.enrollments >= newClass.capacity) {
+      return err("This class is full. Please select a different class.");
+    }
+
+    await prisma.$transaction(async (tx: ClassTransferTransaction) => {
+      await tx.enrollment.update({
+        where: { id: enrollmentId },
+        data: { classId: newClassId, courseId: newClass.courseId },
+      });
+
+      if (enrollment.attendance.length > 0) {
+        await tx.attendance.updateMany({
+          where: { enrollmentId },
+          data: { classId: newClassId },
+        });
+      }
+    });
+
+    revalidatePath("/admin/students");
+    revalidatePath(`/admin/classes/${enrollment.classId}`);
+    revalidatePath(`/admin/classes/${newClassId}`);
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to change class");
+  }
+}
+
+export async function getReportPreview(type: "daily" | "weekly" | "monthly") {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return err("Not authenticated");
+
+    const campusId = user.role === "SUPER_ADMIN" ? null : user.campusId;
+    const report = await generateReport(type, campusId);
+
+    return {
+      success: true as const,
+      summary: report.summary,
+      periodLabel: report.periodLabel,
+      filename: report.filename,
+    };
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to generate preview");
   }
 }
 
