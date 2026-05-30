@@ -11,16 +11,20 @@ const isPublicRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) return NextResponse.next();
 
-  const { userId } = await auth();
+  const { userId, sessionClaims } = await auth();
 
   if (!userId) {
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
-  const { sessionClaims } = await auth();
-  const metadata = sessionClaims?.metadata as { role?: string } | undefined;
-  const role = metadata?.role;
+  const metadata = sessionClaims?.metadata as
+    | {
+        role?: string;
+        campusId?: string;
+      }
+    | undefined;
 
+  const role = metadata?.role;
   const path = req.nextUrl.pathname;
 
   if (!role) {
@@ -28,6 +32,18 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
 
+  // SUPER_ADMIN role must be set manually in Clerk Dashboard
+  // for the primary owner account
+  if (role === "SUPER_ADMIN") {
+    if (path.startsWith("/student") || path.startsWith("/teacher")) {
+      return NextResponse.redirect(new URL("/super-admin", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (path.startsWith("/super-admin") && role !== "SUPER_ADMIN") {
+    return NextResponse.redirect(new URL("/unauthorized", req.url));
+  }
   if (path.startsWith("/admin") && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
