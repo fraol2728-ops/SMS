@@ -15,12 +15,13 @@ export default async function NewStudentPage() {
     },
     include: {
       course: { select: { title: true, fee: true } },
+      lab: { select: { name: true } },
       teacher: {
         include: { user: { select: { firstName: true, lastName: true } } },
       },
       _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
     },
-    orderBy: [{ labName: "asc" }, { timeSlot: "asc" }],
+    orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
   });
 
   return (

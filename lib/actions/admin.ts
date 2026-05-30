@@ -496,12 +496,12 @@ export async function createClass(formData: FormData) {
 
     const courseId = formData.get("courseId") as string;
     const teacherId = formData.get("teacherId") as string;
-    const labName = formData.get("labName") as string;
+    const labId = formData.get("labId") as string;
     const timeSlot = formData.get("timeSlot") as string;
     const days = formData.get("days") as string;
     const capacity = Number(formData.get("capacity") ?? 20);
 
-    if (!courseId || !teacherId || !labName || !timeSlot || !days) {
+    if (!courseId || !teacherId || !labId || !timeSlot || !days) {
       return err("All fields are required.");
     }
 
@@ -512,27 +512,26 @@ export async function createClass(formData: FormData) {
     const selectedTimeSlot = timeSlot as keyof typeof TIME_SLOTS;
     const selectedDays = days as keyof typeof CLASS_DAYS;
 
-    const [course, teacher] = await Promise.all([
+    const [course, teacher, lab] = await Promise.all([
       prisma.course.findFirst({ where: { id: courseId, campusId } }),
       prisma.teacherProfile.findFirst({
         where: { id: teacherId, user: { campusId } },
       }),
+      prisma.lab.findFirst({ where: { id: labId, campusId, isActive: true } }),
     ]);
     if (!course) return err("Selected course not found.");
     if (!teacher) return err("Selected teacher not found.");
+    if (!lab) return err("Selected lab not found.");
 
     const existing = await prisma.class.findFirst({
       where: {
-        campusId,
-        labName,
+        labId,
         timeSlot: selectedTimeSlot,
         days: selectedDays,
       },
     });
     if (existing) {
-      return err(
-        `${labName} is already booked for ${timeSlot} on ${days}. Please choose a different lab or time.`,
-      );
+      return err(`${lab.name} is already booked for this time slot and days.`);
     }
 
     await prisma.class.create({
@@ -540,7 +539,7 @@ export async function createClass(formData: FormData) {
         campusId,
         courseId,
         teacherId,
-        labName,
+        labId,
         timeSlot: selectedTimeSlot,
         days: selectedDays,
         capacity,

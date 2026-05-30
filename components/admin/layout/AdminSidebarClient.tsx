@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   LogOut,
+  Package,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -24,6 +25,7 @@ const items = [
   ["/admin/courses", "Courses", BookOpen],
   ["/admin/teachers", "Teachers", GraduationCap],
   ["/admin/classes", "Classes", LayoutGrid],
+  ["/admin/inventory", "Inventory", Package],
   ["/admin/attendance", "Attendance", ClipboardList],
   ["/admin/payments", "Payments", CreditCard],
   ["/admin/reports", "Reports", FileText],

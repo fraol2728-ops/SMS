@@ -80,6 +80,40 @@ enum NotificationTarget {
   ADMIN
 }
 
+enum AssetCategory {
+  COMPUTER
+  MONITOR
+  KEYBOARD
+  MOUSE
+  CHAIR
+  TABLE
+  NETWORK_SWITCH
+  NETWORK_CABLE
+  HEADSET
+  WEBCAM
+  PROJECTOR
+  OTHER
+}
+
+enum AssetCondition {
+  GOOD
+  FAIR
+  DAMAGED
+  UNDER_REPAIR
+  MISSING
+  RETIRED
+}
+
+enum AssetLogAction {
+  ADDED
+  REPAIRED
+  DAMAGED
+  MISSING
+  RETIRED
+  UPDATED
+  RETURNED
+}
+
 model Campus {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -91,6 +125,49 @@ model Campus {
   users   User[]
   courses Course[]
   classes Class[]
+  labs    Lab[]
+}
+
+model Lab {
+  id        String   @id @default(cuid())
+  name      String
+  campusId  String
+  campus    Campus   @relation(fields: [campusId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classes Class[]
+  assets  Asset[]
+
+  @@unique([campusId, name])
+}
+
+model Asset {
+  id           String         @id @default(cuid())
+  labId        String
+  lab          Lab            @relation(fields: [labId], references: [id], onDelete: Cascade)
+  category     AssetCategory
+  name         String
+  serialNumber String?        @unique
+  condition    AssetCondition @default(GOOD)
+  notes        String?
+  addedById    String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  logs AssetLog[]
+}
+
+model AssetLog {
+  id        String         @id @default(cuid())
+  assetId   String
+  asset     Asset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  action    AssetLogAction
+  note      String?
+  createdAt DateTime       @default(now())
 }
 
 model Class {
@@ -101,7 +178,8 @@ model Class {
   course      Course         @relation(fields: [courseId], references: [id])
   teacherId   String
   teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
-  labName     String
+  labId       String
+  lab         Lab            @relation(fields: [labId], references: [id])
   timeSlot    TimeSlot
   days        ClassDays
   capacity    Int            @default(20)
@@ -112,7 +190,7 @@ model Class {
   enrollments Enrollment[]
   attendance  Attendance[]
 
-  @@unique([campusId, labName, timeSlot, days])
+  @@unique([labId, timeSlot, days])
 }
 
 model User {
@@ -139,6 +217,7 @@ model User {
   receivedReports Report[]       @relation("ReportReceiver")
   notifications   Notification[]
   payments        Payment[]
+  assetLogs      AssetLog[]
 }
 
 model StudentProfile {

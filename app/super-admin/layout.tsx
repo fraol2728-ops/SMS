@@ -8,6 +8,7 @@ const navLinks = [
   { href: "/super-admin/students", label: "All Students" },
   { href: "/super-admin/teachers", label: "All Teachers" },
   { href: "/super-admin/courses", label: "All Courses" },
+  { href: "/super-admin/inventory", label: "Inventory" },
   { href: "/super-admin/payments", label: "All Payments" },
   { href: "/super-admin/reports", label: "Reports" },
 ];

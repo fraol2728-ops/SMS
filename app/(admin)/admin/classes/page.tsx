@@ -18,9 +18,10 @@ export default async function ClassesPage() {
       course: true,
       teacher: { include: { user: true } },
       campus: true,
+      lab: { select: { name: true } },
       _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
     },
-    orderBy: [{ labName: "asc" }, { timeSlot: "asc" }],
+    orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
   });
 
   return (
@@ -41,7 +42,7 @@ export default async function ClassesPage() {
                 href={`/admin/classes/${r.id}`}
                 className="font-medium text-blue-600 hover:underline"
               >
-                {r.labName}
+                {r.lab.name}
               </Link>
             ),
           },
