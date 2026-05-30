@@ -61,7 +61,13 @@ export function StudentForm({
   }
 
   return (
-    <form action={onSubmit} className="max-w-4xl space-y-8">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(new FormData(e.currentTarget));
+      }}
+      className="max-w-4xl space-y-8"
+    >
       <section className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold">Personal Info</h2>
