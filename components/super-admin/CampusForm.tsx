@@ -28,7 +28,13 @@ export function CampusForm() {
   }
 
   return (
-    <form action={onSubmit} className="max-w-lg space-y-4">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(new FormData(e.currentTarget));
+      }}
+      className="max-w-lg space-y-4"
+    >
       <div className="space-y-2">
         <Label htmlFor="name">Campus Name *</Label>
         <Input id="name" name="name" required placeholder="e.g. Megenagna" />
