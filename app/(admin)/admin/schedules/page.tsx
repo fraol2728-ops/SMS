@@ -1,12 +1,15 @@
 import { DataTable } from "@/components/admin/shared/DataTable";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const day = (n: number) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][n];
 
 export default async function SchedulesPage() {
+  const campusId = await getCurrentUserCampusId();
   const s = await prisma.schedule.findMany({
+    where: campusId ? { course: { campusId } } : undefined,
     include: { course: true, teacher: { include: { user: true } } },
   });
   return (

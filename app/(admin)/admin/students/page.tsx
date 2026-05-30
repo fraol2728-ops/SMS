@@ -3,6 +3,7 @@ import {
   StudentsTable,
   type StudentTableRow,
 } from "@/components/admin/students/StudentsTable";
+import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
 type StudentRecord = {
@@ -28,8 +29,9 @@ type EnrollmentRecord = {
 export const dynamic = "force-dynamic";
 
 export default async function StudentsPage() {
+  const campusId = await getCurrentUserCampusId();
   const students = (await prisma.user.findMany({
-    where: { role: "STUDENT" },
+    where: { role: "STUDENT", ...(campusId ? { campusId } : {}) },
     include: {
       studentProfile: {
         include: {

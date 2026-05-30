@@ -4,12 +4,15 @@ import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function CoursesPage() {
+  const campusId = await getCurrentUserCampusId();
   const courses = await prisma.course.findMany({
+    where: campusId ? { campusId } : undefined,
     include: { _count: { select: { enrollments: true } } },
     orderBy: { createdAt: "desc" },
   });

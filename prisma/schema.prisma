@@ -9,6 +9,7 @@ datasource db {
 // ─── ENUMS ────────────────────────────────────────────────
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   TEACHER
   STUDENT
@@ -66,6 +67,18 @@ enum NotificationTarget {
   ADMIN
 }
 
+model Campus {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  location  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users   User[]
+  courses Course[]
+}
+
 model User {
   id          String   @id @default(cuid())
   clerkId     String   @unique
@@ -78,6 +91,8 @@ model User {
   gender      Gender?
   dateOfBirth DateTime?
   address     String?
+  campusId    String?
+  campus      Campus?  @relation(fields: [campusId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -124,6 +139,8 @@ model Course {
   fee         Float
   isActive    Boolean   @default(true)
   thumbnail   String?
+  campusId    String
+  campus      Campus    @relation(fields: [campusId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -244,3 +261,5 @@ model Certificate {
   fileUrl     String?
   verifyCode  String   @unique @default(cuid())
 }
+
+// Developer must run: npx prisma db push
