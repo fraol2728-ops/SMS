@@ -6,7 +6,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/unauthorized",
-  "/api/webhooks/clerk(.*)",
+  "/api/webhooks(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
@@ -30,11 +30,14 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (!role) {
     if (path === "/unauthorized") return NextResponse.next();
-    return NextResponse.redirect(new URL("/unauthorized", req.url));
+    // No role in session — could be fresh signup, send to unauthorized
+    // with a message to sign out and sign in again
+    return NextResponse.redirect(
+      new URL("/unauthorized?reason=no-role", req.url),
+    );
   }
 
-  // SUPER_ADMIN role must be set manually in Clerk Dashboard
-  // for the primary owner account
+  // SUPER_ADMIN can access everything except student/teacher portals
   if (role === "SUPER_ADMIN") {
     if (path.startsWith("/student") || path.startsWith("/teacher")) {
       return NextResponse.redirect(new URL("/super-admin", req.url));
