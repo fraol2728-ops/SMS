@@ -50,7 +50,13 @@ export function CourseForm({
   }
 
   return (
-    <form action={submit} className="max-w-xl space-y-5">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit(new FormData(e.currentTarget));
+      }}
+      className="max-w-xl space-y-5"
+    >
       <div className="space-y-2">
         <Label htmlFor="title">Course Name</Label>
         <Input
