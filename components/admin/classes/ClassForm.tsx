@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { createClass } from "@/lib/actions/admin";
-import { CAMPUS_LABS, CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
+import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
 type Course = { id: string; title: string };
 type Teacher = {
@@ -15,21 +15,19 @@ type Teacher = {
   lastName: string;
   teacherProfile: { id: string } | null;
 };
+type Lab = { id: string; name: string };
 
 export function ClassForm({
   courses,
   teachers,
-  campusName,
+  labs,
 }: {
   courses: Course[];
   teachers: Teacher[];
-  campusName: string;
+  labs: Lab[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const labs =
-    CAMPUS_LABS[campusName] ??
-    Array.from({ length: 10 }, (_, i) => `Lab ${i + 1}`);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -91,17 +89,17 @@ export function ClassForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="labName">Lab *</Label>
+          <Label htmlFor="labId">Lab *</Label>
           <select
-            id="labName"
-            name="labName"
+            id="labId"
+            name="labId"
             required
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           >
             <option value="">Select lab</option>
             {labs.map((lab) => (
-              <option key={lab} value={lab}>
-                {lab}
+              <option key={lab.id} value={lab.id}>
+                {lab.name}
               </option>
             ))}
           </select>

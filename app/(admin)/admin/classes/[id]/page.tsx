@@ -27,6 +27,7 @@ export default async function ClassDetailPage({
     include: {
       course: true,
       campus: true,
+      lab: { select: { name: true } },
       teacher: {
         include: {
           user: true,
@@ -63,7 +64,7 @@ export default async function ClassDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`${classRecord.labName} — ${classRecord.course.title}`}
+        title={`${classRecord.lab.name} — ${classRecord.course.title}`}
         description={`${classRecord.campus.name} Campus`}
       />
 
@@ -74,7 +75,7 @@ export default async function ClassDetailPage({
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Lab</p>
-            <p className="font-semibold">{classRecord.labName}</p>
+            <p className="font-semibold">{classRecord.lab.name}</p>
           </div>
         </div>
 

@@ -19,7 +19,12 @@ export default async function CourseDetail({
     where: { id, ...(campusId ? { campusId } : {}) },
     include: {
       enrollments: { include: { student: { include: { user: true } } } },
-      classes: { include: { teacher: { include: { user: true } } } },
+      classes: {
+        include: {
+          teacher: { include: { user: true } },
+          lab: { select: { name: true } },
+        },
+      },
     },
   });
   if (!c) notFound();
@@ -72,7 +77,7 @@ export default async function CourseDetail({
             render: (r) =>
               `${r.teacher.user.firstName} ${r.teacher.user.lastName}`,
           },
-          { key: "labName", label: "Lab" },
+          { key: "lab", label: "Lab", render: (r) => r.lab.name },
           {
             key: "timeSlot",
             label: "Time",

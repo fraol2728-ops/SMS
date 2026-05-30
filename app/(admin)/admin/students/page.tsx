@@ -21,7 +21,7 @@ type StudentRecord = {
 type EnrollmentRecord = {
   status: string;
   class: {
-    labName: string;
+    lab: { name: string };
     timeSlot: string;
     days: string;
     course: { title: string };
@@ -40,7 +40,9 @@ export default async function StudentsPage() {
         include: {
           enrollments: {
             include: {
-              class: { include: { course: true } },
+              class: {
+                include: { course: true, lab: { select: { name: true } } },
+              },
               payments: { orderBy: { createdAt: "desc" }, take: 1 },
             },
             orderBy: { createdAt: "desc" },
@@ -64,7 +66,7 @@ export default async function StudentsPage() {
       studentCode: student.studentProfile?.studentCode ?? "-",
       fullName: `${student.firstName} ${student.lastName}`,
       phone: student.phone ?? "-",
-      lab: classRecord?.labName ?? "-",
+      lab: classRecord?.lab.name ?? "-",
       course: classRecord?.course.title ?? "-",
       time: classRecord
         ? TIME_SLOTS[classRecord.timeSlot as keyof typeof TIME_SLOTS]

@@ -1,0 +1,139 @@
+"use server";
+
+import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+
+const ok = { success: true as const };
+const err = (error: string) => ({ success: false as const, error });
+
+async function getCurrentUserId(): Promise<string | null> {
+  try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return null;
+    const user = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+    return user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function addAsset(labId: string, formData: FormData) {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return err("Not authenticated");
+
+    const category = formData.get("category") as string;
+    const name = formData.get("name") as string;
+    const serialNumber = formData.get("serialNumber") as string | null;
+    const condition = formData.get("condition") as string;
+    const notes = formData.get("notes") as string | null;
+
+    if (!category || !name || !condition) {
+      return err("Category, name, and condition are required.");
+    }
+
+    if (serialNumber?.trim()) {
+      const existing = await prisma.asset.findUnique({
+        where: { serialNumber: serialNumber.trim() },
+      });
+      if (existing) {
+        return err("An asset with this serial number already exists.");
+      }
+    }
+
+    const asset = await prisma.asset.create({
+      data: {
+        labId,
+        category,
+        name: name.trim(),
+        serialNumber: serialNumber?.trim() || null,
+        condition,
+        notes: notes?.trim() || null,
+        addedById: userId,
+      },
+    });
+
+    await prisma.assetLog.create({
+      data: {
+        assetId: asset.id,
+        userId,
+        action: "ADDED",
+        note: `Asset added to inventory${notes?.trim() ? `: ${notes.trim()}` : ""}`,
+      },
+    });
+
+    revalidatePath(`/admin/inventory/${labId}`);
+    revalidatePath("/admin/inventory");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to add asset");
+  }
+}
+
+export async function updateAssetCondition(
+  assetId: string,
+  newCondition: string,
+  action: string,
+  note: string,
+) {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return err("Not authenticated");
+
+    const asset = await prisma.asset.findUnique({
+      where: { id: assetId },
+      select: { labId: true, condition: true },
+    });
+
+    if (!asset) return err("Asset not found");
+
+    await prisma.$transaction(async (tx: typeof prisma) => {
+      await tx.asset.update({
+        where: { id: assetId },
+        data: { condition: newCondition },
+      });
+
+      await tx.assetLog.create({
+        data: {
+          assetId,
+          userId,
+          action,
+          note: note?.trim() || null,
+        },
+      });
+    });
+
+    revalidatePath(`/admin/inventory/${asset.labId}`);
+    revalidatePath(`/admin/inventory/${asset.labId}/assets/${assetId}`);
+    revalidatePath("/admin/inventory");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update asset");
+  }
+}
+
+export async function deleteAsset(assetId: string) {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return err("Not authenticated");
+
+    const asset = await prisma.asset.findUnique({
+      where: { id: assetId },
+      select: { labId: true },
+    });
+
+    if (!asset) return err("Asset not found");
+
+    await prisma.asset.delete({ where: { id: assetId } });
+
+    revalidatePath(`/admin/inventory/${asset.labId}`);
+    revalidatePath("/admin/inventory");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to delete asset");
+  }
+}

@@ -15,7 +15,7 @@ type ReportEnrollment = {
   };
   class: {
     course: { title: string };
-    labName: string;
+    lab: { name: string };
     timeSlot: string;
     days: string;
   } | null;
@@ -32,7 +32,7 @@ type ReportStudent = {
   studentProfile: {
     studentCode: string;
     enrollments: {
-      class: { course: { title: string }; labName: string } | null;
+      class: { course: { title: string }; lab: { name: string } } | null;
     }[];
   } | null;
 };
@@ -47,7 +47,7 @@ type ReportPayment = {
 };
 
 type ReportClass = {
-  labName: string;
+  lab: { name: string };
   course: { title: string };
   teacher: { user: { firstName: string; lastName: string } };
   timeSlot: string;
@@ -105,7 +105,11 @@ export async function generateReport(
           studentProfile: {
             include: {
               enrollments: {
-                include: { class: { include: { course: true } } },
+                include: {
+                  class: {
+                    include: { course: true, lab: { select: { name: true } } },
+                  },
+                },
                 where: { status: "ACTIVE" },
                 take: 1,
               },
@@ -121,7 +125,7 @@ export async function generateReport(
         },
         include: {
           student: { include: { user: true } },
-          class: { include: { course: true } },
+          class: { include: { course: true, lab: { select: { name: true } } } },
           payments: {
             orderBy: { createdAt: "desc" },
             take: 1,
@@ -136,7 +140,11 @@ export async function generateReport(
         include: {
           user: true,
           enrollment: {
-            include: { class: { include: { course: true } } },
+            include: {
+              class: {
+                include: { course: true, lab: { select: { name: true } } },
+              },
+            },
           },
         },
         orderBy: { createdAt: "desc" },
@@ -148,12 +156,13 @@ export async function generateReport(
         },
         include: {
           course: true,
+          lab: { select: { name: true } },
           teacher: { include: { user: true } },
           _count: {
             select: { enrollments: { where: { status: "ACTIVE" } } },
           },
         },
-        orderBy: [{ labName: "asc" }, { timeSlot: "asc" }],
+        orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
       }),
       campusId ? prisma.campus.findUnique({ where: { id: campusId } }) : null,
     ])) as [
@@ -212,7 +221,7 @@ export async function generateReport(
       s.phone ?? "",
       s.email.includes("@exceed.local") ? "(no email)" : s.email,
       enrollment?.class?.course?.title ?? "",
-      enrollment?.class?.labName ?? "",
+      enrollment?.class?.lab.name ?? "",
       s.createdAt.toLocaleDateString("en-GB"),
     ];
   });
@@ -250,7 +259,7 @@ export async function generateReport(
       ? "(no email)"
       : e.student.user.email,
     e.class?.course?.title ?? "",
-    e.class?.labName ?? "",
+    e.class?.lab.name ?? "",
     e.class?.timeSlot ?? "",
     e.class?.days ?? "",
     e.startDate.toLocaleDateString("en-GB"),
@@ -318,7 +327,7 @@ export async function generateReport(
     const enrolled = c._count.enrollments;
     const fillRate = Math.round((enrolled / c.capacity) * 100);
     return [
-      c.labName,
+      c.lab.name,
       c.course.title,
       `${c.teacher.user.firstName} ${c.teacher.user.lastName}`,
       c.timeSlot,
