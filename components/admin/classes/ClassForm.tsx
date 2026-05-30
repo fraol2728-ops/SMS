@@ -27,7 +27,9 @@ export function ClassForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const labs = CAMPUS_LABS[campusName] ?? ["Lab 1", "Lab 2", "Lab 3"];
+  const labs =
+    CAMPUS_LABS[campusName] ??
+    Array.from({ length: 10 }, (_, i) => `Lab ${i + 1}`);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
