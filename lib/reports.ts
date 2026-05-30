@@ -1,0 +1,361 @@
+import * as XLSX from "xlsx";
+import { prisma } from "@/lib/prisma";
+
+export type ReportType = "daily" | "weekly" | "monthly";
+
+type ReportEnrollment = {
+  student: {
+    studentCode: string;
+    user: {
+      firstName: string;
+      lastName: string;
+      phone: string | null;
+      email: string;
+    };
+  };
+  class: {
+    course: { title: string };
+    labName: string;
+    timeSlot: string;
+    days: string;
+  } | null;
+  payments: { status: string; amount: number }[];
+  startDate: Date;
+};
+
+type ReportStudent = {
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  email: string;
+  createdAt: Date;
+  studentProfile: {
+    studentCode: string;
+    enrollments: {
+      class: { course: { title: string }; labName: string } | null;
+    }[];
+  } | null;
+};
+
+type ReportPayment = {
+  amount: number;
+  method: string | null;
+  status: string;
+  createdAt: Date;
+  user: { firstName: string; lastName: string };
+  enrollment: { class: { course: { title: string } } | null } | null;
+};
+
+type ReportClass = {
+  labName: string;
+  course: { title: string };
+  teacher: { user: { firstName: string; lastName: string } };
+  timeSlot: string;
+  days: string;
+  capacity: number;
+  _count: { enrollments: number };
+};
+
+export async function generateReport(
+  type: ReportType,
+  campusId: string | null,
+) {
+  const now = new Date();
+  let startDate: Date;
+  let periodLabel: string;
+
+  if (type === "daily") {
+    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    periodLabel = now.toLocaleDateString("en-GB", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  } else if (type === "weekly") {
+    const dayOfWeek = now.getDay();
+    startDate = new Date(now);
+    startDate.setDate(now.getDate() - dayOfWeek);
+    startDate.setHours(0, 0, 0, 0);
+    periodLabel = `Week of ${startDate.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    })}`;
+  } else {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    periodLabel = now.toLocaleDateString("en-GB", {
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  const campusFilter = campusId ? { campusId } : {};
+  const userCampusFilter = campusId ? { campusId } : {};
+
+  const [newStudents, activeEnrollments, payments, classes, campus] =
+    (await Promise.all([
+      prisma.user.findMany({
+        where: {
+          role: "STUDENT",
+          createdAt: { gte: startDate },
+          ...userCampusFilter,
+        },
+        include: {
+          studentProfile: {
+            include: {
+              enrollments: {
+                include: { class: { include: { course: true } } },
+                where: { status: "ACTIVE" },
+                take: 1,
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.enrollment.findMany({
+        where: {
+          status: "ACTIVE",
+          class: campusId ? { campusId } : undefined,
+        },
+        include: {
+          student: { include: { user: true } },
+          class: { include: { course: true } },
+          payments: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+        },
+      }),
+      prisma.payment.findMany({
+        where: {
+          createdAt: { gte: startDate },
+          user: userCampusFilter,
+        },
+        include: {
+          user: true,
+          enrollment: {
+            include: { class: { include: { course: true } } },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.class.findMany({
+        where: {
+          isActive: true,
+          ...campusFilter,
+        },
+        include: {
+          course: true,
+          teacher: { include: { user: true } },
+          _count: {
+            select: { enrollments: { where: { status: "ACTIVE" } } },
+          },
+        },
+        orderBy: [{ labName: "asc" }, { timeSlot: "asc" }],
+      }),
+      campusId ? prisma.campus.findUnique({ where: { id: campusId } }) : null,
+    ])) as [
+      ReportStudent[],
+      ReportEnrollment[],
+      ReportPayment[],
+      ReportClass[],
+      { name: string } | null,
+    ];
+
+  const campusName = campus?.name ?? "All Campuses";
+  const wb = XLSX.utils.book_new();
+
+  const totalRevenue = payments
+    .filter((p) => p.status === "PAID")
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  const pendingPayments = payments
+    .filter((p) => p.status === "PENDING")
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  const summaryData = [
+    ["EXCEED TRAINING CENTER"],
+    [`${type.toUpperCase()} REPORT — ${periodLabel}`],
+    [`Campus: ${campusName}`],
+    [`Generated: ${now.toLocaleString("en-GB")}`],
+    [],
+    ["SUMMARY", ""],
+    ["New Students Registered", newStudents.length],
+    ["Total Active Enrollments", activeEnrollments.length],
+    ["Total Classes", classes.length],
+    ["Revenue Collected (ETB)", totalRevenue],
+    ["Pending Payments (ETB)", pendingPayments],
+    ["Total Payment Transactions", payments.length],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+  ws1["!cols"] = [{ wch: 35 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, ws1, "Summary");
+
+  const regHeaders = [
+    "Student Code",
+    "First Name",
+    "Last Name",
+    "Phone",
+    "Email",
+    "Course",
+    "Class",
+    "Registration Date",
+  ];
+  const regRows = newStudents.map((s) => {
+    const enrollment = s.studentProfile?.enrollments[0];
+    return [
+      s.studentProfile?.studentCode ?? "",
+      s.firstName,
+      s.lastName,
+      s.phone ?? "",
+      s.email.includes("@exceed.local") ? "(no email)" : s.email,
+      enrollment?.class?.course?.title ?? "",
+      enrollment?.class?.labName ?? "",
+      s.createdAt.toLocaleDateString("en-GB"),
+    ];
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet([regHeaders, ...regRows]);
+  ws2["!cols"] = [
+    { wch: 15 },
+    { wch: 15 },
+    { wch: 15 },
+    { wch: 15 },
+    { wch: 25 },
+    { wch: 20 },
+    { wch: 10 },
+    { wch: 15 },
+  ];
+  XLSX.utils.book_append_sheet(wb, ws2, "New Registrations");
+
+  const studentHeaders = [
+    "Student Code",
+    "Full Name",
+    "Phone",
+    "Email",
+    "Course",
+    "Lab",
+    "Time Slot",
+    "Days",
+    "Start Date",
+    "Payment Status",
+    "Amount (ETB)",
+  ];
+  const studentRows = activeEnrollments.map((e) => [
+    e.student.studentCode,
+    `${e.student.user.firstName} ${e.student.user.lastName}`,
+    e.student.user.phone ?? "",
+    e.student.user.email.includes("@exceed.local")
+      ? "(no email)"
+      : e.student.user.email,
+    e.class?.course?.title ?? "",
+    e.class?.labName ?? "",
+    e.class?.timeSlot ?? "",
+    e.class?.days ?? "",
+    e.startDate.toLocaleDateString("en-GB"),
+    e.payments[0]?.status ?? "No payment",
+    e.payments[0]?.amount ?? 0,
+  ]);
+  const ws3 = XLSX.utils.aoa_to_sheet([studentHeaders, ...studentRows]);
+  ws3["!cols"] = [
+    { wch: 15 },
+    { wch: 20 },
+    { wch: 15 },
+    { wch: 25 },
+    { wch: 20 },
+    { wch: 8 },
+    { wch: 18 },
+    { wch: 15 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 12 },
+  ];
+  XLSX.utils.book_append_sheet(wb, ws3, "Active Students");
+
+  const paymentHeaders = [
+    "Student Name",
+    "Student Code",
+    "Course",
+    "Amount (ETB)",
+    "Method",
+    "Status",
+    "Date",
+  ];
+  const paymentRows = payments.map((p) => [
+    `${p.user.firstName} ${p.user.lastName}`,
+    "",
+    p.enrollment?.class?.course?.title ?? "",
+    p.amount,
+    p.method ?? "",
+    p.status,
+    p.createdAt.toLocaleDateString("en-GB"),
+  ]);
+  const ws4 = XLSX.utils.aoa_to_sheet([paymentHeaders, ...paymentRows]);
+  ws4["!cols"] = [
+    { wch: 20 },
+    { wch: 15 },
+    { wch: 20 },
+    { wch: 12 },
+    { wch: 15 },
+    { wch: 10 },
+    { wch: 12 },
+  ];
+  XLSX.utils.book_append_sheet(wb, ws4, "Payments");
+
+  const classHeaders = [
+    "Lab",
+    "Course",
+    "Teacher",
+    "Time Slot",
+    "Days",
+    "Enrolled",
+    "Capacity",
+    "Spots Left",
+    "Fill Rate",
+  ];
+  const classRows = classes.map((c) => {
+    const enrolled = c._count.enrollments;
+    const fillRate = Math.round((enrolled / c.capacity) * 100);
+    return [
+      c.labName,
+      c.course.title,
+      `${c.teacher.user.firstName} ${c.teacher.user.lastName}`,
+      c.timeSlot,
+      c.days,
+      enrolled,
+      c.capacity,
+      c.capacity - enrolled,
+      `${fillRate}%`,
+    ];
+  });
+  const ws5 = XLSX.utils.aoa_to_sheet([classHeaders, ...classRows]);
+  ws5["!cols"] = [
+    { wch: 8 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 18 },
+    { wch: 15 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 10 },
+  ];
+  XLSX.utils.book_append_sheet(wb, ws5, "Classes Overview");
+
+  const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+  return {
+    buffer,
+    filename: `exceed-${type}-report-${now.toISOString().slice(0, 10)}.xlsx`,
+    periodLabel,
+    summary: {
+      newStudents: newStudents.length,
+      activeEnrollments: activeEnrollments.length,
+      totalRevenue,
+      pendingPayments,
+      totalPayments: payments.length,
+      totalClasses: classes.length,
+    },
+  };
+}

@@ -9,6 +9,7 @@ export async function getCurrentUserCampusId(): Promise<string | null> {
       where: { clerkId: userId },
       select: { campusId: true, role: true },
     });
+    if (user?.role === "SUPER_ADMIN") return null;
     return user?.campusId ?? null;
   } catch {
     return null;

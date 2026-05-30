@@ -9,6 +9,7 @@ const navLinks = [
   { href: "/super-admin/teachers", label: "All Teachers" },
   { href: "/super-admin/courses", label: "All Courses" },
   { href: "/super-admin/payments", label: "All Payments" },
+  { href: "/super-admin/reports", label: "Reports" },
 ];
 
 export default function SuperAdminLayout({
