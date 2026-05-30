@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { DataTable } from "@/components/admin/shared/DataTable";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -31,7 +33,18 @@ export default async function ClassesPage() {
         data={classes}
         emptyMessage="No classes yet. Create a class to start enrolling students."
         columns={[
-          { key: "lab", label: "Lab", render: (r) => r.labName },
+          {
+            key: "lab",
+            label: "Lab",
+            render: (r) => (
+              <Link
+                href={`/admin/classes/${r.id}`}
+                className="font-medium text-blue-600 hover:underline"
+              >
+                {r.labName}
+              </Link>
+            ),
+          },
           { key: "course", label: "Course", render: (r) => r.course.title },
           {
             key: "teacher",
@@ -61,6 +74,15 @@ export default async function ClassesPage() {
               <Badge variant={r.isActive ? "default" : "secondary"}>
                 {r.isActive ? "Active" : "Inactive"}
               </Badge>
+            ),
+          },
+          {
+            key: "actions",
+            label: "Actions",
+            render: (r) => (
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/admin/classes/${r.id}`}>View</Link>
+              </Button>
             ),
           },
         ]}
