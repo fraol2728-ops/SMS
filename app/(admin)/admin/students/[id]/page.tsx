@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
+import { ChangeClassModal } from "@/components/admin/students/ChangeClassModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { dropEnrollmentFormAction } from "@/lib/actions/admin";
+import { getCurrentUserCampusId } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -30,6 +32,7 @@ type EnrollmentRecord = {
   startDate: Date;
   endDate: Date | null;
   status: string;
+  classId: string | null;
   class: {
     labName: string;
     timeSlot: string;
@@ -63,6 +66,24 @@ export default async function StudentDetailPage({
     },
   });
   if (!student) notFound();
+
+  const campusId = await getCurrentUserCampusId();
+  const availableClasses = await prisma.class.findMany({
+    where: {
+      campusId: campusId ?? undefined,
+      isActive: true,
+    },
+    include: {
+      course: { select: { title: true } },
+      teacher: {
+        include: { user: { select: { firstName: true, lastName: true } } },
+      },
+      _count: {
+        select: { enrollments: { where: { status: "ACTIVE" } } },
+      },
+    },
+    orderBy: [{ labName: "asc" }, { timeSlot: "asc" }],
+  });
 
   return (
     <div className="space-y-6">
@@ -141,16 +162,26 @@ export default async function StudentDetailPage({
                         <StatusBadge status={enrollment.status} />
                       </td>
                       <td>
-                        <form
-                          action={dropEnrollmentFormAction.bind(
-                            null,
-                            enrollment.id,
-                          )}
-                        >
-                          <Button size="sm" variant="outline">
-                            Drop
-                          </Button>
-                        </form>
+                        <div className="flex items-center gap-2">
+                          {enrollment.status === "ACTIVE" ? (
+                            <ChangeClassModal
+                              enrollmentId={enrollment.id}
+                              currentClassId={enrollment.classId ?? ""}
+                              studentName={`${student.firstName} ${student.lastName}`}
+                              availableClasses={availableClasses}
+                            />
+                          ) : null}
+                          <form
+                            action={dropEnrollmentFormAction.bind(
+                              null,
+                              enrollment.id,
+                            )}
+                          >
+                            <Button size="sm" variant="outline">
+                              Drop
+                            </Button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   );

@@ -84,17 +84,17 @@ export function StudentForm({
             <Input id="phone" name="phone" required type="text" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
+            <Label htmlFor="email">Email (optional)</Label>
             <Input
               id="email"
               name="email"
               type="email"
-              required
-              placeholder="Student email address (required for login)"
+              placeholder="Student email address"
             />
             <p className="text-xs text-muted-foreground">
-              The student will receive an invitation to this email to access
-              their portal.
+              If no email provided, a system email will be generated
+              automatically. The student can still access the portal via
+              invitation if email is provided.
             </p>
           </div>
           <div className="space-y-2">
