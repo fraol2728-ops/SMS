@@ -30,7 +30,13 @@ export function AdminForm({ campuses }: { campuses: Campus[] }) {
   }
 
   return (
-    <form action={onSubmit} className="max-w-lg space-y-4">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(new FormData(e.currentTarget));
+      }}
+      className="max-w-lg space-y-4"
+    >
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="firstName">First Name *</Label>

@@ -29,7 +29,13 @@ export function TeacherForm() {
   }
 
   return (
-    <form action={onSubmit} className="max-w-2xl space-y-6">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(new FormData(e.currentTarget));
+      }}
+      className="max-w-2xl space-y-6"
+    >
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="firstName">First Name *</Label>
