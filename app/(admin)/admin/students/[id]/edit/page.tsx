@@ -11,32 +11,40 @@ export default async function EditStudentPage({
 }) {
   const { id } = await params;
   const campusId = await getCurrentUserCampusId();
-  const s = await prisma.user.findFirst({
+  const student = await prisma.user.findFirst({
     where: { id, ...(campusId ? { campusId } : {}) },
     include: { studentProfile: true },
   });
-  if (!s) notFound();
-  const courses = await prisma.course.findMany({
+  if (!student) notFound();
+  const classes = await prisma.class.findMany({
     where: { isActive: true, ...(campusId ? { campusId } : {}) },
+    include: {
+      course: { select: { title: true, fee: true } },
+      teacher: {
+        include: { user: { select: { firstName: true, lastName: true } } },
+      },
+      _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+    },
+    orderBy: [{ labName: "asc" }, { timeSlot: "asc" }],
   });
   return (
     <div className="space-y-6">
       <PageHeader title="Edit student" />
       <StudentForm
-        courses={courses}
+        classes={classes}
         defaultValues={{
-          id: s.id,
-          firstName: s.firstName,
-          lastName: s.lastName,
-          email: s.email,
-          phone: s.phone,
-          gender: s.gender,
-          address: s.address,
-          dateOfBirth: s.dateOfBirth?.toISOString(),
-          guardianName: s.studentProfile?.guardianName,
-          guardianPhone: s.studentProfile?.guardianPhone,
-          emergencyContact: s.studentProfile?.emergencyContact,
-          notes: s.studentProfile?.notes,
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          email: student.email,
+          phone: student.phone,
+          gender: student.gender,
+          address: student.address,
+          dateOfBirth: student.dateOfBirth?.toISOString(),
+          guardianName: student.studentProfile?.guardianName,
+          guardianPhone: student.studentProfile?.guardianPhone,
+          emergencyContact: student.studentProfile?.emergencyContact,
+          notes: student.studentProfile?.notes,
         }}
       />
     </div>

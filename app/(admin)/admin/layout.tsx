@@ -6,7 +6,7 @@ const titles: Record<string, string> = {
   students: "Students",
   courses: "Courses",
   teachers: "Teachers",
-  schedules: "Schedules",
+  classes: "Classes",
   attendance: "Attendance",
   payments: "Payments",
   reports: "Reports",
@@ -26,7 +26,9 @@ export default function AdminLayout({
       <AdminSidebar />
       <div className="ml-[240px]">
         <AdminHeader title={title} />
-        <main className="h-[calc(100vh-64px)] overflow-y-auto p-6">{children}</main>
+        <main className="h-[calc(100vh-64px)] overflow-y-auto p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

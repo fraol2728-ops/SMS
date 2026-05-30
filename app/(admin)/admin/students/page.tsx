@@ -4,6 +4,7 @@ import {
   type StudentTableRow,
 } from "@/components/admin/students/StudentsTable";
 import { getCurrentUserCampusId } from "@/lib/campus";
+import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 type StudentRecord = {
@@ -19,10 +20,12 @@ type StudentRecord = {
 
 type EnrollmentRecord = {
   status: string;
-  schedule: string | null;
-  days: string | null;
-  classType: string | null;
-  course: { title: string };
+  class: {
+    labName: string;
+    timeSlot: string;
+    days: string;
+    course: { title: string };
+  } | null;
   payments: { status: string }[];
 };
 
@@ -37,7 +40,7 @@ export default async function StudentsPage() {
         include: {
           enrollments: {
             include: {
-              course: true,
+              class: { include: { course: true } },
               payments: { orderBy: { createdAt: "desc" }, take: 1 },
             },
             orderBy: { createdAt: "desc" },
@@ -54,16 +57,21 @@ export default async function StudentsPage() {
       (enrollment) => enrollment.status === "ACTIVE",
     );
     const latestPayment = latestActiveEnrollment?.payments[0];
+    const classRecord = latestActiveEnrollment?.class;
 
     return {
       id: student.id,
       studentCode: student.studentProfile?.studentCode ?? "-",
       fullName: `${student.firstName} ${student.lastName}`,
       phone: student.phone ?? "-",
-      course: latestActiveEnrollment?.course.title ?? "-",
-      schedule: latestActiveEnrollment?.schedule ?? "-",
-      days: latestActiveEnrollment?.days ?? "-",
-      classType: latestActiveEnrollment?.classType ?? null,
+      lab: classRecord?.labName ?? "-",
+      course: classRecord?.course.title ?? "-",
+      time: classRecord
+        ? TIME_SLOTS[classRecord.timeSlot as keyof typeof TIME_SLOTS]
+        : "-",
+      days: classRecord
+        ? CLASS_DAYS[classRecord.days as keyof typeof CLASS_DAYS]
+        : "-",
       paymentStatus: latestPayment?.status ?? "PENDING",
     };
   });

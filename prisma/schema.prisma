@@ -26,6 +26,19 @@ enum ClassType {
   GROUP
 }
 
+enum TimeSlot {
+  SLOT_8_10
+  SLOT_10_12
+  SLOT_12_2
+  SLOT_3_5
+  SLOT_5_7
+}
+
+enum ClassDays {
+  MWF
+  TTS
+}
+
 enum EnrollmentStatus {
   ACTIVE
   COMPLETED
@@ -77,6 +90,29 @@ model Campus {
 
   users   User[]
   courses Course[]
+  classes Class[]
+}
+
+model Class {
+  id          String         @id @default(cuid())
+  campusId    String
+  campus      Campus         @relation(fields: [campusId], references: [id])
+  courseId    String
+  course      Course         @relation(fields: [courseId], references: [id])
+  teacherId   String
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
+  labName     String
+  timeSlot    TimeSlot
+  days        ClassDays
+  capacity    Int            @default(20)
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  enrollments Enrollment[]
+  attendance  Attendance[]
+
+  @@unique([campusId, labName, timeSlot, days])
 }
 
 model User {
@@ -126,7 +162,7 @@ model TeacherProfile {
   specialty    String?
   bio          String?
 
-  schedules  Schedule[]
+  classes    Class[]
 }
 
 model Course {
@@ -145,7 +181,7 @@ model Course {
   updatedAt   DateTime  @updatedAt
 
   enrollments  Enrollment[]
-  schedules    Schedule[]
+  classes      Class[]
   materials    Material[]
 }
 
@@ -158,9 +194,8 @@ model Enrollment {
   startDate DateTime
   endDate   DateTime?
   status    EnrollmentStatus @default(ACTIVE)
-  schedule  String?
-  days      String?
-  classType ClassType?
+  classId   String?
+  class     Class?           @relation(fields: [classId], references: [id])
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
@@ -170,34 +205,18 @@ model Enrollment {
   @@unique([studentId, courseId])
 }
 
-model Schedule {
-  id          String   @id @default(cuid())
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id])
-  teacherId   String
-  teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
-  dayOfWeek   Int
-  startTime   String
-  endTime     String
-  room        String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  attendance  Attendance[]
-}
-
 model Attendance {
   id           String           @id @default(cuid())
   enrollmentId String
   enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  scheduleId   String
-  schedule     Schedule         @relation(fields: [scheduleId], references: [id])
+  classId      String?
+  class        Class?           @relation(fields: [classId], references: [id])
   date         DateTime
   status       AttendanceStatus @default(PRESENT)
   note         String?
   markedAt     DateTime         @default(now())
 
-  @@unique([enrollmentId, scheduleId, date])
+  @@unique([enrollmentId, classId, date])
 }
 
 model Payment {
@@ -262,4 +281,4 @@ model Certificate {
   verifyCode  String   @unique @default(cuid())
 }
 
-// Developer must run: npx prisma db push
+// Developer must run: npx prisma db push --force-reset

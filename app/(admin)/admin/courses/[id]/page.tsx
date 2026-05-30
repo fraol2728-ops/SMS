@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentUserCampusId } from "@/lib/campus";
+import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export default async function CourseDetail({
@@ -18,7 +19,7 @@ export default async function CourseDetail({
     where: { id, ...(campusId ? { campusId } : {}) },
     include: {
       enrollments: { include: { student: { include: { user: true } } } },
-      schedules: { include: { teacher: { include: { user: true } } } },
+      classes: { include: { teacher: { include: { user: true } } } },
     },
   });
   if (!c) notFound();
@@ -63,7 +64,7 @@ export default async function CourseDetail({
         ]}
       />
       <DataTable
-        data={c.schedules}
+        data={c.classes}
         columns={[
           {
             key: "teacher",
@@ -71,13 +72,18 @@ export default async function CourseDetail({
             render: (r) =>
               `${r.teacher.user.firstName} ${r.teacher.user.lastName}`,
           },
-          { key: "dayOfWeek", label: "Day" },
+          { key: "labName", label: "Lab" },
           {
-            key: "time",
+            key: "timeSlot",
             label: "Time",
-            render: (r) => `${r.startTime} - ${r.endTime}`,
+            render: (r) => TIME_SLOTS[r.timeSlot as keyof typeof TIME_SLOTS],
           },
-          { key: "room", label: "Room" },
+          {
+            key: "days",
+            label: "Days",
+            render: (r) => CLASS_DAYS[r.days as keyof typeof CLASS_DAYS],
+          },
+          { key: "capacity", label: "Capacity" },
         ]}
       />
     </div>

@@ -93,3 +93,24 @@ export const TIER_FEATURES = [
     ],
   },
 ] as const;
+
+export const TIME_SLOTS = {
+  SLOT_8_10: "8:00 AM - 10:00 AM",
+  SLOT_10_12: "10:00 AM - 12:00 PM",
+  SLOT_12_2: "12:00 PM - 2:00 PM",
+  SLOT_3_5: "3:00 PM - 5:00 PM",
+  SLOT_5_7: "5:00 PM - 7:00 PM",
+} as const;
+
+export const CLASS_DAYS = {
+  MWF: "Mon / Wed / Fri",
+  TTS: "Tue / Thu / Sat",
+} as const;
+
+export const CAMPUS_LABS: Record<string, string[]> = {
+  Megenagna: ["Lab 1", "Lab 2", "Lab 3", "Lab 4", "Lab 5", "Lab 6"],
+  Mexico: ["Lab 1", "Lab 2", "Lab 3"],
+};
+
+export type TimeSlotKey = keyof typeof TIME_SLOTS;
+export type ClassDaysKey = keyof typeof CLASS_DAYS;
