@@ -11,7 +11,7 @@ export default async function TeachersPage() {
   const campusId = await getCurrentUserCampusId();
   const rows = await prisma.user.findMany({
     where: { role: "TEACHER", ...(campusId ? { campusId } : {}) },
-    include: { teacherProfile: { include: { schedules: true } } },
+    include: { teacherProfile: { include: { classes: true } } },
     orderBy: { createdAt: "desc" },
   });
   return (
@@ -40,9 +40,9 @@ export default async function TeachersPage() {
             render: (r) => r.teacherProfile?.specialty ?? "-",
           },
           {
-            key: "schedules",
-            label: "Schedules count",
-            render: (r) => r.teacherProfile?.schedules.length ?? 0,
+            key: "classes",
+            label: "Classes count",
+            render: (r) => r.teacherProfile?.classes.length ?? 0,
           },
           {
             key: "actions",

@@ -8,25 +8,34 @@ export const dynamic = "force-dynamic";
 
 export default async function NewStudentPage() {
   const campusId = await getCurrentUserCampusId();
-  const courses = await prisma.course.findMany({
-    where: { isActive: true, ...(campusId ? { campusId } : {}) },
-    orderBy: { title: "asc" },
-    select: { id: true, title: true, fee: true },
+  const classes = await prisma.class.findMany({
+    where: {
+      campusId: campusId ?? undefined,
+      isActive: true,
+    },
+    include: {
+      course: { select: { title: true, fee: true } },
+      teacher: {
+        include: { user: { select: { firstName: true, lastName: true } } },
+      },
+      _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+    },
+    orderBy: [{ labName: "asc" }, { timeSlot: "asc" }],
   });
 
   return (
     <div className="space-y-6">
       <PageHeader title="Register new student" />
-      {courses.length === 0 ? (
+      {classes.length === 0 ? (
         <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          No active courses exist yet. Please{" "}
-          <Link href="/admin/courses/new" className="font-semibold underline">
-            add a course
+          No active classes exist yet. Please{" "}
+          <Link href="/admin/classes/new" className="font-semibold underline">
+            add a class
           </Link>{" "}
           before registering a student.
         </div>
       ) : null}
-      <StudentForm courses={courses} />
+      <StudentForm classes={classes} />
     </div>
   );
 }

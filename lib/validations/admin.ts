@@ -10,10 +10,7 @@ export const studentSchema = z.object({
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
   emergencyContact: z.string().optional(),
-  courseId: z.string().min(1, "Please select a course"),
-  schedule: z.string().min(1, "Please select a schedule"),
-  days: z.string().min(1, "Please select days"),
-  classType: z.enum(["PERSONAL", "GROUP"]),
+  classId: z.string().min(1, "Please select a class"),
   startDate: z.string().optional(),
   paymentStatus: z.enum(["PENDING", "PAID", "OVERDUE", "CANCELLED"]),
   paymentMethod: z
@@ -49,10 +46,7 @@ export const scheduleSchema = z.object({
 });
 
 export const updateStudentSchema = studentSchema.partial().omit({
-  courseId: true,
-  schedule: true,
-  days: true,
-  classType: true,
+  classId: true,
   startDate: true,
   paymentStatus: true,
   paymentMethod: true,

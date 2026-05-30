@@ -9,36 +9,31 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { createStudent } from "@/lib/actions/admin";
+import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
-type CourseOption = {
+type ClassOption = {
   id: string;
-  title: string;
-  fee: number;
+  labName: string;
+  timeSlot: string;
+  days: string;
+  course: { title: string; fee: number };
+  teacher: { user: { firstName: string; lastName: string } };
+  capacity: number;
+  _count: { enrollments: number };
 };
-
-const schedules = [
-  "3:00 PM - 5:00 PM",
-  "5:00 PM - 7:00 PM",
-  "8:00 AM - 10:00 AM",
-  "10:00 AM - 12:00 PM",
-  "12:00 PM - 2:00 PM",
-];
-
-const daysOptions = ["Mon / Wed / Fri", "Tue / Thu / Sat"];
 
 function todayInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
 export function StudentForm({
-  courses,
+  classes,
 }: {
-  courses: CourseOption[];
+  classes: ClassOption[];
   defaultValues?: unknown;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [selectedCourseId, setSelectedCourseId] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("0");
   const [paymentStatus, setPaymentStatus] = useState("PENDING");
   async function onSubmit(formData: FormData) {
@@ -145,72 +140,40 @@ export function StudentForm({
       <section className="space-y-4 border-t pt-6">
         <h2 className="text-lg font-semibold">Enrollment</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="courseId">Course</Label>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="classId">Class *</Label>
             <select
-              id="courseId"
-              name="courseId"
+              id="classId"
+              name="classId"
               required
-              value={selectedCourseId}
               onChange={(event) => {
-                const courseId = event.target.value;
-                setSelectedCourseId(courseId);
-                const course = courses.find((item) => item.id === courseId);
-                setPaymentAmount(String(course?.fee ?? 0));
+                const selected = classes.find(
+                  (classOption) => classOption.id === event.target.value,
+                );
+                if (selected) setPaymentAmount(String(selected.course.fee));
               }}
               className="h-10 w-full rounded-md border bg-background px-3 text-sm"
             >
-              <option value="">Select course</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="schedule">Schedule</Label>
-            <select
-              id="schedule"
-              name="schedule"
-              required
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              <option value="">Select schedule</option>
-              {schedules.map((schedule) => (
-                <option key={schedule} value={schedule}>
-                  {schedule}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="days">Days</Label>
-            <select
-              id="days"
-              name="days"
-              required
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              <option value="">Select days</option>
-              {daysOptions.map((days) => (
-                <option key={days} value={days}>
-                  {days}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="classType">Class Type</Label>
-            <select
-              id="classType"
-              name="classType"
-              required
-              defaultValue="GROUP"
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              <option value="GROUP">Group</option>
-              <option value="PERSONAL">Personal</option>
+              <option value="">Select a class</option>
+              {classes.map((classOption) => {
+                const spotsLeft =
+                  classOption.capacity - classOption._count.enrollments;
+                const timeLabel =
+                  TIME_SLOTS[classOption.timeSlot as keyof typeof TIME_SLOTS];
+                const daysLabel =
+                  CLASS_DAYS[classOption.days as keyof typeof CLASS_DAYS];
+                return (
+                  <option
+                    key={classOption.id}
+                    value={classOption.id}
+                    disabled={spotsLeft <= 0}
+                  >
+                    {classOption.labName} • {classOption.course.title} •{" "}
+                    {timeLabel} • {daysLabel} •
+                    {spotsLeft > 0 ? ` ${spotsLeft} spots left` : " FULL"}
+                  </option>
+                );
+              })}
             </select>
           </div>
           <div className="space-y-2">
@@ -272,7 +235,7 @@ export function StudentForm({
         <Textarea id="notes" name="notes" rows={3} />
       </section>
 
-      <Button type="submit" disabled={loading || courses.length === 0}>
+      <Button type="submit" disabled={loading || classes.length === 0}>
         {loading ? <Spinner className="mr-2" /> : null}
         Register Student
       </Button>

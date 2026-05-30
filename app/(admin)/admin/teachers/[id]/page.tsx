@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { DataTable } from "@/components/admin/shared/DataTable";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentUserCampusId } from "@/lib/campus";
+import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export default async function TeacherDetail({
@@ -14,7 +15,7 @@ export default async function TeacherDetail({
   const t = await prisma.user.findFirst({
     where: { id, ...(campusId ? { campusId } : {}) },
     include: {
-      teacherProfile: { include: { schedules: { include: { course: true } } } },
+      teacherProfile: { include: { classes: { include: { course: true } } } },
     },
   });
   if (!t) notFound();
@@ -31,16 +32,21 @@ export default async function TeacherDetail({
         </CardContent>
       </Card>
       <DataTable
-        data={t.teacherProfile?.schedules ?? []}
+        data={t.teacherProfile?.classes ?? []}
         columns={[
           { key: "course", label: "Course", render: (r) => r.course.title },
-          { key: "dayOfWeek", label: "Day" },
+          { key: "labName", label: "Lab" },
           {
-            key: "time",
+            key: "timeSlot",
             label: "Time",
-            render: (r) => `${r.startTime}-${r.endTime}`,
+            render: (r) => TIME_SLOTS[r.timeSlot as keyof typeof TIME_SLOTS],
           },
-          { key: "room", label: "Room" },
+          {
+            key: "days",
+            label: "Days",
+            render: (r) => CLASS_DAYS[r.days as keyof typeof CLASS_DAYS],
+          },
+          { key: "capacity", label: "Capacity" },
         ]}
       />
     </div>
