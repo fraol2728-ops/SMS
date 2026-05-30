@@ -13,7 +13,7 @@ import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
 type ClassOption = {
   id: string;
-  labName: string;
+  lab: { name: string };
   timeSlot: string;
   days: string;
   course: { title: string; fee: number };
@@ -168,7 +168,7 @@ export function StudentForm({
                     value={classOption.id}
                     disabled={spotsLeft <= 0}
                   >
-                    {classOption.labName} • {classOption.course.title} •{" "}
+                    {classOption.lab.name} • {classOption.course.title} •{" "}
                     {timeLabel} • {daysLabel} •
                     {spotsLeft > 0 ? ` ${spotsLeft} spots left` : " FULL"}
                   </option>

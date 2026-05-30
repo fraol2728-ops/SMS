@@ -15,7 +15,13 @@ export default async function TeacherDetail({
   const t = await prisma.user.findFirst({
     where: { id, ...(campusId ? { campusId } : {}) },
     include: {
-      teacherProfile: { include: { classes: { include: { course: true } } } },
+      teacherProfile: {
+        include: {
+          classes: {
+            include: { course: true, lab: { select: { name: true } } },
+          },
+        },
+      },
     },
   });
   if (!t) notFound();
@@ -35,7 +41,7 @@ export default async function TeacherDetail({
         data={t.teacherProfile?.classes ?? []}
         columns={[
           { key: "course", label: "Course", render: (r) => r.course.title },
-          { key: "labName", label: "Lab" },
+          { key: "lab", label: "Lab", render: (r) => r.lab.name },
           {
             key: "timeSlot",
             label: "Time",

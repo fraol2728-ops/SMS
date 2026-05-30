@@ -34,7 +34,7 @@ type EnrollmentRecord = {
   status: string;
   classId: string | null;
   class: {
-    labName: string;
+    lab: { name: string };
     timeSlot: string;
     days: string;
     course: { title: string };
@@ -56,8 +56,14 @@ export default async function StudentDetailPage({
         include: {
           enrollments: {
             include: {
-              class: { include: { course: true } },
-              attendance: { include: { class: true } },
+              class: {
+                include: { course: true, lab: { select: { name: true } } },
+              },
+              attendance: {
+                include: {
+                  class: { include: { lab: { select: { name: true } } } },
+                },
+              },
               payments: true,
             },
           },
@@ -75,6 +81,7 @@ export default async function StudentDetailPage({
     },
     include: {
       course: { select: { title: true } },
+      lab: { select: { name: true } },
       teacher: {
         include: { user: { select: { firstName: true, lastName: true } } },
       },
@@ -82,7 +89,7 @@ export default async function StudentDetailPage({
         select: { enrollments: { where: { status: "ACTIVE" } } },
       },
     },
-    orderBy: [{ labName: "asc" }, { timeSlot: "asc" }],
+    orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
   });
 
   return (
@@ -152,7 +159,7 @@ export default async function StudentDetailPage({
                     <tr key={enrollment.id}>
                       <td>
                         {classRecord
-                          ? `${classRecord.labName} • ${timeLabel} • ${daysLabel}`
+                          ? `${classRecord.lab.name} • ${timeLabel} • ${daysLabel}`
                           : "-"}
                       </td>
                       <td>{classRecord?.course.title ?? "-"}</td>

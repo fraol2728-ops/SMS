@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 
 async function main() {
-  await prisma.campus.upsert({
+  const megenagna = await prisma.campus.upsert({
     where: { name: "Megenagna" },
     update: {},
     create: {
@@ -11,7 +11,7 @@ async function main() {
     },
   });
 
-  await prisma.campus.upsert({
+  const mexico = await prisma.campus.upsert({
     where: { name: "Mexico" },
     update: {},
     create: {
@@ -21,7 +21,26 @@ async function main() {
     },
   });
 
-  console.log("Campuses seeded: Megenagna and Mexico");
+  for (const campus of [megenagna, mexico]) {
+    for (let i = 1; i <= 10; i++) {
+      await prisma.lab.upsert({
+        where: {
+          campusId_name: {
+            campusId: campus.id,
+            name: `Lab ${i}`,
+          },
+        },
+        update: {},
+        create: {
+          name: `Lab ${i}`,
+          campusId: campus.id,
+          isActive: true,
+        },
+      });
+    }
+  }
+
+  console.log("Seeded: Megenagna and Mexico campuses with 10 labs each");
 }
 
 main()

@@ -107,32 +107,52 @@ export const CLASS_DAYS = {
   TTS: "Tue / Thu / Sat",
 } as const;
 
-export const CAMPUS_LABS: Record<string, string[]> = {
-  Megenagna: [
-    "Lab 1",
-    "Lab 2",
-    "Lab 3",
-    "Lab 4",
-    "Lab 5",
-    "Lab 6",
-    "Lab 7",
-    "Lab 8",
-    "Lab 9",
-    "Lab 10",
-  ],
-  Mexico: [
-    "Lab 1",
-    "Lab 2",
-    "Lab 3",
-    "Lab 4",
-    "Lab 5",
-    "Lab 6",
-    "Lab 7",
-    "Lab 8",
-    "Lab 9",
-    "Lab 10",
-  ],
-};
+export const CAMPUS_LAB_NAMES = [
+  "Lab 1",
+  "Lab 2",
+  "Lab 3",
+  "Lab 4",
+  "Lab 5",
+  "Lab 6",
+  "Lab 7",
+  "Lab 8",
+  "Lab 9",
+  "Lab 10",
+] as const;
+
+export const ASSET_CATEGORIES = {
+  COMPUTER: "Computer",
+  MONITOR: "Monitor",
+  KEYBOARD: "Keyboard",
+  MOUSE: "Mouse",
+  CHAIR: "Chair",
+  TABLE: "Table",
+  NETWORK_SWITCH: "Network Switch",
+  NETWORK_CABLE: "Network Cable",
+  HEADSET: "Headset",
+  WEBCAM: "Webcam",
+  PROJECTOR: "Projector",
+  OTHER: "Other",
+} as const;
+
+export const ASSET_CONDITIONS = {
+  GOOD: "Good",
+  FAIR: "Fair",
+  DAMAGED: "Damaged",
+  UNDER_REPAIR: "Under Repair",
+  MISSING: "Missing",
+  RETIRED: "Retired",
+} as const;
+
+export const ASSET_LOG_ACTIONS = {
+  ADDED: "Added",
+  REPAIRED: "Repaired",
+  DAMAGED: "Damaged",
+  MISSING: "Reported Missing",
+  RETIRED: "Retired",
+  UPDATED: "Updated",
+  RETURNED: "Returned",
+} as const;
 
 export type TimeSlotKey = keyof typeof TIME_SLOTS;
 export type ClassDaysKey = keyof typeof CLASS_DAYS;
