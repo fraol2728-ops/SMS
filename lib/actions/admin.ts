@@ -2,10 +2,10 @@
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import {
   courseSchema,
-  scheduleSchema,
   studentSchema,
   teacherSchema,
   updateStudentSchema,
@@ -104,10 +104,16 @@ export async function createStudent(input: ActionInput) {
       );
     }
 
-    const course = await prisma.course.findFirst({
-      where: { id: v.courseId, campusId },
+    const classRecord = await prisma.class.findFirst({
+      where: { id: v.classId, campusId },
+      include: {
+        _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+      },
     });
-    if (!course) return err("This course does not belong to your campus.");
+    if (!classRecord) return err("Selected class not found.");
+    if (classRecord._count.enrollments >= classRecord.capacity) {
+      return err("This class is full. Please select a different class.");
+    }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -140,12 +146,10 @@ export async function createStudent(input: ActionInput) {
               notes: v.notes,
               enrollments: {
                 create: {
-                  courseId: v.courseId,
+                  courseId: classRecord.courseId,
+                  classId: v.classId,
                   startDate,
                   status: "ACTIVE",
-                  schedule: v.schedule,
-                  days: v.days,
-                  classType: v.classType,
                 },
               },
             },
@@ -399,15 +403,75 @@ export async function syncClerkUsers() {
   };
 }
 
-export async function createSchedule(formData: FormData) {
+export async function createClass(formData: FormData) {
   try {
-    const v = scheduleSchema.parse(actionInputToObject(formData));
-    await prisma.schedule.create({ data: v });
-    revalidatePath("/admin/schedules");
+    const campusId = await getCurrentAdminCampusId();
+    if (!campusId) return err("Could not determine your campus.");
+
+    const courseId = formData.get("courseId") as string;
+    const teacherId = formData.get("teacherId") as string;
+    const labName = formData.get("labName") as string;
+    const timeSlot = formData.get("timeSlot") as string;
+    const days = formData.get("days") as string;
+    const capacity = Number(formData.get("capacity") ?? 20);
+
+    if (!courseId || !teacherId || !labName || !timeSlot || !days) {
+      return err("All fields are required.");
+    }
+
+    if (!(timeSlot in TIME_SLOTS) || !(days in CLASS_DAYS)) {
+      return err("Please select a valid time slot and days.");
+    }
+
+    const selectedTimeSlot = timeSlot as keyof typeof TIME_SLOTS;
+    const selectedDays = days as keyof typeof CLASS_DAYS;
+
+    const [course, teacher] = await Promise.all([
+      prisma.course.findFirst({ where: { id: courseId, campusId } }),
+      prisma.teacherProfile.findFirst({
+        where: { id: teacherId, user: { campusId } },
+      }),
+    ]);
+    if (!course) return err("Selected course not found.");
+    if (!teacher) return err("Selected teacher not found.");
+
+    const existing = await prisma.class.findFirst({
+      where: {
+        campusId,
+        labName,
+        timeSlot: selectedTimeSlot,
+        days: selectedDays,
+      },
+    });
+    if (existing) {
+      return err(
+        `${labName} is already booked for ${timeSlot} on ${days}. Please choose a different lab or time.`,
+      );
+    }
+
+    await prisma.class.create({
+      data: {
+        campusId,
+        courseId,
+        teacherId,
+        labName,
+        timeSlot: selectedTimeSlot,
+        days: selectedDays,
+        capacity,
+        isActive: true,
+      },
+    });
+
+    revalidatePath("/admin/classes");
+    revalidatePath("/admin/students/new");
     return ok;
-  } catch (_e) {
-    return err("Failed");
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to create class");
   }
+}
+
+export async function createSchedule(_formData: FormData) {
+  return err("Schedules have been replaced by classes.");
 }
 export async function replyToReport(reportId: string, content: string) {
   try {
