@@ -67,6 +67,12 @@ enum PaymentMethod {
   CARD
 }
 
+enum RemainingStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
 enum ReportStatus {
   UNREAD
   READ
@@ -182,6 +188,9 @@ model Class {
   lab         Lab            @relation(fields: [labId], references: [id])
   timeSlot    TimeSlot
   days        ClassDays
+  startDate   DateTime?
+  endDate     DateTime?
+  classType   ClassType      @default(GROUP)
   capacity    Int            @default(20)
   isActive    Boolean        @default(true)
   createdAt   DateTime       @default(now())
@@ -217,7 +226,8 @@ model User {
   receivedReports Report[]       @relation("ReportReceiver")
   notifications   Notification[]
   payments        Payment[]
-  assetLogs      AssetLog[]
+  partialPayments PartialPayment[]
+  assetLogs       AssetLog[]
 }
 
 model StudentProfile {
@@ -278,8 +288,9 @@ model Enrollment {
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
-  attendance Attendance[]
-  payments   Payment[]
+  attendance       Attendance[]
+  payments         Payment[]
+  paymentRemaining PaymentRemaining?
 
   @@unique([studentId, courseId])
 }
@@ -312,6 +323,33 @@ model Payment {
   receiptUrl   String?
   note         String?
   createdAt    DateTime      @default(now())
+}
+
+model PaymentRemaining {
+  id              String          @id @default(cuid())
+  enrollmentId    String          @unique
+  enrollment      Enrollment      @relation(fields: [enrollmentId], references: [id])
+  originalFee     Float
+  paidAmount      Float
+  remainingAmount Float
+  dueDate         DateTime
+  status          RemainingStatus @default(PENDING)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  partialPayments PartialPayment[]
+}
+
+model PartialPayment {
+  id                 String           @id @default(cuid())
+  paymentRemainingId String
+  paymentRemaining   PaymentRemaining @relation(fields: [paymentRemainingId], references: [id])
+  amount             Float
+  method             PaymentMethod
+  note               String?
+  recordedById       String
+  recordedBy         User             @relation(fields: [recordedById], references: [id])
+  createdAt          DateTime         @default(now())
 }
 
 model Report {
