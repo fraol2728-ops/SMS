@@ -172,7 +172,7 @@ export async function createStudent(input: ActionInput) {
       ? new Date(v.endDate)
       : (classRecord.endDate ?? undefined);
 
-    await prisma.$transaction(async (tx: StudentRegistrationTransaction) => {
+    await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
           clerkId: `pending_${Date.now()}`,
@@ -428,7 +428,7 @@ export async function changeStudentClass(
       return err("This class is full. Please select a different class.");
     }
 
-    await prisma.$transaction(async (tx: ClassTransferTransaction) => {
+    await prisma.$transaction(async (tx) => {
       await tx.enrollment.update({
         where: { id: enrollmentId },
         data: { classId: newClassId, courseId: newClass.courseId },
@@ -825,7 +825,7 @@ export async function recordPartialPayment(
     const newPaidAmount = remaining.paidAmount + amount;
     const newStatus = newRemainingAmount <= 0 ? "PAID" : "PARTIAL";
 
-    await prisma.$transaction(async (tx: RemainingPaymentTransaction) => {
+    await prisma.$transaction(async (tx) => {
       await tx.partialPayment.create({
         data: {
           paymentRemainingId,

@@ -16,9 +16,9 @@ type ClassOption = {
   lab: { name: string };
   timeSlot: string;
   days: string;
-  classType: string;
-  startDate: string;
-  endDate: string;
+  classType: "GROUP" | "PERSONAL";
+  startDate: string | null;
+  endDate: string | null;
   course: { title: string; fee: number };
   teacher: { user: { firstName: string; lastName: string } };
   capacity: number;

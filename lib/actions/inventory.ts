@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { AssetCategory, AssetCondition, AssetLogAction } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const ok = { success: true as const };
@@ -48,10 +49,10 @@ export async function addAsset(labId: string, formData: FormData) {
     const asset = await prisma.asset.create({
       data: {
         labId,
-        category,
+        category: category as AssetCategory,
         name: name.trim(),
         serialNumber: serialNumber?.trim() || null,
-        condition,
+        condition: condition as AssetCondition,
         notes: notes?.trim() || null,
         addedById: userId,
       },
@@ -61,7 +62,7 @@ export async function addAsset(labId: string, formData: FormData) {
       data: {
         assetId: asset.id,
         userId,
-        action: "ADDED",
+        action: "ADDED" as AssetLogAction,
         note: `Asset added to inventory${notes?.trim() ? `: ${notes.trim()}` : ""}`,
       },
     });
@@ -91,17 +92,17 @@ export async function updateAssetCondition(
 
     if (!asset) return err("Asset not found");
 
-    await prisma.$transaction(async (tx: typeof prisma) => {
+    await prisma.$transaction(async (tx) => {
       await tx.asset.update({
         where: { id: assetId },
-        data: { condition: newCondition },
+        data: { condition: newCondition as AssetCondition },
       });
 
       await tx.assetLog.create({
         data: {
           assetId,
           userId,
-          action,
+          action: action as AssetLogAction,
           note: note?.trim() || null,
         },
       });
@@ -146,7 +147,7 @@ export async function updateAssetDetails(assetId: string, formData: FormData) {
       where: { id: assetId },
       data: {
         name,
-        category,
+        category: category as AssetCategory,
         serialNumber: serialNumber || null,
         notes: notes || null,
       },
