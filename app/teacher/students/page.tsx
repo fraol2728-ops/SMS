@@ -3,10 +3,12 @@ export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireTeacher } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export default async function TeacherStudentsPage() {
+  await requireTeacher();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
@@ -16,7 +18,7 @@ export default async function TeacherStudentsPage() {
       teacherProfile: {
         include: {
           classes: {
-            where: { isActive: true },
+            where: { isActive: true, status: "STARTED" },
             include: {
               course: true,
               lab: true,

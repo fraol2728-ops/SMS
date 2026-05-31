@@ -47,13 +47,35 @@ async function getOverdueRemainingCount() {
   });
 }
 
+async function getUnreadReportCount() {
+  const { userId } = await auth();
+  if (!userId) return 0;
+  const user = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { role: true, campusId: true },
+  });
+  return prisma.report.count({
+    where: {
+      status: "UNREAD",
+      receiver:
+        user?.role === "SUPER_ADMIN"
+          ? undefined
+          : { campusId: user?.campusId ?? undefined },
+    },
+  });
+}
+
 export async function AdminSidebar() {
-  const overdueCount = await getOverdueRemainingCount();
+  const [overdueCount, unreadReportCount] = await Promise.all([
+    getOverdueRemainingCount(),
+    getUnreadReportCount(),
+  ]);
 
   return (
     <AdminSidebarClient
       campusIndicator={<CampusIndicator />}
       overdueCount={overdueCount}
+      unreadReportCount={unreadReportCount}
     />
   );
 }

@@ -1,5 +1,6 @@
 import { AdminHeader } from "@/components/admin/layout/AdminHeader";
 import { AdminSidebar } from "@/components/admin/layout/AdminSidebar";
+import { requireAdmin } from "@/lib/auth-check";
 
 const titles: Record<string, string> = {
   "": "Dashboard",
@@ -13,11 +14,12 @@ const titles: Record<string, string> = {
   notifications: "Notifications",
 };
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdmin();
   // Kept simple for server layout; client sidebar handles active route state.
   const title = titles[""];
 

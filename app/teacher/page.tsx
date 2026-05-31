@@ -10,10 +10,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireTeacher } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export default async function TeacherDashboard() {
+  await requireTeacher();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
@@ -23,7 +25,7 @@ export default async function TeacherDashboard() {
       teacherProfile: {
         include: {
           classes: {
-            where: { isActive: true },
+            where: { isActive: true, status: "STARTED" },
             include: {
               course: true,
               lab: true,
@@ -161,7 +163,7 @@ export default async function TeacherDashboard() {
                         {c.course.title}
                       </p>
                       <p className="text-gray-500 text-sm">
-                        {c.lab.name} •{" "}
+                        {c.lab?.name ?? "Online"} •{" "}
                         {TIME_SLOTS[c.timeSlot as keyof typeof TIME_SLOTS]}
                       </p>
                     </div>
@@ -274,7 +276,7 @@ export default async function TeacherDashboard() {
                     <BookOpen size={18} className="text-blue-600" />
                   </div>
                   <span className="rounded-full bg-gray-100 px-2 py-1 text-gray-600 text-xs">
-                    {c.lab.name}
+                    {c.lab?.name ?? "Online"}
                   </span>
                 </div>
                 <p className="mb-1 font-semibold text-gray-900">
