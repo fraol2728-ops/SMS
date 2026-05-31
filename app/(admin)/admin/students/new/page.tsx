@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StudentForm } from "@/components/admin/students/StudentForm";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
@@ -12,11 +13,13 @@ type ClassWithDateFields = {
 };
 
 export default async function NewStudentPage() {
+  await requireAdmin();
   const campusId = await getCurrentUserCampusId();
   const classes = await prisma.class.findMany({
     where: {
       campusId: campusId ?? undefined,
       isActive: true,
+      status: "REGISTRATION",
     },
     include: {
       course: { select: { title: true, fee: true } },

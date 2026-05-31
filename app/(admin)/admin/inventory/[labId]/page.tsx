@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AssetList } from "@/components/admin/inventory/AssetList";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
+import { requireAdmin } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
 
 export default async function LabInventoryPage({
@@ -11,6 +12,7 @@ export default async function LabInventoryPage({
 }: {
   params: Promise<{ labId: string }>;
 }) {
+  await requireAdmin();
   const { labId } = await params;
   const lab = (await prisma.lab.findUnique({
     where: { id: labId },
