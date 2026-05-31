@@ -371,23 +371,24 @@ export async function deleteClass(id: string) {
     const campusId = await getCurrentAdminCampusId();
     const classRecord = await prisma.class.findFirst({
       where: { id, ...(campusId ? { campusId } : {}) },
-      include: { enrollments: true, attendance: true },
     });
 
     if (!classRecord) {
       return err("Class not found.");
     }
 
-    if (
-      classRecord.enrollments.length > 0 ||
-      classRecord.attendance.length > 0
-    ) {
-      return err(
-        "Cannot delete a class with enrollment or attendance history.",
-      );
-    }
+    await prisma.$transaction([
+      prisma.attendance.updateMany({
+        where: { classId: id },
+        data: { classId: null },
+      }),
+      prisma.enrollment.updateMany({
+        where: { classId: id },
+        data: { classId: null },
+      }),
+      prisma.class.delete({ where: { id } }),
+    ]);
 
-    await prisma.class.delete({ where: { id } });
     revalidatePath("/admin/classes");
     return ok;
   } catch (e) {
