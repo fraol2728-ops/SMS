@@ -91,7 +91,7 @@ export default async function SuperAdminDashboard() {
     }),
   ]);
 
-  const revenueSeries = buildTrendSeries(payments, 30, (item) => item.paidAt, (item) => item.amount);
+  const revenueSeries = buildTrendSeries(payments, 30, (item) => item.paidAt!, (item) => item.amount);
   const registrationSeries = buildTrendSeries(newStudents, 30, (item) => item.createdAt, () => 1);
   const weeklyEnrollmentSeries = buildTrendSeries(weeklyEnrollments, 7, (item) => item.createdAt, () => 1);
   const totalMonthlyRevenue = monthlyRevenue._sum.amount ?? 0;
