@@ -11,6 +11,7 @@ export default async function NewClassPage() {
   const [courses, teachers, labs] = await Promise.all([
     prisma.course.findMany({
       where: { isActive: true, campusId: campusId ?? undefined },
+      select: { id: true, title: true, fee: true, durationWeeks: true },
       orderBy: { title: "asc" },
     }),
     prisma.user.findMany({

@@ -10,9 +10,9 @@ import {
   courseSchema,
   studentSchema,
   teacherSchema,
+  updateClassSchema,
   updateStudentSchema,
   updateTeacherSchema,
-  updateClassSchema,
 } from "@/lib/validations/admin";
 
 const ok = { success: true as const };
@@ -22,9 +22,26 @@ type ActionInput =
   | FormData
   | Record<string, FormDataEntryValue | number | boolean | undefined>;
 
-type StudentCreationTransaction = {
-  user: { create: typeof prisma.user.create };
-  payment: { create: typeof prisma.payment.create };
+type StudentRegistrationTransaction = {
+  user: {
+    create: (args: unknown) => Promise<{
+      id: string;
+      studentProfile: { enrollments: Array<{ id: string }> } | null;
+    }>;
+  };
+  payment: { create: (args: unknown) => Promise<unknown> };
+  class: {
+    findUnique: (args: unknown) => Promise<{
+      course: { durationWeeks: number };
+    } | null>;
+  };
+  paymentRemaining: { create: (args: unknown) => Promise<unknown> };
+};
+
+type RemainingPaymentTransaction = {
+  partialPayment: { create: (args: unknown) => Promise<unknown> };
+  paymentRemaining: { update: (args: unknown) => Promise<unknown> };
+  payment: { create: (args: unknown) => Promise<unknown> };
 };
 
 type ClassTransferTransaction = {
@@ -65,6 +82,20 @@ function generateSlug(title: string): string {
   return `${slugify(title)}-${suffix}`;
 }
 
+async function getCurrentAdminUserId(): Promise<string | null> {
+  try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return null;
+    const user = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+    return user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function getCurrentAdminCampusId(): Promise<string | null> {
   try {
     const { userId } = await auth();
@@ -99,6 +130,7 @@ export async function createStudent(input: ActionInput) {
       dateOfBirth: emptyToUndefined(raw.dateOfBirth),
       paymentMethod: emptyToUndefined(raw.paymentMethod),
       paymentAmount: Number(raw.paymentAmount),
+      remainingAmount: Number(raw.remainingAmount ?? 0),
     });
 
     const currentUser = await getCurrentUser();
@@ -133,9 +165,14 @@ export async function createStudent(input: ActionInput) {
     }
 
     const campusId = classRecord.campusId;
-    const startDate = v.startDate ? new Date(v.startDate) : new Date();
+    const startDate = v.startDate
+      ? new Date(v.startDate)
+      : (classRecord.startDate ?? new Date());
+    const endDate = v.endDate
+      ? new Date(v.endDate)
+      : (classRecord.endDate ?? undefined);
 
-    await prisma.$transaction(async (tx: StudentCreationTransaction) => {
+    await prisma.$transaction(async (tx: StudentRegistrationTransaction) => {
       const newUser = await tx.user.create({
         data: {
           clerkId: `pending_${Date.now()}`,
@@ -160,6 +197,7 @@ export async function createStudent(input: ActionInput) {
                   courseId: classRecord.courseId,
                   classId: v.classId,
                   startDate,
+                  endDate,
                   status: "ACTIVE",
                 },
               },
@@ -188,6 +226,28 @@ export async function createStudent(input: ActionInput) {
           paidAt: v.paymentStatus === "PAID" ? new Date() : undefined,
         },
       });
+
+      const remainingAmount = v.remainingAmount ?? 0;
+      if (remainingAmount > 0) {
+        const classWithCourse = await tx.class.findUnique({
+          where: { id: v.classId },
+          include: { course: true },
+        });
+        const durationDays = (classWithCourse?.course.durationWeeks ?? 8) * 7;
+        const dueDate = new Date(startDate);
+        dueDate.setDate(dueDate.getDate() + Math.floor(durationDays / 2));
+
+        await tx.paymentRemaining.create({
+          data: {
+            enrollmentId,
+            originalFee: v.paymentAmount + remainingAmount,
+            paidAmount: v.paymentAmount,
+            remainingAmount,
+            dueDate,
+            status: "PENDING",
+          },
+        });
+      }
 
       return newUser;
     });
@@ -293,7 +353,9 @@ export async function deleteTeacher(id: string) {
     }
 
     if (teacher.teacherProfile.classes.length > 0) {
-      return err("Please reassign or remove this teacher from all classes before deleting.");
+      return err(
+        "Please reassign or remove this teacher from all classes before deleting.",
+      );
     }
 
     await prisma.user.delete({ where: { id } });
@@ -316,8 +378,13 @@ export async function deleteClass(id: string) {
       return err("Class not found.");
     }
 
-    if (classRecord.enrollments.length > 0 || classRecord.attendance.length > 0) {
-      return err("Cannot delete a class with enrollment or attendance history.");
+    if (
+      classRecord.enrollments.length > 0 ||
+      classRecord.attendance.length > 0
+    ) {
+      return err(
+        "Cannot delete a class with enrollment or attendance history.",
+      );
     }
 
     await prisma.class.delete({ where: { id } });
@@ -409,6 +476,7 @@ export async function createCourse(input: ActionInput) {
     const v = courseSchema.parse({
       title: raw.title,
       fee: Number(raw.fee),
+      durationWeeks: Number(raw.durationWeeks ?? 8),
       isActive: parseBoolean(raw.isActive, true),
     });
 
@@ -422,7 +490,7 @@ export async function createCourse(input: ActionInput) {
           fee: v.fee,
           isActive: v.isActive,
           slug: generateSlug(v.title),
-          durationWeeks: 8,
+          durationWeeks: v.durationWeeks,
           classType: "GROUP",
           description: null,
           campusId,
@@ -459,6 +527,8 @@ export async function updateCourse(id: string, formData: FormData) {
     const v = courseSchema.partial().parse({
       title: raw.title,
       fee: raw.fee === undefined ? undefined : Number(raw.fee),
+      durationWeeks:
+        raw.durationWeeks === undefined ? undefined : Number(raw.durationWeeks),
       isActive: parseBoolean(raw.isActive),
     });
     await prisma.course.update({
@@ -592,6 +662,9 @@ export async function updateClass(id: string, formData: FormData) {
       timeSlot: raw.timeSlot as string,
       days: raw.days as string,
       capacity: Number(raw.capacity),
+      startDate: raw.startDate as string | undefined,
+      endDate: raw.endDate as string | undefined,
+      classType: (raw.classType as "GROUP" | "PERSONAL" | undefined) ?? "GROUP",
     });
 
     const campusId = await getCurrentAdminCampusId();
@@ -630,6 +703,9 @@ export async function updateClass(id: string, formData: FormData) {
         timeSlot: v.timeSlot,
         days: v.days,
         capacity: v.capacity,
+        startDate: v.startDate ? new Date(v.startDate) : null,
+        endDate: v.endDate ? new Date(v.endDate) : null,
+        classType: v.classType,
       },
     });
 
@@ -664,6 +740,9 @@ export async function createClass(formData: FormData) {
     const timeSlot = formData.get("timeSlot") as string;
     const days = formData.get("days") as string;
     const capacity = Number(formData.get("capacity") ?? 20);
+    const startDate = formData.get("startDate") as string;
+    const endDate = formData.get("endDate") as string;
+    const classType = (formData.get("classType") as string) || "GROUP";
 
     if (!courseId || !teacherId || !labId || !timeSlot || !days) {
       return err("All fields are required.");
@@ -707,6 +786,9 @@ export async function createClass(formData: FormData) {
         timeSlot: selectedTimeSlot,
         days: selectedDays,
         capacity,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        classType: classType as "GROUP" | "PERSONAL",
         isActive: true,
       },
     });
@@ -716,6 +798,71 @@ export async function createClass(formData: FormData) {
     return ok;
   } catch (e) {
     return err(e instanceof Error ? e.message : "Failed to create class");
+  }
+}
+
+export async function recordPartialPayment(
+  paymentRemainingId: string,
+  amount: number,
+  method: string,
+  note: string,
+) {
+  try {
+    const userId = await getCurrentAdminUserId();
+    if (!userId) return err("Not authenticated");
+
+    const remaining = await prisma.paymentRemaining.findUnique({
+      where: { id: paymentRemainingId },
+      include: { enrollment: { include: { student: true } } },
+    });
+    if (!remaining) return err("Payment record not found");
+    if (amount <= 0) return err("Amount must be greater than zero");
+    if (amount > remaining.remainingAmount) {
+      return err("Amount exceeds remaining balance");
+    }
+
+    const newRemainingAmount = remaining.remainingAmount - amount;
+    const newPaidAmount = remaining.paidAmount + amount;
+    const newStatus = newRemainingAmount <= 0 ? "PAID" : "PARTIAL";
+
+    await prisma.$transaction(async (tx: RemainingPaymentTransaction) => {
+      await tx.partialPayment.create({
+        data: {
+          paymentRemainingId,
+          amount,
+          method: method as "CASH" | "BANK_TRANSFER" | "MOBILE_MONEY" | "CARD",
+          note: note?.trim() || null,
+          recordedById: userId,
+        },
+      });
+
+      await tx.paymentRemaining.update({
+        where: { id: paymentRemainingId },
+        data: {
+          remainingAmount: newRemainingAmount,
+          paidAmount: newPaidAmount,
+          status: newStatus,
+        },
+      });
+
+      await tx.payment.create({
+        data: {
+          userId: remaining.enrollment.student.userId,
+          enrollmentId: remaining.enrollmentId,
+          amount,
+          method: method as "CASH" | "BANK_TRANSFER" | "MOBILE_MONEY" | "CARD",
+          status: "PAID",
+          paidAt: new Date(),
+          note: note?.trim() || "Partial remaining payment",
+        },
+      });
+    });
+
+    revalidatePath("/admin/remaining");
+    revalidatePath("/admin/students");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to record payment");
   }
 }
 

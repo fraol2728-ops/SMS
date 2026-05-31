@@ -6,6 +6,11 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+type ClassWithDateFields = {
+  startDate: Date | null;
+  endDate: Date | null;
+};
+
 export default async function NewStudentPage() {
   const campusId = await getCurrentUserCampusId();
   const classes = await prisma.class.findMany({
@@ -24,6 +29,12 @@ export default async function NewStudentPage() {
     orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
   });
 
+  const formattedClasses = classes.map((classRecord: ClassWithDateFields) => ({
+    ...classRecord,
+    startDate: classRecord.startDate?.toISOString().slice(0, 10) ?? "",
+    endDate: classRecord.endDate?.toISOString().slice(0, 10) ?? "",
+  }));
+
   return (
     <div className="space-y-6">
       <PageHeader title="Register new student" />
@@ -36,7 +47,7 @@ export default async function NewStudentPage() {
           before registering a student.
         </div>
       ) : null}
-      <StudentForm classes={classes} />
+      <StudentForm classes={formattedClasses} />
     </div>
   );
 }
