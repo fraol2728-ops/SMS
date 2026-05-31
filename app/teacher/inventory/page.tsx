@@ -44,7 +44,9 @@ export default async function TeacherInventoryPage() {
       labsMap.set(c.lab.id, c.lab);
     }
   });
-  const labs = Array.from(labsMap.values());
+  const labs = Array.from(labsMap.values()).filter(
+    (lab): lab is Exclude<typeof lab, null> => lab !== null,
+  );
 
   return (
     <div className="space-y-6">
