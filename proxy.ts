@@ -7,7 +7,16 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/unauthorized",
   "/api/webhooks(.*)",
+  "/api/cron(.*)",
 ]);
+
+// Define which paths each role can access
+const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
+  SUPER_ADMIN: ["/super-admin", "/admin", "/api"],
+  ADMIN: ["/admin", "/api"],
+  TEACHER: ["/teacher", "/api"],
+  STUDENT: ["/student", "/api"],
+};
 
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) return NextResponse.next();
@@ -30,32 +39,25 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (!role) {
     if (path === "/unauthorized") return NextResponse.next();
-    // No role in session — could be fresh signup, send to unauthorized
-    // with a message to sign out and sign in again
     return NextResponse.redirect(
       new URL("/unauthorized?reason=no-role", req.url),
     );
   }
 
-  // SUPER_ADMIN can access everything except student/teacher portals
-  if (role === "SUPER_ADMIN") {
-    if (path.startsWith("/student") || path.startsWith("/teacher")) {
-      return NextResponse.redirect(new URL("/super-admin", req.url));
-    }
-    return NextResponse.next();
-  }
+  const allowedPaths = ROLE_ALLOWED_PATHS[role] ?? [];
+  const isAllowed = allowedPaths.some((p) => path.startsWith(p));
 
-  if (path.startsWith("/super-admin") && role !== "SUPER_ADMIN") {
-    return NextResponse.redirect(new URL("/unauthorized", req.url));
-  }
-  if (path.startsWith("/admin") && role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/unauthorized", req.url));
-  }
-  if (path.startsWith("/teacher") && role !== "TEACHER") {
-    return NextResponse.redirect(new URL("/unauthorized", req.url));
-  }
-  if (path.startsWith("/student") && role !== "STUDENT") {
-    return NextResponse.redirect(new URL("/unauthorized", req.url));
+  if (!isAllowed) {
+    // Redirect each role to their home
+    const roleHome: Record<string, string> = {
+      SUPER_ADMIN: "/super-admin",
+      ADMIN: "/admin",
+      TEACHER: "/teacher",
+      STUDENT: "/student",
+    };
+    return NextResponse.redirect(
+      new URL(roleHome[role] ?? "/unauthorized", req.url),
+    );
   }
 
   return NextResponse.next();

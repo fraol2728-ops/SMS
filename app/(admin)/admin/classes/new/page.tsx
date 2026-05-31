@@ -1,11 +1,13 @@
 import { ClassForm } from "@/components/admin/classes/ClassForm";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewClassPage() {
+  await requireAdmin();
   const campusId = await getCurrentUserCampusId();
 
   const [courses, teachers, labs] = await Promise.all([

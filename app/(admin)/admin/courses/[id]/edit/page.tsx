@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { CourseForm } from "@/components/admin/courses/CourseForm";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
@@ -9,6 +10,7 @@ export default async function EditCoursePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const campusId = await getCurrentUserCampusId();
   const c = await prisma.course.findFirst({

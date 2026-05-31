@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StudentForm } from "@/components/admin/students/StudentForm";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
@@ -9,6 +10,7 @@ export default async function EditStudentPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const campusId = await getCurrentUserCampusId();
   const student = await prisma.user.findFirst({
@@ -51,7 +53,8 @@ export default async function EditStudentPage({
           dateOfBirth: student.dateOfBirth?.toISOString(),
           guardianName: student.studentProfile?.guardianName ?? undefined,
           guardianPhone: student.studentProfile?.guardianPhone ?? undefined,
-          emergencyContact: student.studentProfile?.emergencyContact ?? undefined,
+          emergencyContact:
+            student.studentProfile?.emergencyContact ?? undefined,
           notes: student.studentProfile?.notes ?? undefined,
         }}
       />

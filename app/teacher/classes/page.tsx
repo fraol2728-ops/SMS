@@ -4,10 +4,12 @@ import { auth } from "@clerk/nextjs/server";
 import { BookOpen, Clock, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireTeacher } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export default async function TeacherClassesPage() {
+  await requireTeacher();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
@@ -17,7 +19,7 @@ export default async function TeacherClassesPage() {
       teacherProfile: {
         include: {
           classes: {
-            where: { isActive: true },
+            where: { isActive: true, status: "STARTED" },
             include: {
               course: true,
               lab: { include: { campus: true } },
@@ -68,7 +70,7 @@ export default async function TeacherClassesPage() {
                     </div>
                     <div className="text-right">
                       <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-700 text-xs">
-                        {c.lab.name}
+                        {c.lab?.name ?? "Online"}
                       </span>
                       <p className="mt-1 text-gray-400 text-xs">
                         {c.lab.campus.name}

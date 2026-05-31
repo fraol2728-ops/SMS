@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
+import { requireTeacher } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -10,6 +11,7 @@ export default async function TeacherStudentDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireTeacher();
   const { id } = await params;
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
@@ -46,7 +48,7 @@ export default async function TeacherStudentDetailPage({
   if (!student?.studentProfile) notFound();
 
   const teacherClassIds = await prisma.class.findMany({
-    where: { teacherId: teacher.teacherProfile.id },
+    where: { teacherId: teacher.teacherProfile.id, status: "STARTED" },
     select: { id: true },
   });
   const teacherClassIdSet = new Set(teacherClassIds.map((c: any) => c.id));
@@ -105,7 +107,7 @@ export default async function TeacherStudentDetailPage({
                 {enrollment.class?.course.title}
               </h2>
               <p className="text-gray-500 text-sm">
-                {enrollment.class?.lab.name} •{" "}
+                {enrollment.class?.lab?.name ?? "Online"} •{" "}
                 {enrollment.class &&
                   TIME_SLOTS[
                     enrollment.class.timeSlot as keyof typeof TIME_SLOTS

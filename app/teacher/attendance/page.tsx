@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { AttendanceMarker } from "@/components/teacher/attendance/AttendanceMarker";
+import { requireTeacher } from "@/lib/auth-check";
 import { TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -11,6 +12,7 @@ export default async function TeacherAttendancePage({
 }: {
   searchParams: Promise<{ classId?: string; date?: string }>;
 }) {
+  await requireTeacher();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
@@ -25,6 +27,7 @@ export default async function TeacherAttendancePage({
     where: {
       teacherId: teacher.teacherProfile.id,
       isActive: true,
+      status: "STARTED",
     },
     include: {
       course: true,
@@ -143,7 +146,7 @@ export default async function TeacherAttendancePage({
       <AttendanceMarker
         classes={classes.map((c: any) => ({
           id: c.id,
-          label: `${c.lab.name} — ${c.course.title} (${TIME_SLOTS[c.timeSlot as keyof typeof TIME_SLOTS]})`,
+          label: `${c.lab?.name ?? "Online"} — ${c.course.title} (${TIME_SLOTS[c.timeSlot as keyof typeof TIME_SLOTS]})`,
           timeSlot: c.timeSlot,
           days: c.days,
         }))}
