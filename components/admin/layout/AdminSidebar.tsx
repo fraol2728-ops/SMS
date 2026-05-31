@@ -22,6 +22,38 @@ async function CampusIndicator() {
   );
 }
 
-export function AdminSidebar() {
-  return <AdminSidebarClient campusIndicator={<CampusIndicator />} />;
+async function getOverdueRemainingCount() {
+  const { userId } = await auth();
+  if (!userId) return 0;
+
+  const user = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { role: true, campusId: true },
+  });
+
+  const today = new Date();
+  return prisma.paymentRemaining.count({
+    where: {
+      status: { not: "PAID" },
+      dueDate: { lt: today },
+      enrollment: {
+        status: "ACTIVE",
+        class:
+          user?.role === "SUPER_ADMIN"
+            ? undefined
+            : { campusId: user?.campusId ?? undefined },
+      },
+    },
+  });
+}
+
+export async function AdminSidebar() {
+  const overdueCount = await getOverdueRemainingCount();
+
+  return (
+    <AdminSidebarClient
+      campusIndicator={<CampusIndicator />}
+      overdueCount={overdueCount}
+    />
+  );
 }

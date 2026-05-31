@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { createClass, updateClass } from "@/lib/actions/admin";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
-type Course = { id: string; title: string };
+type Course = { id: string; title: string; durationWeeks: number };
 type Teacher = {
   id: string;
   firstName: string;
@@ -24,8 +24,19 @@ type DefaultClassValues = {
   labId?: string;
   timeSlot?: string;
   days?: string;
+  classType?: "GROUP" | "PERSONAL";
+  startDate?: string;
+  endDate?: string;
   capacity?: number;
 };
+
+function calculateEndDate(startValue: string, course?: Course) {
+  if (!startValue || !course) return "";
+  const start = new Date(startValue);
+  const end = new Date(start);
+  end.setDate(end.getDate() + course.durationWeeks * 7);
+  return end.toISOString().slice(0, 10);
+}
 
 export function ClassForm({
   courses,
@@ -40,16 +51,31 @@ export function ClassForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState(
+    defaultValues?.courseId ?? "",
+  );
+  const [endDate, setEndDate] = useState(defaultValues?.endDate ?? "");
   const isEdit = Boolean(defaultValues?.id);
+
+  function recalculateEndDate(courseId: string) {
+    const startInput = document.getElementById("startDate") as HTMLInputElement;
+    setEndDate(
+      calculateEndDate(
+        startInput?.value ?? "",
+        courses.find((course) => course.id === courseId),
+      ),
+    );
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     try {
       const formData = new FormData(e.currentTarget);
-      const res = isEdit && defaultValues?.id
-        ? await updateClass(defaultValues.id, formData)
-        : await createClass(formData);
+      const res =
+        isEdit && defaultValues?.id
+          ? await updateClass(defaultValues.id, formData)
+          : await createClass(formData);
       if (res.success) {
         toast.success(
           isEdit ? "Class updated successfully" : "Class created successfully",
@@ -72,7 +98,11 @@ export function ClassForm({
             id="courseId"
             name="courseId"
             required
-            defaultValue={defaultValues?.courseId ?? ""}
+            value={selectedCourseId}
+            onChange={(event) => {
+              setSelectedCourseId(event.target.value);
+              recalculateEndDate(event.target.value);
+            }}
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           >
             <option value="">Select course</option>
@@ -108,6 +138,20 @@ export function ClassForm({
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="classType">Class Type *</Label>
+          <select
+            id="classType"
+            name="classType"
+            required
+            defaultValue={defaultValues?.classType ?? "GROUP"}
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+          >
+            <option value="GROUP">Group Class</option>
+            <option value="PERSONAL">Personal Class</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="labId">Lab *</Label>
           <select
             id="labId"
@@ -123,6 +167,38 @@ export function ClassForm({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="startDate">Start Date *</Label>
+          <input
+            id="startDate"
+            name="startDate"
+            type="date"
+            required
+            defaultValue={defaultValues?.startDate ?? ""}
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            onChange={(event) => {
+              setEndDate(
+                calculateEndDate(
+                  event.target.value,
+                  courses.find((course) => course.id === selectedCourseId),
+                ),
+              );
+            }}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="endDate">End Date (auto-calculated)</Label>
+          <input
+            id="endDate"
+            name="endDate"
+            type="date"
+            readOnly
+            value={endDate}
+            className="h-10 w-full cursor-not-allowed rounded-md border bg-gray-50 px-3 text-sm"
+          />
         </div>
 
         <div className="space-y-2">
@@ -176,7 +252,13 @@ export function ClassForm({
       </div>
 
       <Button type="submit" disabled={loading}>
-        {loading ? (isEdit ? "Saving..." : "Creating...") : isEdit ? "Save Changes" : "Create Class"}
+        {loading
+          ? isEdit
+            ? "Saving..."
+            : "Creating..."
+          : isEdit
+            ? "Save Changes"
+            : "Create Class"}
       </Button>
     </form>
   );

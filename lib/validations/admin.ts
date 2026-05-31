@@ -13,11 +13,13 @@ export const studentSchema = z.object({
   emergencyContact: z.string().optional(),
   classId: z.string().min(1, "Please select a class"),
   startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  remainingAmount: z.coerce.number().min(0).default(0),
   paymentStatus: z.enum(["PENDING", "PAID", "OVERDUE", "CANCELLED"]),
   paymentMethod: z
     .enum(["CASH", "BANK_TRANSFER", "MOBILE_MONEY", "CARD"])
     .optional(),
-  paymentAmount: z.number().min(0),
+  paymentAmount: z.coerce.number().min(0),
   notes: z.string().optional(),
 });
 
@@ -33,7 +35,8 @@ export const teacherSchema = z.object({
 
 export const courseSchema = z.object({
   title: z.string().min(1, "Course name is required"),
-  fee: z.number().min(0, "Fee is required"),
+  fee: z.coerce.number().min(0, "Fee is required"),
+  durationWeeks: z.coerce.number().min(1).default(8),
   isActive: z.boolean().default(true),
 });
 
@@ -49,6 +52,8 @@ export const scheduleSchema = z.object({
 export const updateStudentSchema = studentSchema.partial().omit({
   classId: true,
   startDate: true,
+  endDate: true,
+  remainingAmount: true,
   paymentStatus: true,
   paymentMethod: true,
   paymentAmount: true,
@@ -63,4 +68,7 @@ export const updateClassSchema = z.object({
   timeSlot: z.string().min(1),
   days: z.string().min(1),
   capacity: z.number().min(1),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  classType: z.enum(["GROUP", "PERSONAL"]).default("GROUP"),
 });

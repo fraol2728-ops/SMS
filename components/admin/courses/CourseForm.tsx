@@ -14,6 +14,7 @@ type CourseDefaults = {
   id: string;
   title?: string | null;
   fee?: number | null;
+  durationWeeks?: number | null;
   isActive?: boolean | null;
 };
 
@@ -37,6 +38,7 @@ export function CourseForm({
         : await createCourse({
             title: values.title,
             fee: Number(values.fee),
+            durationWeeks: Number(values.durationWeeks),
             isActive,
           });
     setLoading(false);
@@ -78,6 +80,22 @@ export function CourseForm({
           step="0.01"
           defaultValue={defaultValues?.fee ?? ""}
         />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="durationWeeks">Duration *</Label>
+        <select
+          id="durationWeeks"
+          name="durationWeeks"
+          required
+          defaultValue={defaultValues?.durationWeeks ?? "8"}
+          className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+        >
+          {[2, 4, 5, 6, 7, 8, 10, 12, 16, 24].map((weeks) => (
+            <option key={weeks} value={weeks}>
+              {weeks} weeks
+            </option>
+          ))}
+        </select>
       </div>
       <div className="flex items-center gap-3 rounded-md border p-4">
         <Switch

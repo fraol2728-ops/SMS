@@ -16,6 +16,9 @@ type ClassOption = {
   lab: { name: string };
   timeSlot: string;
   days: string;
+  classType: string;
+  startDate: string;
+  endDate: string;
   course: { title: string; fee: number };
   teacher: { user: { firstName: string; lastName: string } };
   capacity: number;
@@ -37,10 +40,6 @@ type DefaultStudentValues = {
   notes?: string;
 };
 
-function todayInputValue() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function StudentForm({
   classes,
   defaultValues,
@@ -50,9 +49,46 @@ export function StudentForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [classType, setClassType] = useState<"GROUP" | "PERSONAL">("GROUP");
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [courseFee, setCourseFee] = useState(0);
   const [paymentAmount, setPaymentAmount] = useState("0");
+  const [remaining, setRemaining] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState("PENDING");
   const isEdit = Boolean(defaultValues?.id);
+  const filteredClasses = classes.filter((c) => c.classType === classType);
+
+  function onClassSelect(classId: string) {
+    setSelectedClassId(classId);
+    const selected = classes.find((c) => c.id === classId);
+    if (selected) {
+      setStartDate(selected.startDate ?? "");
+      setEndDate(selected.endDate ?? "");
+      setCourseFee(selected.course.fee);
+      setPaymentAmount(String(selected.course.fee));
+      setRemaining(0);
+      setPaymentStatus("PAID");
+    } else {
+      setStartDate("");
+      setEndDate("");
+      setCourseFee(0);
+      setPaymentAmount("0");
+      setRemaining(0);
+      setPaymentStatus("PENDING");
+    }
+  }
+
+  function onPaymentAmountChange(value: string) {
+    setPaymentAmount(value);
+    const paid = parseFloat(value) || 0;
+    const rem = Math.max(0, courseFee - paid);
+    setRemaining(rem);
+    if (rem > 0 && paymentStatus === "PAID") {
+      setPaymentStatus("PENDING");
+    }
+  }
 
   async function onSubmit(formData: FormData) {
     setLoading(true);
@@ -70,6 +106,7 @@ export function StudentForm({
         const res = await createStudent({
           ...values,
           paymentAmount: Number(values.paymentAmount),
+          remainingAmount: Number(values.remainingAmount ?? 0),
         });
         if (res.success) {
           toast.success("Student registered successfully");
@@ -83,18 +120,21 @@ export function StudentForm({
     }
   }
 
-  // Listen for calculator events to populate the payment amount
   useEffect(() => {
     function handler(e: Event) {
       const ce = e as CustomEvent<{ total: number }>;
       if (ce && typeof ce.detail?.total !== "undefined") {
-        setPaymentAmount(String(ce.detail.total));
+        onPaymentAmountChange(String(ce.detail.total));
       }
     }
 
     window.addEventListener("calculator-use-total", handler as EventListener);
-    return () => window.removeEventListener("calculator-use-total", handler as EventListener);
-  }, []);
+    return () =>
+      window.removeEventListener(
+        "calculator-use-total",
+        handler as EventListener,
+      );
+  });
 
   return (
     <form
@@ -118,7 +158,6 @@ export function StudentForm({
               id="firstName"
               name="firstName"
               required
-              type="text"
               defaultValue={defaultValues?.firstName ?? ""}
             />
           </div>
@@ -128,7 +167,6 @@ export function StudentForm({
               id="lastName"
               name="lastName"
               required
-              type="text"
               defaultValue={defaultValues?.lastName ?? ""}
             />
           </div>
@@ -138,7 +176,6 @@ export function StudentForm({
               id="phone"
               name="phone"
               required
-              type="text"
               defaultValue={defaultValues?.phone ?? ""}
             />
           </div>
@@ -153,8 +190,7 @@ export function StudentForm({
             />
             <p className="text-xs text-muted-foreground">
               If no email provided, a system email will be generated
-              automatically. The student can still access the portal via
-              invitation if email is provided.
+              automatically.
             </p>
           </div>
           <div className="space-y-2">
@@ -202,7 +238,6 @@ export function StudentForm({
             <Input
               id="guardianName"
               name="guardianName"
-              type="text"
               defaultValue={defaultValues?.guardianName ?? ""}
             />
           </div>
@@ -211,7 +246,6 @@ export function StudentForm({
             <Input
               id="guardianPhone"
               name="guardianPhone"
-              type="text"
               defaultValue={defaultValues?.guardianPhone ?? ""}
             />
           </div>
@@ -220,7 +254,6 @@ export function StudentForm({
             <Input
               id="emergencyContact"
               name="emergencyContact"
-              type="text"
               defaultValue={defaultValues?.emergencyContact ?? ""}
             />
           </div>
@@ -232,21 +265,44 @@ export function StudentForm({
           <h2 className="text-lg font-semibold">Enrollment</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="classId">Class *</Label>
+              <Label>Class Type *</Label>
+              <div className="flex gap-3">
+                {(["GROUP", "PERSONAL"] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      setClassType(type);
+                      onClassSelect("");
+                    }}
+                    className={`flex-1 rounded-lg border-2 py-2 text-sm font-medium transition-all ${
+                      classType === type
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {type === "GROUP" ? "👥 Group Class" : "👤 Personal Class"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="classId">Select Class *</Label>
               <select
                 id="classId"
                 name="classId"
                 required
-                onChange={(event) => {
-                  const selected = classes.find(
-                    (classOption) => classOption.id === event.target.value,
-                  );
-                  if (selected) setPaymentAmount(String(selected.course.fee));
-                }}
+                value={selectedClassId}
+                onChange={(event) => onClassSelect(event.target.value)}
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
               >
-                <option value="">Select a class</option>
-                {classes.map((classOption) => {
+                <option value="">
+                  {filteredClasses.length === 0
+                    ? `No ${classType.toLowerCase()} classes available`
+                    : "Select a class"}
+                </option>
+                {filteredClasses.map((classOption) => {
                   const spotsLeft =
                     classOption.capacity - classOption._count.enrollments;
                   const timeLabel =
@@ -260,42 +316,88 @@ export function StudentForm({
                       disabled={spotsLeft <= 0}
                     >
                       {classOption.lab.name} • {classOption.course.title} •{" "}
-                      {timeLabel} • {daysLabel} •
-                      {spotsLeft > 0 ? ` ${spotsLeft} spots left` : " FULL"}
+                      {timeLabel} • {daysLabel}
+                      {spotsLeft <= 0
+                        ? " — FULL"
+                        : ` — ${spotsLeft} spots left`}
                     </option>
                   );
                 })}
               </select>
+              {filteredClasses.length === 0 ? (
+                <p className="text-xs text-amber-600">
+                  No {classType.toLowerCase()} classes created yet.
+                  <a href="/admin/classes/new" className="ml-1 underline">
+                    Create one first
+                  </a>
+                </p>
+              ) : null}
             </div>
+
+            {selectedClassId ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <input
+                    name="startDate"
+                    type="date"
+                    value={startDate}
+                    readOnly
+                    className="h-10 w-full cursor-not-allowed rounded-md border bg-gray-50 px-3 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <input
+                    name="endDate"
+                    type="date"
+                    value={endDate}
+                    readOnly
+                    className="h-10 w-full cursor-not-allowed rounded-md border bg-gray-50 px-3 text-sm"
+                  />
+                </div>
+              </>
+            ) : null}
+
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input
-                id="startDate"
-                name="startDate"
-                type="date"
-                defaultValue={todayInputValue()}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="paymentStatus">Payment Status</Label>
+              <Label htmlFor="paymentStatus">Payment Status *</Label>
               <select
                 id="paymentStatus"
                 name="paymentStatus"
-                required
                 value={paymentStatus}
                 onChange={(event) => setPaymentStatus(event.target.value)}
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
               >
-                <option value="PAID">Paid</option>
-                <option value="PENDING">Pending</option>
-                <option value="OVERDUE">Overdue</option>
+                <option value="PAID">Paid in Full</option>
+                <option value="PENDING">Partial / Pending</option>
               </select>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentAmount">
+                Amount Paid (ETB) *
+                {courseFee > 0 ? (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    Course fee: ETB {courseFee.toLocaleString()}
+                  </span>
+                ) : null}
+              </Label>
+              <Input
+                id="paymentAmount"
+                name="paymentAmount"
+                type="number"
+                min={0}
+                max={courseFee || undefined}
+                step="0.01"
+                value={paymentAmount}
+                onChange={(event) => onPaymentAmountChange(event.target.value)}
+              />
+            </div>
+
             {paymentStatus === "PAID" ? (
               <div className="space-y-2">
-                <Label htmlFor="paymentMethod">Payment Method</Label>
+                <Label>Payment Method *</Label>
                 <select
-                  id="paymentMethod"
                   name="paymentMethod"
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 >
@@ -306,18 +408,28 @@ export function StudentForm({
                 </select>
               </div>
             ) : null}
-            <div className="space-y-2">
-              <Label htmlFor="paymentAmount">Payment Amount</Label>
-              <Input
-                id="paymentAmount"
-                name="paymentAmount"
-                type="number"
-                min={0}
-                step="0.01"
-                value={paymentAmount}
-                onChange={(event) => setPaymentAmount(event.target.value)}
-              />
-            </div>
+
+            {remaining > 0 ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-amber-800">
+                      Payment Remaining
+                    </p>
+                    <p className="text-sm text-amber-600">
+                      ETB {remaining.toLocaleString()} will be due at the
+                      halfway point of the course
+                    </p>
+                  </div>
+                  <p className="text-2xl font-bold text-amber-700">
+                    ETB {remaining.toLocaleString()}
+                  </p>
+                </div>
+                <input type="hidden" name="remainingAmount" value={remaining} />
+              </div>
+            ) : (
+              <input type="hidden" name="remainingAmount" value={0} />
+            )}
           </div>
         </section>
       ) : null}
@@ -332,7 +444,10 @@ export function StudentForm({
         />
       </section>
 
-      <Button type="submit" disabled={loading || (!isEdit && classes.length === 0)}>
+      <Button
+        type="submit"
+        disabled={loading || (!isEdit && classes.length === 0)}
+      >
         {loading ? <Spinner className="mr-2" /> : null}
         {isEdit ? "Save Changes" : "Register Student"}
       </Button>
