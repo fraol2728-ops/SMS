@@ -1,7 +1,7 @@
 ﻿const { PrismaClient } = require('@prisma/client')
 const { PrismaPg } = require('@prisma/adapter-pg')
 
-const adapter = new PrismaPg({ connectionString: 'postgresql://neondb_owner:npg_9dNDkMbjKGm2@ep-falling-sky-aplikygp.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require' })
+const adapter = new PrismaPg({ connectionString: 'postgresql://neondb_owner:npg_9dNDkMbjKGm2@ep-falling-sky-aplikygp.c-7.us-east-1.aws.neon.tech/neondb?sslmode=verify-full' })
 const prisma = new PrismaClient({ adapter })
 
 async function main() {

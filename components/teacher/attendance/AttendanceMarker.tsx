@@ -30,7 +30,7 @@ type HistoryGroup = {
   date: Date | string;
   class: {
     course: { title: string };
-    lab: { name: string };
+    lab: { name: string } | null;
   } | null;
   presentCount: number;
   absentCount: number;
@@ -330,7 +330,7 @@ export function AttendanceMarker({
                     {group.class?.course.title}
                   </p>
                   <p className="text-gray-400 text-xs">
-                    {group.class?.lab.name} •{" "}
+                    {group.class?.lab?.name ?? "Online"} •{" "}
                     {new Date(group.date).toLocaleDateString("en-GB", {
                       weekday: "short",
                       day: "2-digit",
