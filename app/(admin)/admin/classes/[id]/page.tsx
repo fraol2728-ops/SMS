@@ -10,12 +10,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ClassStatusControls } from "@/components/admin/classes/ClassStatusControls";
 import { DeleteConfirmDialog } from "@/components/admin/shared/DeleteConfirmDialog";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { dropEnrollmentFormAction } from "@/lib/actions/admin";
+import { requireAdmin } from "@/lib/auth-check";
+import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export default async function ClassDetailPage({
@@ -23,6 +25,7 @@ export default async function ClassDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const classRecord = await prisma.class.findUnique({
     where: { id },
@@ -55,20 +58,47 @@ export default async function ClassDetailPage({
 
   if (!classRecord) notFound();
 
-  const timeLabel = TIME_SLOTS[classRecord.timeSlot as keyof typeof TIME_SLOTS];
+  const timeLabel =
+    classRecord.classType === "ONLINE"
+      ? "Online"
+      : TIME_SLOTS[classRecord.timeSlot as keyof typeof TIME_SLOTS];
   const daysLabel = CLASS_DAYS[classRecord.days as keyof typeof CLASS_DAYS];
   const activeStudents = classRecord.enrollments.length;
   const spotsLeft = classRecord.capacity - activeStudents;
   const capacityPercent = classRecord.capacity
     ? Math.round((activeStudents / classRecord.capacity) * 100)
     : 0;
+  const today = new Date();
+  const startDate = classRecord.startDate;
+  const endDate = classRecord.endDate;
+  const totalDays =
+    startDate && endDate
+      ? Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        )
+      : 0;
+  const elapsedDays = startDate
+    ? Math.max(
+        0,
+        Math.ceil(
+          (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        ),
+      )
+    : 0;
+  const progressPercent =
+    totalDays > 0
+      ? Math.min(100, Math.round((elapsedDays / totalDays) * 100))
+      : 0;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`${classRecord.lab.name} — ${classRecord.course.title}`}
+        title={`${classRecord.lab?.name ?? "Online"} — ${classRecord.course.title}`}
         description={`${classRecord.campus.name} Campus`}
-        action={{ label: "Edit class", href: `/admin/classes/${classRecord.id}/edit` }}
+        action={{
+          label: "Edit class",
+          href: `/admin/classes/${classRecord.id}/edit`,
+        }}
       />
       <div className="flex justify-end">
         <DeleteConfirmDialog
@@ -81,6 +111,40 @@ export default async function ClassDetailPage({
         />
       </div>
 
+      <div className="bg-white border rounded-xl p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 className="font-semibold">Class Status</h3>
+            <span className="mt-2 inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+              {classRecord.status}
+            </span>
+          </div>
+          <ClassStatusControls
+            classId={classRecord.id}
+            status={classRecord.status}
+          />
+        </div>
+      </div>
+      {classRecord.status === "STARTED" && (
+        <div className="bg-white border rounded-xl p-6">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-semibold">Course Progress</h3>
+            <span className="text-sm font-medium">{progressPercent}%</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
+            <div
+              className={`h-4 rounded-full transition-all duration-500 ${progressPercent >= 100 ? "bg-green-500" : progressPercent >= 60 ? "bg-blue-500" : progressPercent >= 30 ? "bg-amber-500" : "bg-blue-400"}`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground mt-2">
+            <span>Day {elapsedDays}</span>
+            <span>{Math.max(0, totalDays - elapsedDays)} days remaining</span>
+            <span>Day {totalDays}</span>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="flex items-start gap-3 rounded-xl border bg-white p-4">
           <div className="rounded-lg bg-blue-50 p-2">
@@ -88,7 +152,7 @@ export default async function ClassDetailPage({
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Lab</p>
-            <p className="font-semibold">{classRecord.lab.name}</p>
+            <p className="font-semibold">{classRecord.lab?.name ?? "Online"}</p>
           </div>
         </div>
 

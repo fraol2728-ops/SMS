@@ -2,12 +2,14 @@ import Link from "next/link";
 import { DataTable } from "@/components/admin/shared/DataTable";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function TeachersPage() {
+  await requireAdmin();
   const campusId = await getCurrentUserCampusId();
   const rows = await prisma.user.findMany({
     where: { role: "TEACHER", ...(campusId ? { campusId } : {}) },

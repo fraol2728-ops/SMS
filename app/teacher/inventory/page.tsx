@@ -3,9 +3,11 @@ export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import { Package } from "lucide-react";
 import { redirect } from "next/navigation";
+import { requireTeacher } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
 
 export default async function TeacherInventoryPage() {
+  await requireTeacher();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
@@ -15,7 +17,7 @@ export default async function TeacherInventoryPage() {
       teacherProfile: {
         include: {
           classes: {
-            where: { isActive: true },
+            where: { isActive: true, status: "STARTED" },
             include: {
               lab: {
                 include: {
@@ -38,7 +40,7 @@ export default async function TeacherInventoryPage() {
     (typeof teacher.teacherProfile.classes)[number]["lab"]
   >();
   teacher.teacherProfile.classes.forEach((c: any) => {
-    if (!labsMap.has(c.lab.id)) {
+    if (c.lab && !labsMap.has(c.lab.id)) {
       labsMap.set(c.lab.id, c.lab);
     }
   });

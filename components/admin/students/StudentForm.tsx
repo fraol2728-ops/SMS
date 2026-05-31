@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AssessmentSection } from "@/components/admin/students/AssessmentSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,10 +14,10 @@ import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
 type ClassOption = {
   id: string;
-  lab: { name: string };
+  lab: { name: string } | null;
   timeSlot: string;
   days: string;
-  classType: "GROUP" | "PERSONAL";
+  classType: "GROUP" | "PERSONAL" | "ONLINE";
   startDate: string | null;
   endDate: string | null;
   course: { title: string; fee: number };
@@ -49,7 +50,9 @@ export function StudentForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [classType, setClassType] = useState<"GROUP" | "PERSONAL">("GROUP");
+  const [classType, setClassType] = useState<"GROUP" | "PERSONAL" | "ONLINE">(
+    "GROUP",
+  );
   const [selectedClassId, setSelectedClassId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -267,7 +270,7 @@ export function StudentForm({
             <div className="space-y-2 md:col-span-2">
               <Label>Class Type *</Label>
               <div className="flex gap-3">
-                {(["GROUP", "PERSONAL"] as const).map((type) => (
+                {(["GROUP", "PERSONAL", "ONLINE"] as const).map((type) => (
                   <button
                     key={type}
                     type="button"
@@ -281,7 +284,11 @@ export function StudentForm({
                         : "border-gray-200 text-gray-600"
                     }`}
                   >
-                    {type === "GROUP" ? "👥 Group Class" : "👤 Personal Class"}
+                    {type === "GROUP"
+                      ? "👥 Group Class"
+                      : type === "PERSONAL"
+                        ? "👤 Personal Class"
+                        : "🌐 Online Class"}
                   </button>
                 ))}
               </div>
@@ -315,8 +322,8 @@ export function StudentForm({
                       value={classOption.id}
                       disabled={spotsLeft <= 0}
                     >
-                      {classOption.lab.name} • {classOption.course.title} •{" "}
-                      {timeLabel} • {daysLabel}
+                      {classOption.lab?.name ?? "Online"} •{" "}
+                      {classOption.course.title} • {timeLabel} • {daysLabel}
                       {spotsLeft <= 0
                         ? " — FULL"
                         : ` — ${spotsLeft} spots left`}
@@ -433,6 +440,8 @@ export function StudentForm({
           </div>
         </section>
       ) : null}
+
+      {!isEdit ? <AssessmentSection /> : null}
 
       <section className="space-y-2 border-t pt-6">
         <Label htmlFor="notes">Notes</Label>

@@ -10,7 +10,7 @@ import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
 type ClassOption = {
   id: string;
-  lab: { name: string };
+  lab: { name: string } | null;
   timeSlot: string;
   days: string;
   course: { title: string };
@@ -94,7 +94,8 @@ export function ChangeClassModal({
                   const days = CLASS_DAYS[c.days as keyof typeof CLASS_DAYS];
                   return (
                     <option key={c.id} value={c.id} disabled={spots <= 0}>
-                      {c.lab.name} • {c.course.title} • {time} • {days}
+                      {c.lab?.name ?? "Online"} • {c.course.title} • {time} •{" "}
+                      {days}
                       {spots <= 0 ? " — FULL" : ` — ${spots} spots`}
                     </option>
                   );

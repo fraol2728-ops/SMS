@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ClassForm } from "@/components/admin/classes/ClassForm";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
@@ -9,6 +10,7 @@ export default async function EditClassPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const campusId = await getCurrentUserCampusId();
   const classRecord = await prisma.class.findFirst({
@@ -61,11 +63,12 @@ export default async function EditClassPage({
           id: classRecord.id,
           courseId: classRecord.courseId,
           teacherId: classRecord.teacherId,
-          labId: classRecord.labId,
+          labId: classRecord.labId ?? undefined,
           timeSlot: classRecord.timeSlot,
           days: classRecord.days,
           capacity: classRecord.capacity,
           classType: classRecord.classType,
+          onlineLink: classRecord.onlineLink ?? undefined,
           startDate: classRecord.startDate?.toISOString().slice(0, 10),
           endDate: classRecord.endDate?.toISOString().slice(0, 10),
         }}

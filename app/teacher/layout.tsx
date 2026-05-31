@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { TeacherHeader } from "@/components/teacher/layout/TeacherHeader";
 import { TeacherSidebar } from "@/components/teacher/layout/TeacherSidebar";
+import { requireTeacher } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
 
 export default async function TeacherLayout({
@@ -9,6 +10,7 @@ export default async function TeacherLayout({
 }: {
   children: React.ReactNode;
 }) {
+  await requireTeacher();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
@@ -22,7 +24,7 @@ export default async function TeacherLayout({
       teacherProfile: {
         include: {
           classes: {
-            where: { isActive: true },
+            where: { isActive: true, status: "STARTED" },
             include: { course: true, lab: true },
           },
         },

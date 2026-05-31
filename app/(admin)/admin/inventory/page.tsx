@@ -3,10 +3,12 @@ export const dynamic = "force-dynamic";
 import { Package } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
 export default async function InventoryPage() {
+  await requireAdmin();
   const campusId = await getCurrentUserCampusId();
 
   const labs = (await prisma.lab.findMany({

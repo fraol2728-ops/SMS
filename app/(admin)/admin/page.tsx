@@ -3,8 +3,9 @@ import Link from "next/link";
 import { KpiCard } from "@/components/admin/shared/KpiCard";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { TrendChart } from "@/components/admin/shared/TrendChart";
-import { buildTrendSeries } from "@/lib/dashboard";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
+import { buildTrendSeries } from "@/lib/dashboard";
 import { prisma } from "@/lib/prisma";
 
 type RecentEnrollment = {
@@ -28,6 +29,7 @@ type RecentPayment = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  await requireAdmin();
   const campusId = await getCurrentUserCampusId();
   const campusCourseWhere = campusId ? { course: { campusId } } : {};
   const now = new Date();
@@ -129,9 +131,24 @@ export default async function AdminPage() {
     }),
   ]);
 
-  const revenueSeries = buildTrendSeries(payments, 30, (item) => item.paidAt!, (item) => item.amount);
-  const registrationSeries = buildTrendSeries(newStudents, 30, (item) => item.createdAt, () => 1);
-  const weeklyEnrollmentSeries = buildTrendSeries(weeklyEnrollments, 7, (item) => item.createdAt, () => 1);
+  const revenueSeries = buildTrendSeries(
+    payments,
+    30,
+    (item) => item.paidAt!,
+    (item) => item.amount,
+  );
+  const registrationSeries = buildTrendSeries(
+    newStudents,
+    30,
+    (item) => item.createdAt,
+    () => 1,
+  );
+  const weeklyEnrollmentSeries = buildTrendSeries(
+    weeklyEnrollments,
+    7,
+    (item) => item.createdAt,
+    () => 1,
+  );
   const totalMonthlyRevenue = monthlyRevenue._sum.amount ?? 0;
 
   return (
@@ -235,8 +252,12 @@ export default async function AdminPage() {
       <section className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">Weekly activity</p>
-            <h2 className="text-2xl font-semibold">Recent enrollments this week</h2>
+            <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
+              Weekly activity
+            </p>
+            <h2 className="text-2xl font-semibold">
+              Recent enrollments this week
+            </h2>
           </div>
           <div className="rounded-3xl bg-slate-950/5 px-4 py-3 text-sm font-semibold text-slate-900">
             {weeklyEnrollments.length} enrollments in the last 7 days
@@ -247,7 +268,9 @@ export default async function AdminPage() {
           <div className="overflow-hidden rounded-3xl border bg-white shadow-sm">
             <div className="px-6 py-5 border-b bg-slate-50">
               <p className="font-semibold">Latest weekly enrollments</p>
-              <p className="text-sm text-muted-foreground">Showing the most recent 12 enrollments.</p>
+              <p className="text-sm text-muted-foreground">
+                Showing the most recent 12 enrollments.
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
@@ -260,12 +283,18 @@ export default async function AdminPage() {
                 </thead>
                 <tbody>
                   {weeklyEnrollments.map((enrollment) => (
-                    <tr key={enrollment.id} className="border-b last:border-b-0">
+                    <tr
+                      key={enrollment.id}
+                      className="border-b last:border-b-0"
+                    >
                       <td className="px-4 py-3">
-                        {enrollment.student.user.firstName} {enrollment.student.user.lastName}
+                        {enrollment.student.user.firstName}{" "}
+                        {enrollment.student.user.lastName}
                       </td>
                       <td className="px-4 py-3">{enrollment.course.title}</td>
-                      <td className="px-4 py-3">{enrollment.createdAt.toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        {enrollment.createdAt.toLocaleDateString()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -278,7 +307,10 @@ export default async function AdminPage() {
               <p className="text-sm font-semibold">Enrollments by day</p>
               <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[11px] text-slate-600">
                 {weeklyEnrollmentSeries.map((point) => (
-                  <div key={point.label} className="rounded-2xl bg-white px-2 py-3 shadow-sm">
+                  <div
+                    key={point.label}
+                    className="rounded-2xl bg-white px-2 py-3 shadow-sm"
+                  >
                     <p className="font-semibold">{point.value}</p>
                     <p>{point.label}</p>
                   </div>
@@ -287,8 +319,12 @@ export default async function AdminPage() {
             </div>
             <div className="rounded-3xl border bg-slate-950/5 p-5 shadow-sm">
               <p className="text-sm font-semibold">Top weekly metric</p>
-              <p className="mt-2 text-3xl font-semibold">{weeklyEnrollments.length}</p>
-              <p className="text-sm text-muted-foreground">Enrollments created in the past 7 days.</p>
+              <p className="mt-2 text-3xl font-semibold">
+                {weeklyEnrollments.length}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Enrollments created in the past 7 days.
+              </p>
             </div>
           </div>
         </div>
@@ -299,7 +335,9 @@ export default async function AdminPage() {
           <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
             <div>
               <h3 className="text-lg font-semibold">Recent enrollments</h3>
-              <p className="text-sm text-slate-500">Latest student course activity.</p>
+              <p className="text-sm text-slate-500">
+                Latest student course activity.
+              </p>
             </div>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-700">
               {recentEnrollments.length} entries
@@ -317,12 +355,17 @@ export default async function AdminPage() {
               </thead>
               <tbody className="divide-y divide-slate-200 text-slate-700">
                 {(recentEnrollments as RecentEnrollment[]).map((e) => (
-                  <tr key={e.id} className="hover:bg-slate-50 transition-colors">
+                  <tr
+                    key={e.id}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
                     <td className="py-4 pr-6 font-medium text-slate-900">
                       {e.student.user.firstName} {e.student.user.lastName}
                     </td>
                     <td className="py-4 pr-6">{e.course.title}</td>
-                    <td className="py-4 pr-6">{e.startDate.toLocaleDateString()}</td>
+                    <td className="py-4 pr-6">
+                      {e.startDate.toLocaleDateString()}
+                    </td>
                     <td className="py-4">
                       <StatusBadge status={e.status} />
                     </td>
@@ -337,7 +380,9 @@ export default async function AdminPage() {
           <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
             <div>
               <h3 className="text-lg font-semibold">Recent payments</h3>
-              <p className="text-sm text-slate-500">Most recent student transactions.</p>
+              <p className="text-sm text-slate-500">
+                Most recent student transactions.
+              </p>
             </div>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-700">
               {recentPayments.length} payments
@@ -356,12 +401,17 @@ export default async function AdminPage() {
               </thead>
               <tbody className="divide-y divide-slate-200 text-slate-700">
                 {(recentPayments as RecentPayment[]).map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                  <tr
+                    key={p.id}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
                     <td className="py-4 pr-6 font-medium text-slate-900">
                       {p.user.firstName} {p.user.lastName}
                     </td>
                     <td className="py-4 pr-6">{p.enrollment.course.title}</td>
-                    <td className="py-4 pr-6">ETB {p.amount.toLocaleString()}</td>
+                    <td className="py-4 pr-6">
+                      ETB {p.amount.toLocaleString()}
+                    </td>
                     <td className="py-4 pr-6">{p.method ?? "-"}</td>
                     <td className="py-4">
                       <StatusBadge status={p.status} />
