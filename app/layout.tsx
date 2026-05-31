@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import CalculatorWidget from "@/components/ui/CalculatorWidget";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           {children}
+          <CalculatorWidget />
           <Toaster richColors position="top-right" />
         </body>
       </html>

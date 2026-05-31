@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +82,19 @@ export function StudentForm({
       setLoading(false);
     }
   }
+
+  // Listen for calculator events to populate the payment amount
+  useEffect(() => {
+    function handler(e: Event) {
+      const ce = e as CustomEvent<{ total: number }>;
+      if (ce && typeof ce.detail?.total !== "undefined") {
+        setPaymentAmount(String(ce.detail.total));
+      }
+    }
+
+    window.addEventListener("calculator-use-total", handler as EventListener);
+    return () => window.removeEventListener("calculator-use-total", handler as EventListener);
+  }, []);
 
   return (
     <form
