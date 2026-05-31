@@ -48,9 +48,14 @@ export default async function TeachersPage() {
             key: "actions",
             label: "Actions",
             render: (r) => (
-              <Button asChild size="sm" variant="outline">
-                <Link href={`/admin/teachers/${r.id}`}>View</Link>
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/admin/teachers/${r.id}`}>View</Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/admin/teachers/${r.id}/edit`}>Edit</Link>
+                </Button>
+              </div>
             ),
           },
         ]}

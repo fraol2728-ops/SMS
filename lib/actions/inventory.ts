@@ -116,6 +116,61 @@ export async function updateAssetCondition(
   }
 }
 
+export async function updateAssetDetails(assetId: string, formData: FormData) {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return err("Not authenticated");
+
+    const name = (formData.get("name") as string)?.trim();
+    const category = formData.get("category") as string;
+    const serialNumber = (formData.get("serialNumber") as string)?.trim();
+    const notes = (formData.get("notes") as string)?.trim();
+
+    if (!name || !category) {
+      return err("Name and category are required.");
+    }
+
+    if (serialNumber) {
+      const existing = await prisma.asset.findFirst({
+        where: {
+          serialNumber,
+          id: { not: assetId },
+        },
+      });
+      if (existing) {
+        return err("An asset with this serial number already exists.");
+      }
+    }
+
+    const asset = await prisma.asset.update({
+      where: { id: assetId },
+      data: {
+        name,
+        category,
+        serialNumber: serialNumber || null,
+        notes: notes || null,
+      },
+      select: { labId: true },
+    });
+
+    await prisma.assetLog.create({
+      data: {
+        assetId,
+        userId,
+        action: "UPDATED",
+        note: `Asset details updated${notes ? `: ${notes}` : ""}`,
+      },
+    });
+
+    revalidatePath(`/admin/inventory/${asset.labId}`);
+    revalidatePath(`/admin/inventory/${asset.labId}/assets/${assetId}`);
+    revalidatePath("/admin/inventory");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update asset");
+  }
+}
+
 export async function deleteAsset(assetId: string) {
   try {
     const userId = await getCurrentUserId();

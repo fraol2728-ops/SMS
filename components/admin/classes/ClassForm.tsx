@@ -5,7 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { createClass } from "@/lib/actions/admin";
+import { createClass, updateClass } from "@/lib/actions/admin";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
 type Course = { id: string; title: string };
@@ -17,26 +17,43 @@ type Teacher = {
 };
 type Lab = { id: string; name: string };
 
+type DefaultClassValues = {
+  id?: string;
+  courseId?: string;
+  teacherId?: string;
+  labId?: string;
+  timeSlot?: string;
+  days?: string;
+  capacity?: number;
+};
+
 export function ClassForm({
   courses,
   teachers,
   labs,
+  defaultValues,
 }: {
   courses: Course[];
   teachers: Teacher[];
   labs: Lab[];
+  defaultValues?: DefaultClassValues;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const isEdit = Boolean(defaultValues?.id);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     try {
       const formData = new FormData(e.currentTarget);
-      const res = await createClass(formData);
+      const res = isEdit && defaultValues?.id
+        ? await updateClass(defaultValues.id, formData)
+        : await createClass(formData);
       if (res.success) {
-        toast.success("Class created successfully");
+        toast.success(
+          isEdit ? "Class updated successfully" : "Class created successfully",
+        );
         router.push("/admin/classes");
       } else {
         toast.error(res.error);
@@ -55,6 +72,7 @@ export function ClassForm({
             id="courseId"
             name="courseId"
             required
+            defaultValue={defaultValues?.courseId ?? ""}
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           >
             <option value="">Select course</option>
@@ -72,6 +90,7 @@ export function ClassForm({
             id="teacherId"
             name="teacherId"
             required
+            defaultValue={defaultValues?.teacherId ?? ""}
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           >
             <option value="">Select teacher</option>
@@ -94,6 +113,7 @@ export function ClassForm({
             id="labId"
             name="labId"
             required
+            defaultValue={defaultValues?.labId ?? ""}
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           >
             <option value="">Select lab</option>
@@ -111,6 +131,7 @@ export function ClassForm({
             id="timeSlot"
             name="timeSlot"
             required
+            defaultValue={defaultValues?.timeSlot ?? ""}
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           >
             <option value="">Select time</option>
@@ -128,6 +149,7 @@ export function ClassForm({
             id="days"
             name="days"
             required
+            defaultValue={defaultValues?.days ?? ""}
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           >
             <option value="">Select days</option>
@@ -145,7 +167,7 @@ export function ClassForm({
             id="capacity"
             name="capacity"
             type="number"
-            defaultValue={20}
+            defaultValue={defaultValues?.capacity ?? 20}
             min={1}
             max={30}
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
@@ -154,7 +176,7 @@ export function ClassForm({
       </div>
 
       <Button type="submit" disabled={loading}>
-        {loading ? "Creating..." : "Create Class"}
+        {loading ? (isEdit ? "Saving..." : "Creating...") : isEdit ? "Save Changes" : "Create Class"}
       </Button>
     </form>
   );
