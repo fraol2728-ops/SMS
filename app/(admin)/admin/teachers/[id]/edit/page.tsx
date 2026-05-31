@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { TeacherForm } from "@/components/admin/teachers/TeacherForm";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
@@ -9,6 +10,7 @@ export default async function EditTeacherPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const campusId = await getCurrentUserCampusId();
   const teacher = await prisma.user.findFirst({

@@ -23,23 +23,30 @@ import { cn } from "@/lib/utils";
 const items = [
   ["/admin", "Dashboard", LayoutDashboard],
   ["/admin/students", "Students", Users],
+  ["/admin/withdrawn", "Withdrawn", AlertCircle],
+  ["/admin/dropped", "Dropped", AlertCircle],
   ["/admin/courses", "Courses", BookOpen],
-  ["/admin/teachers", "Teachers", GraduationCap],
   ["/admin/classes", "Classes", LayoutGrid],
-  ["/admin/inventory", "Inventory", Package],
+  ["/admin/teachers", "Teachers", GraduationCap],
+  ["/admin/waitlist", "Waitlist", ClipboardList],
   ["/admin/attendance", "Attendance", ClipboardList],
   ["/admin/payments", "Payments", CreditCard],
   ["/admin/remaining", "Remaining", AlertCircle],
   ["/admin/reports", "Reports", FileText],
+  ["/admin/certificates", "Certificates", GraduationCap],
+  ["/admin/history", "History", BookOpen],
+  ["/admin/inventory", "Inventory", Package],
   ["/admin/notifications", "Notifications", Bell],
 ] as const;
 
 export function AdminSidebarClient({
   campusIndicator,
   overdueCount = 0,
+  unreadReportCount = 0,
 }: {
   campusIndicator: React.ReactNode;
   overdueCount?: number;
+  unreadReportCount?: number;
 }) {
   const path = usePathname();
   const { user } = useUser();
@@ -65,6 +72,11 @@ export function AdminSidebarClient({
             {href === "/admin/remaining" && overdueCount > 0 ? (
               <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
                 {overdueCount}
+              </span>
+            ) : null}
+            {href === "/admin/reports" && unreadReportCount > 0 ? (
+              <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                {unreadReportCount > 9 ? "9+" : unreadReportCount}
               </span>
             ) : null}
           </Link>

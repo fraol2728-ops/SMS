@@ -3,26 +3,49 @@ import { DataTable } from "@/components/admin/shared/DataTable";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClassesPage() {
+export default async function ClassesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ status?: string }>;
+}) {
+  await requireAdmin();
   const campusId = await getCurrentUserCampusId();
+  const resolvedSearchParams = await searchParams;
+  const requestedStatus = resolvedSearchParams?.status;
+  const status =
+    requestedStatus === "REGISTRATION" || requestedStatus === "STARTED"
+      ? requestedStatus
+      : "STARTED";
 
-  const classes = await prisma.class.findMany({
-    where: campusId ? { campusId } : {},
-    include: {
-      course: true,
-      teacher: { include: { user: true } },
-      campus: true,
-      lab: { select: { name: true } },
-      _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
-    },
-    orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
-  });
+  const [registrationCount, startedCount, classes] = await Promise.all([
+    prisma.class.count({
+      where: { ...(campusId ? { campusId } : {}), status: "REGISTRATION" },
+    }),
+    prisma.class.count({
+      where: { ...(campusId ? { campusId } : {}), status: "STARTED" },
+    }),
+    prisma.class.findMany({
+      where: {
+        ...(campusId ? { campusId } : {}),
+        status,
+      },
+      include: {
+        course: true,
+        teacher: { include: { user: true } },
+        campus: true,
+        lab: { select: { name: true } },
+        _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+      },
+      orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -30,6 +53,24 @@ export default async function ClassesPage() {
         title="Classes"
         action={{ label: "Add class", href: "/admin/classes/new" }}
       />
+      <div className="flex gap-2 rounded-xl border bg-white p-2">
+        <Button
+          asChild
+          variant={status === "REGISTRATION" ? "default" : "outline"}
+        >
+          <Link href="/admin/classes?status=REGISTRATION">
+            Registration ({registrationCount})
+          </Link>
+        </Button>
+        <Button asChild variant={status === "STARTED" ? "default" : "outline"}>
+          <Link href="/admin/classes?status=STARTED">
+            Started ({startedCount})
+          </Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/admin/history">Ended</Link>
+        </Button>
+      </div>
       <DataTable
         data={classes}
         emptyMessage="No classes yet. Create a class to start enrolling students."
@@ -42,7 +83,7 @@ export default async function ClassesPage() {
                 href={`/admin/classes/${r.id}`}
                 className="font-medium text-blue-600 hover:underline"
               >
-                {r.lab.name}
+                {r.lab?.name ?? "Online"}
               </Link>
             ),
           },
@@ -72,8 +113,8 @@ export default async function ClassesPage() {
             key: "status",
             label: "Status",
             render: (r) => (
-              <Badge variant={r.isActive ? "default" : "secondary"}>
-                {r.isActive ? "Active" : "Inactive"}
+              <Badge variant={r.status === "STARTED" ? "default" : "secondary"}>
+                {r.status}
               </Badge>
             ),
           },

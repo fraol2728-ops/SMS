@@ -64,7 +64,7 @@ export const updateTeacherSchema = teacherSchema.partial();
 export const updateClassSchema = z.object({
   courseId: z.string().min(1),
   teacherId: z.string().min(1),
-  labId: z.string().min(1),
+  labId: z.string().optional(),
   timeSlot: z.enum([
     "SLOT_8_10",
     "SLOT_10_12",
@@ -76,5 +76,6 @@ export const updateClassSchema = z.object({
   capacity: z.number().min(1),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  classType: z.enum(["GROUP", "PERSONAL"]).default("GROUP"),
+  classType: z.enum(["GROUP", "PERSONAL", "ONLINE"]).default("GROUP"),
+  onlineLink: z.string().optional(),
 });

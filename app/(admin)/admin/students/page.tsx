@@ -3,6 +3,7 @@ import {
   StudentsTable,
   type StudentTableRow,
 } from "@/components/admin/students/StudentsTable";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -32,6 +33,7 @@ type EnrollmentRecord = {
 export const dynamic = "force-dynamic";
 
 export default async function StudentsPage() {
+  await requireAdmin();
   const campusId = await getCurrentUserCampusId();
   const students = (await prisma.user.findMany({
     where: { role: "STUDENT", ...(campusId ? { campusId } : {}) },
@@ -66,7 +68,7 @@ export default async function StudentsPage() {
       studentCode: student.studentProfile?.studentCode ?? "-",
       fullName: `${student.firstName} ${student.lastName}`,
       phone: student.phone ?? "-",
-      lab: classRecord?.lab.name ?? "-",
+      lab: classRecord?.lab?.name ?? "-",
       course: classRecord?.course.title ?? "-",
       time: classRecord
         ? TIME_SLOTS[classRecord.timeSlot as keyof typeof TIME_SLOTS]

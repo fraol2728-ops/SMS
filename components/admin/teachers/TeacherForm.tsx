@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createTeacher, updateTeacher } from "@/lib/actions/admin";
+import {
+  createTeacher,
+  markWaitlistJoined,
+  updateTeacher,
+} from "@/lib/actions/admin";
 
 type DefaultTeacherValues = {
   id?: string;
@@ -18,6 +22,7 @@ type DefaultTeacherValues = {
   gender?: string;
   specialty?: string;
   bio?: string;
+  waitlistId?: string;
 };
 
 export function TeacherForm({
@@ -43,6 +48,8 @@ export function TeacherForm({
       } else {
         const res = await createTeacher(formData);
         if (res.success) {
+          if (defaultValues?.waitlistId)
+            await markWaitlistJoined(defaultValues.waitlistId);
           toast.success("Teacher added successfully");
           router.push("/admin/teachers");
         } else {
@@ -62,6 +69,13 @@ export function TeacherForm({
       }}
       className="max-w-2xl space-y-6"
     >
+      {defaultValues?.waitlistId ? (
+        <input
+          type="hidden"
+          name="waitlistId"
+          value={defaultValues.waitlistId}
+        />
+      ) : null}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="firstName">First Name *</Label>
