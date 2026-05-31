@@ -23,11 +23,14 @@ export default async function EditClassPage({
   if (!classRecord) notFound();
 
   const [courses, teachers, labs]: [
-    { id: string; title: string }[],
+    { id: string; title: string; durationWeeks: number }[],
     { id: string; user: { firstName: string; lastName: string } }[],
     { id: string; name: string }[],
   ] = await Promise.all([
-    prisma.course.findMany({ where: { campusId: campusId ?? undefined } }),
+    prisma.course.findMany({
+      where: { campusId: campusId ?? undefined },
+      select: { id: true, title: true, durationWeeks: true },
+    }),
     prisma.teacherProfile.findMany({
       where: { user: { campusId: campusId ?? undefined } },
       include: { user: true },
@@ -42,7 +45,11 @@ export default async function EditClassPage({
     <div className="space-y-6">
       <PageHeader title="Edit class" />
       <ClassForm
-        courses={courses.map((course) => ({ id: course.id, title: course.title }))}
+        courses={courses.map((course) => ({
+          id: course.id,
+          title: course.title,
+          durationWeeks: course.durationWeeks,
+        }))}
         teachers={teachers.map((teacher) => ({
           id: teacher.id,
           firstName: teacher.user.firstName,
@@ -58,6 +65,9 @@ export default async function EditClassPage({
           timeSlot: classRecord.timeSlot,
           days: classRecord.days,
           capacity: classRecord.capacity,
+          classType: classRecord.classType,
+          startDate: classRecord.startDate?.toISOString().slice(0, 10),
+          endDate: classRecord.endDate?.toISOString().slice(0, 10),
         }}
       />
     </div>

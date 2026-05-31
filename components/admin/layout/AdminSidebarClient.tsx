@@ -2,6 +2,7 @@
 
 import { SignOutButton, useUser } from "@clerk/nextjs";
 import {
+  AlertCircle,
   Bell,
   BookOpen,
   ClipboardList,
@@ -28,14 +29,17 @@ const items = [
   ["/admin/inventory", "Inventory", Package],
   ["/admin/attendance", "Attendance", ClipboardList],
   ["/admin/payments", "Payments", CreditCard],
+  ["/admin/remaining", "Remaining", AlertCircle],
   ["/admin/reports", "Reports", FileText],
   ["/admin/notifications", "Notifications", Bell],
 ] as const;
 
 export function AdminSidebarClient({
   campusIndicator,
+  overdueCount = 0,
 }: {
   campusIndicator: React.ReactNode;
+  overdueCount?: number;
 }) {
   const path = usePathname();
   const { user } = useUser();
@@ -57,7 +61,12 @@ export function AdminSidebarClient({
             )}
           >
             <Icon className="h-4 w-4" />
-            {label}
+            <span className="flex-1">{label}</span>
+            {href === "/admin/remaining" && overdueCount > 0 ? (
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                {overdueCount}
+              </span>
+            ) : null}
           </Link>
         ))}
       </nav>

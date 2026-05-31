@@ -1,4 +1,5 @@
 import { BookOpen, CreditCard, GraduationCap, Users } from "lucide-react";
+import Link from "next/link";
 import { KpiCard } from "@/components/admin/shared/KpiCard";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { getCurrentUserCampusId } from "@/lib/campus";
@@ -29,6 +30,8 @@ export default async function AdminPage() {
   const campusCourseWhere = campusId ? { course: { campusId } } : {};
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const sevenDaysFromNow = new Date();
+  sevenDaysFromNow.setDate(now.getDate() + 7);
   const [
     totalStudents,
     activeEnrollments,
@@ -36,6 +39,8 @@ export default async function AdminPage() {
     monthlyRevenue,
     recentEnrollments,
     recentPayments,
+    overduePayments,
+    dueSoonPayments,
   ] = await Promise.all([
     prisma.user.count({
       where: { role: "STUDENT", ...(campusId ? { campusId } : {}) },
@@ -66,9 +71,81 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
       include: { user: true, enrollment: { include: { course: true } } },
     }),
+    prisma.paymentRemaining.count({
+      where: {
+        status: { not: "PAID" },
+        dueDate: { lt: now },
+        enrollment: {
+          status: "ACTIVE",
+          class: campusId ? { campusId } : undefined,
+        },
+      },
+    }),
+    prisma.paymentRemaining.count({
+      where: {
+        status: { not: "PAID" },
+        dueDate: { gte: now, lte: sevenDaysFromNow },
+        enrollment: {
+          status: "ACTIVE",
+          class: campusId ? { campusId } : undefined,
+        },
+      },
+    }),
   ]);
   return (
     <div className="space-y-6">
+      {overduePayments > 0 || dueSoonPayments > 0 ? (
+        <div className="space-y-3">
+          {overduePayments > 0 ? (
+            <Link href="/admin/remaining">
+              <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 transition-colors hover:bg-red-100">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                    <span className="font-bold text-red-600">
+                      {overduePayments}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-red-800">
+                      Overdue Payments
+                    </p>
+                    <p className="text-sm text-red-600">
+                      {overduePayments} student{overduePayments > 1 ? "s" : ""}{" "}
+                      have overdue remaining payments
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm text-red-500">View →</span>
+              </div>
+            </Link>
+          ) : null}
+
+          {dueSoonPayments > 0 ? (
+            <Link href="/admin/remaining">
+              <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 p-4 transition-colors hover:bg-amber-100">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
+                    <span className="font-bold text-amber-600">
+                      {dueSoonPayments}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-amber-800">
+                      Due This Week
+                    </p>
+                    <p className="text-sm text-amber-600">
+                      {dueSoonPayments} student{dueSoonPayments > 1 ? "s" : ""}{" "}
+                      have payments due within 7 days
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm text-amber-500">View →</span>
+              </div>
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Total Students"
