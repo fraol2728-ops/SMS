@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { createStudent } from "@/lib/actions/admin";
+import { createStudent, updateStudent } from "@/lib/actions/admin";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
 type ClassOption = {
@@ -22,33 +22,61 @@ type ClassOption = {
   _count: { enrollments: number };
 };
 
+type DefaultStudentValues = {
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  address?: string;
+  guardianName?: string;
+  guardianPhone?: string;
+  emergencyContact?: string;
+  notes?: string;
+};
+
 function todayInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
 export function StudentForm({
   classes,
+  defaultValues,
 }: {
   classes: ClassOption[];
-  defaultValues?: unknown;
+  defaultValues?: DefaultStudentValues;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("0");
   const [paymentStatus, setPaymentStatus] = useState("PENDING");
+  const isEdit = Boolean(defaultValues?.id);
+
   async function onSubmit(formData: FormData) {
     setLoading(true);
     try {
-      const values = Object.fromEntries(formData.entries());
-      const res = await createStudent({
-        ...values,
-        paymentAmount: Number(values.paymentAmount),
-      });
-      if (res.success) {
-        toast.success("Student registered successfully");
-        router.push("/admin/students");
+      if (isEdit && defaultValues?.id) {
+        const res = await updateStudent(defaultValues.id, formData);
+        if (res.success) {
+          toast.success("Student updated successfully");
+          router.push(`/admin/students/${defaultValues.id}`);
+        } else {
+          toast.error(res.error);
+        }
       } else {
-        toast.error(res.error);
+        const values = Object.fromEntries(formData.entries());
+        const res = await createStudent({
+          ...values,
+          paymentAmount: Number(values.paymentAmount),
+        });
+        if (res.success) {
+          toast.success("Student registered successfully");
+          router.push("/admin/students");
+        } else {
+          toast.error(res.error);
+        }
       }
     } finally {
       setLoading(false);
@@ -73,15 +101,33 @@ export function StudentForm({
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="firstName">First Name</Label>
-            <Input id="firstName" name="firstName" required type="text" />
+            <Input
+              id="firstName"
+              name="firstName"
+              required
+              type="text"
+              defaultValue={defaultValues?.firstName ?? ""}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="lastName">Last Name</Label>
-            <Input id="lastName" name="lastName" required type="text" />
+            <Input
+              id="lastName"
+              name="lastName"
+              required
+              type="text"
+              defaultValue={defaultValues?.lastName ?? ""}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" name="phone" required type="text" />
+            <Input
+              id="phone"
+              name="phone"
+              required
+              type="text"
+              defaultValue={defaultValues?.phone ?? ""}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email (optional)</Label>
@@ -90,6 +136,7 @@ export function StudentForm({
               name="email"
               type="email"
               placeholder="Student email address"
+              defaultValue={defaultValues?.email ?? ""}
             />
             <p className="text-xs text-muted-foreground">
               If no email provided, a system email will be generated
@@ -102,6 +149,7 @@ export function StudentForm({
             <select
               id="gender"
               name="gender"
+              defaultValue={defaultValues?.gender ?? ""}
               className="h-10 w-full rounded-md border bg-background px-3 text-sm"
             >
               <option value="">Select gender</option>
@@ -110,9 +158,23 @@ export function StudentForm({
               <option value="OTHER">Other</option>
             </select>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="dateOfBirth">Date of Birth</Label>
+            <Input
+              id="dateOfBirth"
+              name="dateOfBirth"
+              type="date"
+              defaultValue={defaultValues?.dateOfBirth?.slice(0, 10) ?? ""}
+            />
+          </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="address">Address</Label>
-            <Textarea id="address" name="address" rows={2} />
+            <Textarea
+              id="address"
+              name="address"
+              rows={2}
+              defaultValue={defaultValues?.address ?? ""}
+            />
           </div>
         </div>
       </section>
@@ -124,120 +186,142 @@ export function StudentForm({
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="guardianName">Guardian Name</Label>
-            <Input id="guardianName" name="guardianName" type="text" />
+            <Input
+              id="guardianName"
+              name="guardianName"
+              type="text"
+              defaultValue={defaultValues?.guardianName ?? ""}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="guardianPhone">Guardian Phone</Label>
-            <Input id="guardianPhone" name="guardianPhone" type="text" />
+            <Input
+              id="guardianPhone"
+              name="guardianPhone"
+              type="text"
+              defaultValue={defaultValues?.guardianPhone ?? ""}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="emergencyContact">Emergency Contact</Label>
-            <Input id="emergencyContact" name="emergencyContact" type="text" />
+            <Input
+              id="emergencyContact"
+              name="emergencyContact"
+              type="text"
+              defaultValue={defaultValues?.emergencyContact ?? ""}
+            />
           </div>
         </div>
       </section>
 
-      <section className="space-y-4 border-t pt-6">
-        <h2 className="text-lg font-semibold">Enrollment</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="classId">Class *</Label>
-            <select
-              id="classId"
-              name="classId"
-              required
-              onChange={(event) => {
-                const selected = classes.find(
-                  (classOption) => classOption.id === event.target.value,
-                );
-                if (selected) setPaymentAmount(String(selected.course.fee));
-              }}
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              <option value="">Select a class</option>
-              {classes.map((classOption) => {
-                const spotsLeft =
-                  classOption.capacity - classOption._count.enrollments;
-                const timeLabel =
-                  TIME_SLOTS[classOption.timeSlot as keyof typeof TIME_SLOTS];
-                const daysLabel =
-                  CLASS_DAYS[classOption.days as keyof typeof CLASS_DAYS];
-                return (
-                  <option
-                    key={classOption.id}
-                    value={classOption.id}
-                    disabled={spotsLeft <= 0}
-                  >
-                    {classOption.lab.name} • {classOption.course.title} •{" "}
-                    {timeLabel} • {daysLabel} •
-                    {spotsLeft > 0 ? ` ${spotsLeft} spots left` : " FULL"}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="startDate">Start Date</Label>
-            <Input
-              id="startDate"
-              name="startDate"
-              type="date"
-              defaultValue={todayInputValue()}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="paymentStatus">Payment Status</Label>
-            <select
-              id="paymentStatus"
-              name="paymentStatus"
-              required
-              value={paymentStatus}
-              onChange={(event) => setPaymentStatus(event.target.value)}
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              <option value="PAID">Paid</option>
-              <option value="PENDING">Pending</option>
-              <option value="OVERDUE">Overdue</option>
-            </select>
-          </div>
-          {paymentStatus === "PAID" ? (
-            <div className="space-y-2">
-              <Label htmlFor="paymentMethod">Payment Method</Label>
+      {!isEdit ? (
+        <section className="space-y-4 border-t pt-6">
+          <h2 className="text-lg font-semibold">Enrollment</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="classId">Class *</Label>
               <select
-                id="paymentMethod"
-                name="paymentMethod"
+                id="classId"
+                name="classId"
+                required
+                onChange={(event) => {
+                  const selected = classes.find(
+                    (classOption) => classOption.id === event.target.value,
+                  );
+                  if (selected) setPaymentAmount(String(selected.course.fee));
+                }}
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
               >
-                <option value="CASH">Cash</option>
-                <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="MOBILE_MONEY">Mobile Money</option>
-                <option value="CARD">Card</option>
+                <option value="">Select a class</option>
+                {classes.map((classOption) => {
+                  const spotsLeft =
+                    classOption.capacity - classOption._count.enrollments;
+                  const timeLabel =
+                    TIME_SLOTS[classOption.timeSlot as keyof typeof TIME_SLOTS];
+                  const daysLabel =
+                    CLASS_DAYS[classOption.days as keyof typeof CLASS_DAYS];
+                  return (
+                    <option
+                      key={classOption.id}
+                      value={classOption.id}
+                      disabled={spotsLeft <= 0}
+                    >
+                      {classOption.lab.name} • {classOption.course.title} •{" "}
+                      {timeLabel} • {daysLabel} •
+                      {spotsLeft > 0 ? ` ${spotsLeft} spots left` : " FULL"}
+                    </option>
+                  );
+                })}
               </select>
             </div>
-          ) : null}
-          <div className="space-y-2">
-            <Label htmlFor="paymentAmount">Payment Amount</Label>
-            <Input
-              id="paymentAmount"
-              name="paymentAmount"
-              type="number"
-              min={0}
-              step="0.01"
-              value={paymentAmount}
-              onChange={(event) => setPaymentAmount(event.target.value)}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="startDate">Start Date</Label>
+              <Input
+                id="startDate"
+                name="startDate"
+                type="date"
+                defaultValue={todayInputValue()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="paymentStatus">Payment Status</Label>
+              <select
+                id="paymentStatus"
+                name="paymentStatus"
+                required
+                value={paymentStatus}
+                onChange={(event) => setPaymentStatus(event.target.value)}
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              >
+                <option value="PAID">Paid</option>
+                <option value="PENDING">Pending</option>
+                <option value="OVERDUE">Overdue</option>
+              </select>
+            </div>
+            {paymentStatus === "PAID" ? (
+              <div className="space-y-2">
+                <Label htmlFor="paymentMethod">Payment Method</Label>
+                <select
+                  id="paymentMethod"
+                  name="paymentMethod"
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="MOBILE_MONEY">Mobile Money</option>
+                  <option value="CARD">Card</option>
+                </select>
+              </div>
+            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor="paymentAmount">Payment Amount</Label>
+              <Input
+                id="paymentAmount"
+                name="paymentAmount"
+                type="number"
+                min={0}
+                step="0.01"
+                value={paymentAmount}
+                onChange={(event) => setPaymentAmount(event.target.value)}
+              />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section className="space-y-2 border-t pt-6">
         <Label htmlFor="notes">Notes</Label>
-        <Textarea id="notes" name="notes" rows={3} />
+        <Textarea
+          id="notes"
+          name="notes"
+          rows={3}
+          defaultValue={defaultValues?.notes ?? ""}
+        />
       </section>
 
-      <Button type="submit" disabled={loading || classes.length === 0}>
+      <Button type="submit" disabled={loading || (!isEdit && classes.length === 0)}>
         {loading ? <Spinner className="mr-2" /> : null}
-        Register Student
+        {isEdit ? "Save Changes" : "Register Student"}
       </Button>
     </form>
   );

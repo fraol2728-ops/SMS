@@ -6,6 +6,7 @@ export const studentSchema = z.object({
   phone: z.string().min(1, "Phone number is required"),
   email: z.string().email().optional().or(z.literal("")).optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  dateOfBirth: z.string().optional(),
   address: z.string().optional(),
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
@@ -51,4 +52,15 @@ export const updateStudentSchema = studentSchema.partial().omit({
   paymentStatus: true,
   paymentMethod: true,
   paymentAmount: true,
+});
+
+export const updateTeacherSchema = teacherSchema.partial();
+
+export const updateClassSchema = z.object({
+  courseId: z.string().min(1),
+  teacherId: z.string().min(1),
+  labId: z.string().min(1),
+  timeSlot: z.string().min(1),
+  days: z.string().min(1),
+  capacity: z.number().min(1),
 });

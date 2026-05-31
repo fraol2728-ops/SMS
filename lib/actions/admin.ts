@@ -11,6 +11,8 @@ import {
   studentSchema,
   teacherSchema,
   updateStudentSchema,
+  updateTeacherSchema,
+  updateClassSchema,
 } from "@/lib/validations/admin";
 
 const ok = { success: true as const };
@@ -94,6 +96,7 @@ export async function createStudent(input: ActionInput) {
       ...raw,
       email: raw.email ?? "",
       gender: emptyToUndefined(raw.gender),
+      dateOfBirth: emptyToUndefined(raw.dateOfBirth),
       paymentMethod: emptyToUndefined(raw.paymentMethod),
       paymentAmount: Number(raw.paymentAmount),
     });
@@ -142,6 +145,7 @@ export async function createStudent(input: ActionInput) {
           email,
           phone: v.phone,
           gender: v.gender,
+          dateOfBirth: v.dateOfBirth ? new Date(v.dateOfBirth) : undefined,
           address: v.address,
           campusId,
           studentProfile: {
@@ -220,7 +224,12 @@ export async function createStudent(input: ActionInput) {
 
 export async function updateStudent(id: string, formData: FormData) {
   try {
-    const v = updateStudentSchema.parse(actionInputToObject(formData));
+    const raw = actionInputToObject(formData);
+    const v = updateStudentSchema.parse({
+      ...raw,
+      dateOfBirth: emptyToUndefined(raw.dateOfBirth),
+    });
+
     await prisma.user.update({
       where: { id },
       data: {
@@ -229,6 +238,7 @@ export async function updateStudent(id: string, formData: FormData) {
         email: v.email,
         phone: v.phone,
         gender: v.gender,
+        dateOfBirth: v.dateOfBirth ? new Date(v.dateOfBirth) : undefined,
         address: v.address,
         studentProfile: {
           update: {
@@ -257,6 +267,64 @@ export async function deleteStudent(id: string) {
     return ok;
   } catch (_e) {
     return err("Failed");
+  }
+}
+
+export async function deleteTeacher(id: string) {
+  try {
+    const campusId = await getCurrentAdminCampusId();
+    const teacher = await prisma.user.findFirst({
+      where: {
+        id,
+        role: "TEACHER",
+        ...(campusId ? { campusId } : {}),
+      },
+      include: {
+        teacherProfile: {
+          include: {
+            classes: true,
+          },
+        },
+      },
+    });
+
+    if (!teacher || !teacher.teacherProfile) {
+      return err("Teacher not found.");
+    }
+
+    if (teacher.teacherProfile.classes.length > 0) {
+      return err("Please reassign or remove this teacher from all classes before deleting.");
+    }
+
+    await prisma.user.delete({ where: { id } });
+    revalidatePath("/admin/teachers");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to delete teacher");
+  }
+}
+
+export async function deleteClass(id: string) {
+  try {
+    const campusId = await getCurrentAdminCampusId();
+    const classRecord = await prisma.class.findFirst({
+      where: { id, ...(campusId ? { campusId } : {}) },
+      include: { enrollments: true, attendance: true },
+    });
+
+    if (!classRecord) {
+      return err("Class not found.");
+    }
+
+    if (classRecord.enrollments.length > 0 || classRecord.attendance.length > 0) {
+      return err("Cannot delete a class with enrollment or attendance history.");
+    }
+
+    await prisma.class.delete({ where: { id } });
+    revalidatePath("/admin/classes");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to delete class");
   }
 }
 
@@ -475,6 +543,102 @@ export async function createTeacher(formData: FormData) {
       return err(e.message);
     }
     return err("Failed to add teacher. Please try again.");
+  }
+}
+
+export async function updateTeacher(id: string, formData: FormData) {
+  try {
+    const normalized = actionInputToObject(formData);
+    const v = updateTeacherSchema.parse({
+      ...normalized,
+      gender: emptyToUndefined(normalized.gender),
+      phone: emptyToUndefined(normalized.phone),
+      specialty: emptyToUndefined(normalized.specialty),
+      bio: emptyToUndefined(normalized.bio),
+    });
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        firstName: v.firstName,
+        lastName: v.lastName,
+        email: v.email,
+        phone: v.phone,
+        gender: v.gender,
+        teacherProfile: {
+          update: {
+            specialty: v.specialty,
+            bio: v.bio,
+          },
+        },
+      },
+    });
+
+    revalidatePath(`/admin/teachers/${id}`);
+    revalidatePath("/admin/teachers");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update teacher");
+  }
+}
+
+export async function updateClass(id: string, formData: FormData) {
+  try {
+    const raw = actionInputToObject(formData);
+    const v = updateClassSchema.parse({
+      courseId: raw.courseId as string,
+      teacherId: raw.teacherId as string,
+      labId: raw.labId as string,
+      timeSlot: raw.timeSlot as string,
+      days: raw.days as string,
+      capacity: Number(raw.capacity),
+    });
+
+    const campusId = await getCurrentAdminCampusId();
+    if (!campusId) return err("Could not determine your campus.");
+
+    const classRecord = await prisma.class.findFirst({
+      where: { id, campusId },
+      include: { enrollments: { where: { status: "ACTIVE" } } },
+    });
+    if (!classRecord) return err("Class not found.");
+
+    if (v.capacity < classRecord.enrollments.length) {
+      return err(
+        `Capacity cannot be less than current enrolled students (${classRecord.enrollments.length}).`,
+      );
+    }
+
+    const existingConflict = await prisma.class.findFirst({
+      where: {
+        labId: v.labId,
+        timeSlot: v.timeSlot,
+        days: v.days,
+        id: { not: id },
+      },
+    });
+    if (existingConflict) {
+      return err("This lab is already booked for the selected time and days.");
+    }
+
+    await prisma.class.update({
+      where: { id },
+      data: {
+        courseId: v.courseId,
+        teacherId: v.teacherId,
+        labId: v.labId,
+        timeSlot: v.timeSlot,
+        days: v.days,
+        capacity: v.capacity,
+      },
+    });
+
+    revalidatePath(`/admin/classes/${id}`);
+    revalidatePath("/admin/classes");
+    revalidatePath("/admin/students/new");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update class");
   }
 }
 

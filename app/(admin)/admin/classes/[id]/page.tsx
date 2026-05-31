@@ -10,10 +10,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DeleteConfirmDialog } from "@/components/admin/shared/DeleteConfirmDialog";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
+import { dropEnrollmentFormAction } from "@/lib/actions/admin";
 import { prisma } from "@/lib/prisma";
 
 export default async function ClassDetailPage({
@@ -66,7 +68,18 @@ export default async function ClassDetailPage({
       <PageHeader
         title={`${classRecord.lab.name} — ${classRecord.course.title}`}
         description={`${classRecord.campus.name} Campus`}
+        action={{ label: "Edit class", href: `/admin/classes/${classRecord.id}/edit` }}
       />
+      <div className="flex justify-end">
+        <DeleteConfirmDialog
+          label="Delete Class"
+          dialogTitle="Delete this class?"
+          dialogDescription="This action cannot be undone. The class can only be deleted if there are no student enrollments or attendance records."
+          endpoint="/api/admin/delete-class"
+          payload={{ id: classRecord.id }}
+          successRedirect="/admin/classes"
+        />
+      </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="flex items-start gap-3 rounded-xl border bg-white p-4">
@@ -308,11 +321,23 @@ export default async function ClassDetailPage({
                           <StatusBadge status={enrollment.status} />
                         </td>
                         <td className="px-2 py-3">
-                          <Button asChild size="sm" variant="outline">
-                            <Link href={`/admin/students/${user.id}`}>
-                              View
-                            </Link>
-                          </Button>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button asChild size="sm" variant="outline">
+                              <Link href={`/admin/students/${user.id}`}>
+                                View
+                              </Link>
+                            </Button>
+                            <form
+                              action={dropEnrollmentFormAction.bind(
+                                null,
+                                enrollment.id,
+                              )}
+                            >
+                              <Button type="submit" size="sm" variant="outline">
+                                Drop
+                              </Button>
+                            </form>
+                          </div>
                         </td>
                       </tr>
                     );

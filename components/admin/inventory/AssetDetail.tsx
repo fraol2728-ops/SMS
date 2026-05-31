@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { updateAssetCondition } from "@/lib/actions/inventory";
+import { deleteAsset, updateAssetCondition, updateAssetDetails } from "@/lib/actions/inventory";
 import {
   ASSET_CATEGORIES,
   ASSET_CONDITIONS,
@@ -61,9 +62,14 @@ export function AssetDetail({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const [newCondition, setNewCondition] = useState(asset.condition);
   const [action, setAction] = useState("UPDATED");
   const [note, setNote] = useState("");
+  const [name, setName] = useState(asset.name);
+  const [category, setCategory] = useState(asset.category);
+  const [serialNumber, setSerialNumber] = useState(asset.serialNumber ?? "");
+  const [assetNotes, setAssetNotes] = useState(asset.notes ?? "");
 
   async function handleUpdate(event: React.FormEvent) {
     event.preventDefault();
@@ -80,6 +86,43 @@ export function AssetDetail({
         setShowUpdateForm(false);
         setNote("");
         router.refresh();
+      } else {
+        toast.error(res.error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSaveDetails(event: React.FormEvent) {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.set("name", name);
+      formData.set("category", category);
+      formData.set("serialNumber", serialNumber);
+      formData.set("notes", assetNotes);
+      const res = await updateAssetDetails(asset.id, formData);
+      if (res.success) {
+        toast.success("Asset details saved");
+        setShowEditForm(false);
+        router.refresh();
+      } else {
+        toast.error(res.error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    setLoading(true);
+    try {
+      const res = await deleteAsset(asset.id);
+      if (res.success) {
+        toast.success("Asset deleted");
+        router.push(`/admin/inventory/${labId}`);
       } else {
         toast.error(res.error);
       }
@@ -128,13 +171,28 @@ export function AssetDetail({
           </div>
         ) : null}
 
-        <div className="mt-4 flex gap-3 border-t pt-4">
+        <div className="mt-4 flex flex-wrap gap-3 border-t pt-4">
           <Button
             onClick={() => setShowUpdateForm(!showUpdateForm)}
             variant="outline"
             size="sm"
           >
             Update Condition
+          </Button>
+          <Button
+            onClick={() => setShowEditForm(!showEditForm)}
+            variant="outline"
+            size="sm"
+          >
+            Edit Details
+          </Button>
+          <Button
+            onClick={handleDelete}
+            variant="destructive"
+            size="sm"
+            disabled={loading}
+          >
+            Delete Asset
           </Button>
           <Button asChild variant="outline" size="sm">
             <a href={`/admin/inventory/${labId}`}>← Back to lab</a>
@@ -193,6 +251,75 @@ export function AssetDetail({
                 type="button"
                 variant="outline"
                 onClick={() => setShowUpdateForm(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {showEditForm ? (
+        <div className="rounded-xl border bg-white p-6">
+          <h2 className="mb-4 font-semibold">Edit Asset Details</h2>
+          <form onSubmit={handleSaveDetails} className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name / Model *</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Category *</Label>
+                <select
+                  id="category"
+                  name="category"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  {Object.entries(ASSET_CATEGORIES).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="serialNumber">Serial Number</Label>
+                <Input
+                  id="serialNumber"
+                  name="serialNumber"
+                  value={serialNumber}
+                  onChange={(event) => setSerialNumber(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  rows={2}
+                  value={assetNotes}
+                  onChange={(event) => setAssetNotes(event.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : "Save Details"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowEditForm(false)}
               >
                 Cancel
               </Button>

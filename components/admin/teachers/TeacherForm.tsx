@@ -7,21 +7,47 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createTeacher } from "@/lib/actions/admin";
+import { createTeacher, updateTeacher } from "@/lib/actions/admin";
 
-export function TeacherForm() {
+type DefaultTeacherValues = {
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  gender?: string;
+  specialty?: string;
+  bio?: string;
+};
+
+export function TeacherForm({
+  defaultValues,
+}: {
+  defaultValues?: DefaultTeacherValues;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const isEdit = Boolean(defaultValues?.id);
 
   async function onSubmit(formData: FormData) {
     setLoading(true);
     try {
-      const res = await createTeacher(formData);
-      if (res.success) {
-        toast.success("Teacher added successfully");
-        router.push("/admin/teachers");
+      if (isEdit && defaultValues?.id) {
+        const res = await updateTeacher(defaultValues.id, formData);
+        if (res.success) {
+          toast.success("Teacher updated successfully");
+          router.push(`/admin/teachers/${defaultValues.id}`);
+        } else {
+          toast.error(res.error);
+        }
       } else {
-        toast.error(res.error);
+        const res = await createTeacher(formData);
+        if (res.success) {
+          toast.success("Teacher added successfully");
+          router.push("/admin/teachers");
+        } else {
+          toast.error(res.error);
+        }
       }
     } finally {
       setLoading(false);
@@ -44,6 +70,7 @@ export function TeacherForm() {
             name="firstName"
             required
             placeholder="First name"
+            defaultValue={defaultValues?.firstName ?? ""}
           />
         </div>
         <div className="space-y-2">
@@ -53,6 +80,7 @@ export function TeacherForm() {
             name="lastName"
             required
             placeholder="Last name"
+            defaultValue={defaultValues?.lastName ?? ""}
           />
         </div>
         <div className="space-y-2">
@@ -63,17 +91,24 @@ export function TeacherForm() {
             type="email"
             required
             placeholder="Email address"
+            defaultValue={defaultValues?.email ?? ""}
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="phone">Phone</Label>
-          <Input id="phone" name="phone" placeholder="Phone number" />
+          <Input
+            id="phone"
+            name="phone"
+            placeholder="Phone number"
+            defaultValue={defaultValues?.phone ?? ""}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="gender">Gender</Label>
           <select
             id="gender"
             name="gender"
+            defaultValue={defaultValues?.gender ?? ""}
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           >
             <option value="">Select gender</option>
@@ -88,15 +123,22 @@ export function TeacherForm() {
             id="specialty"
             name="specialty"
             placeholder="e.g. Graphic Design"
+            defaultValue={defaultValues?.specialty ?? ""}
           />
         </div>
         <div className="space-y-2 md:col-span-2">
           <Label htmlFor="bio">Bio</Label>
-          <Textarea id="bio" name="bio" rows={3} placeholder="Short bio..." />
+          <Textarea
+            id="bio"
+            name="bio"
+            rows={3}
+            placeholder="Short bio..."
+            defaultValue={defaultValues?.bio ?? ""}
+          />
         </div>
       </div>
       <Button type="submit" disabled={loading}>
-        {loading ? "Adding..." : "Add Teacher"}
+        {loading ? "Saving..." : isEdit ? "Save Teacher" : "Add Teacher"}
       </Button>
     </form>
   );
