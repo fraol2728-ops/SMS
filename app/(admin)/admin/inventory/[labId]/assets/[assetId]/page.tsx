@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import { AssetDetail } from "@/components/admin/inventory/AssetDetail";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { requireAdmin } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
 
 export default async function AssetDetailPage({
@@ -10,6 +11,7 @@ export default async function AssetDetailPage({
 }: {
   params: Promise<{ labId: string; assetId: string }>;
 }) {
+  await requireAdmin();
   const { labId, assetId } = await params;
   const asset = await prisma.asset.findUnique({
     where: { id: assetId },

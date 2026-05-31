@@ -4,6 +4,7 @@ import { DataTable } from "@/components/admin/shared/DataTable";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -13,6 +14,7 @@ export default async function CourseDetail({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const campusId = await getCurrentUserCampusId();
   const c = await prisma.course.findFirst({
@@ -77,7 +79,7 @@ export default async function CourseDetail({
             render: (r) =>
               `${r.teacher.user.firstName} ${r.teacher.user.lastName}`,
           },
-          { key: "lab", label: "Lab", render: (r) => r.lab.name },
+          { key: "lab", label: "Lab", render: (r) => r.lab?.name ?? "Online" },
           {
             key: "timeSlot",
             label: "Time",

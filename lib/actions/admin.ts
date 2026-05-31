@@ -249,6 +249,58 @@ export async function createStudent(input: ActionInput) {
         });
       }
 
+      const hasAssessment =
+        raw.assessment_hasComputer ||
+        raw.assessment_platforms ||
+        raw.assessment_canBrowser;
+      if (hasAssessment && newUser.studentProfile?.id) {
+        await (tx as any).studentAssessment.create({
+          data: {
+            studentId: newUser.studentProfile.id,
+            hasBasicComputerKnowledge:
+              raw.assessment_hasComputer === "YES"
+                ? true
+                : raw.assessment_hasComputer === "NO"
+                  ? false
+                  : null,
+            courseUnderstanding: raw.assessment_courseUnderstanding
+              ? String(raw.assessment_courseUnderstanding)
+                  .split(",")
+                  .filter(Boolean)
+              : [],
+            socialMediaPlatforms: raw.assessment_platforms
+              ? String(raw.assessment_platforms).split(",").filter(Boolean)
+              : [],
+            canCreateSimplePost: String(raw.assessment_canPost || "") || null,
+            canUseBrowser: String(raw.assessment_canBrowser || "") || null,
+            hasActiveEmail:
+              raw.assessment_hasEmail === "YES"
+                ? true
+                : raw.assessment_hasEmail === "NO"
+                  ? false
+                  : null,
+            canLoginEmail:
+              raw.assessment_canLogin === "YES"
+                ? true
+                : raw.assessment_canLogin === "NO"
+                  ? false
+                  : null,
+            hasDevice:
+              raw.assessment_hasDevice === "YES"
+                ? true
+                : raw.assessment_hasDevice === "NO"
+                  ? false
+                  : null,
+            hasInternetConnection:
+              raw.assessment_hasInternet === "YES"
+                ? true
+                : raw.assessment_hasInternet === "NO"
+                  ? false
+                  : null,
+          },
+        });
+      }
+
       return newUser;
     });
 
@@ -665,7 +717,10 @@ export async function updateClass(id: string, formData: FormData) {
       capacity: Number(raw.capacity),
       startDate: raw.startDate as string | undefined,
       endDate: raw.endDate as string | undefined,
-      classType: (raw.classType as "GROUP" | "PERSONAL" | undefined) ?? "GROUP",
+      classType:
+        (raw.classType as "GROUP" | "PERSONAL" | "ONLINE" | undefined) ??
+        "GROUP",
+      onlineLink: raw.onlineLink as string | undefined,
     });
 
     const campusId = await getCurrentAdminCampusId();
@@ -683,14 +738,19 @@ export async function updateClass(id: string, formData: FormData) {
       );
     }
 
-    const existingConflict = await prisma.class.findFirst({
-      where: {
-        labId: v.labId,
-        timeSlot: v.timeSlot,
-        days: v.days,
-        id: { not: id },
-      },
-    });
+    if (v.classType !== "ONLINE" && !v.labId)
+      return err("Lab is required for non-online classes");
+    const existingConflict =
+      v.classType === "ONLINE"
+        ? null
+        : await prisma.class.findFirst({
+            where: {
+              labId: v.labId,
+              timeSlot: v.timeSlot,
+              days: v.days,
+              id: { not: id },
+            },
+          });
     if (existingConflict) {
       return err("This lab is already booked for the selected time and days.");
     }
@@ -700,7 +760,9 @@ export async function updateClass(id: string, formData: FormData) {
       data: {
         courseId: v.courseId,
         teacherId: v.teacherId,
-        labId: v.labId,
+        labId: v.classType === "ONLINE" ? null : v.labId,
+        onlineLink:
+          v.classType === "ONLINE" ? v.onlineLink?.trim() || null : null,
         timeSlot: v.timeSlot,
         days: v.days,
         capacity: v.capacity,
@@ -745,8 +807,11 @@ export async function createClass(formData: FormData) {
     const endDate = formData.get("endDate") as string;
     const classType = (formData.get("classType") as string) || "GROUP";
 
-    if (!courseId || !teacherId || !labId || !timeSlot || !days) {
+    if (!courseId || !teacherId || !timeSlot || !days) {
       return err("All fields are required.");
+    }
+    if (classType !== "ONLINE" && !labId) {
+      return err("Lab is required for non-online classes");
     }
 
     if (!(timeSlot in TIME_SLOTS) || !(days in CLASS_DAYS)) {
@@ -761,21 +826,30 @@ export async function createClass(formData: FormData) {
       prisma.teacherProfile.findFirst({
         where: { id: teacherId, user: { campusId } },
       }),
-      prisma.lab.findFirst({ where: { id: labId, campusId, isActive: true } }),
+      labId
+        ? prisma.lab.findFirst({
+            where: { id: labId, campusId, isActive: true },
+          })
+        : Promise.resolve(null),
     ]);
     if (!course) return err("Selected course not found.");
     if (!teacher) return err("Selected teacher not found.");
-    if (!lab) return err("Selected lab not found.");
+    if (classType !== "ONLINE" && !lab) return err("Selected lab not found.");
 
-    const existing = await prisma.class.findFirst({
-      where: {
-        labId,
-        timeSlot: selectedTimeSlot,
-        days: selectedDays,
-      },
-    });
+    const existing =
+      classType === "ONLINE"
+        ? null
+        : await prisma.class.findFirst({
+            where: {
+              labId,
+              timeSlot: selectedTimeSlot,
+              days: selectedDays,
+            },
+          });
     if (existing) {
-      return err(`${lab.name} is already booked for this time slot and days.`);
+      return err(
+        `${lab?.name ?? "This lab"} is already booked for this time slot and days.`,
+      );
     }
 
     await prisma.class.create({
@@ -783,13 +857,17 @@ export async function createClass(formData: FormData) {
         campusId,
         courseId,
         teacherId,
-        labId,
+        labId: classType === "ONLINE" ? null : labId,
+        onlineLink:
+          classType === "ONLINE"
+            ? (formData.get("onlineLink") as string)?.trim() || null
+            : null,
         timeSlot: selectedTimeSlot,
         days: selectedDays,
         capacity,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
-        classType: classType as "GROUP" | "PERSONAL",
+        classType: classType as "GROUP" | "PERSONAL" | "ONLINE",
         isActive: true,
       },
     });
@@ -924,5 +1002,285 @@ export async function toggleCourseStatus(courseId: string, isActive: boolean) {
     return ok;
   } catch (_e) {
     return err("Failed");
+  }
+}
+
+export async function updateClassStatus(
+  classId: string,
+  status: "REGISTRATION" | "STARTED" | "ENDED",
+) {
+  try {
+    if (status === "ENDED") {
+      await prisma.enrollment.updateMany({
+        where: { classId, status: "ACTIVE" },
+        data: { status: "COMPLETED", endDate: new Date() },
+      });
+    }
+    await prisma.class.update({ where: { id: classId }, data: { status } });
+    revalidatePath(`/admin/classes/${classId}`);
+    revalidatePath("/admin/classes");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update status");
+  }
+}
+
+export async function withdrawStudent(
+  enrollmentId: string,
+  reason: string,
+  expectedReturnDate: string | null,
+  notes: string | null,
+) {
+  try {
+    const adminId = await getCurrentAdminUserId();
+    if (!adminId) return err("Not authenticated");
+    await prisma.enrollment.update({
+      where: { id: enrollmentId },
+      data: { status: "ON_HOLD" },
+    });
+    await prisma.withdrawal.create({
+      data: {
+        enrollmentId,
+        reason,
+        expectedReturnDate: expectedReturnDate
+          ? new Date(expectedReturnDate)
+          : null,
+        status: "ACTIVE",
+        approvedById: adminId,
+        notes: notes?.trim() || null,
+      },
+    });
+    revalidatePath("/admin/students");
+    revalidatePath("/admin/withdrawn");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to process withdrawal");
+  }
+}
+
+export async function assignWithdrawnStudent(
+  enrollmentId: string,
+  newClassId: string,
+) {
+  try {
+    await getCurrentAdminUserId();
+    const newClass = await prisma.class.findUnique({
+      where: { id: newClassId },
+      include: {
+        _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+      },
+    });
+    if (!newClass) return err("Class not found");
+    if (newClass._count.enrollments >= newClass.capacity)
+      return err("This class is full");
+    await prisma.enrollment.update({
+      where: { id: enrollmentId },
+      data: {
+        classId: newClassId,
+        courseId: newClass.courseId,
+        status: "ACTIVE",
+      },
+    });
+    await prisma.withdrawal.updateMany({
+      where: { enrollmentId, status: "ACTIVE" },
+      data: { status: "RETURNED", actualReturnDate: new Date() },
+    });
+    revalidatePath("/admin/withdrawn");
+    revalidatePath("/admin/students");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to assign student");
+  }
+}
+
+export async function dropStudent(enrollmentId: string, _reason: string) {
+  try {
+    await prisma.enrollment.update({
+      where: { id: enrollmentId },
+      data: { status: "DROPPED", endDate: new Date() },
+    });
+    revalidatePath("/admin/students");
+    revalidatePath("/admin/dropped");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to drop student");
+  }
+}
+
+export async function undropStudent(enrollmentId: string) {
+  try {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+    });
+    if (!enrollment) return err("Enrollment not found");
+    await prisma.enrollment.update({
+      where: { id: enrollmentId },
+      data: { status: "ACTIVE", endDate: null },
+    });
+    revalidatePath("/admin/dropped");
+    revalidatePath("/admin/students");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to undo drop");
+  }
+}
+
+export async function addToWaitlist(formData: FormData) {
+  try {
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
+    const phone = formData.get("phone") as string;
+    const coursesRaw = formData.get("courses") as string;
+    const notes = formData.get("notes") as string;
+    if (!firstName || !lastName || !phone)
+      return err("First name, last name, and phone are required");
+    const courses = coursesRaw ? coursesRaw.split("||").filter(Boolean) : [];
+    if (courses.length === 0) return err("At least one course is required");
+    await prisma.teacherWaitlist.create({
+      data: {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim(),
+        courses,
+        notes: notes?.trim() || null,
+      },
+    });
+    revalidatePath("/admin/waitlist");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to add to waitlist");
+  }
+}
+
+export async function removeFromWaitlist(id: string) {
+  try {
+    await prisma.teacherWaitlist.delete({ where: { id } });
+    revalidatePath("/admin/waitlist");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to remove");
+  }
+}
+export async function markWaitlistJoined(id: string) {
+  try {
+    await prisma.teacherWaitlist.update({
+      where: { id },
+      data: { status: "JOINED" },
+    });
+    revalidatePath("/admin/waitlist");
+    return ok;
+  } catch {
+    return err("Failed");
+  }
+}
+
+export async function claimCertificate(
+  studentUserId: string,
+  formData: FormData,
+) {
+  try {
+    const adminId = await getCurrentAdminUserId();
+    if (!adminId) return err("Not authenticated");
+    const paymentStatus = formData.get("paymentStatus") as string;
+    const paymentMethod = formData.get("paymentMethod") as string | null;
+    const notes = formData.get("notes") as string | null;
+    const student = await prisma.user.findUnique({
+      where: { id: studentUserId },
+      include: {
+        studentProfile: {
+          include: {
+            enrollments: {
+              where: { status: { in: ["ACTIVE", "COMPLETED"] } },
+              include: { class: { include: { course: true } } },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+    if (!student?.studentProfile) return err("Student not found");
+    const enrollment = student.studentProfile.enrollments[0];
+    if (!enrollment?.class?.courseId)
+      return err("No enrollment found for this student");
+    await prisma.certificate.create({
+      data: {
+        studentId: student.studentProfile.id,
+        courseId: enrollment.class.courseId,
+        paymentStatus: paymentStatus as any,
+        paymentMethod: paymentStatus === "PAID" ? (paymentMethod as any) : null,
+        claimedById: adminId,
+        notes: notes?.trim() || null,
+        isDelivered: false,
+      },
+    });
+    revalidatePath("/admin/certificates");
+    revalidatePath(`/admin/students/${studentUserId}`);
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to claim certificate");
+  }
+}
+
+export async function markCertificateDelivered(certificateId: string) {
+  try {
+    await prisma.certificate.update({
+      where: { id: certificateId },
+      data: { isDelivered: true, deliveredAt: new Date() },
+    });
+    revalidatePath("/admin/certificates");
+    return ok;
+  } catch {
+    return err("Failed");
+  }
+}
+export async function updateCertificatePayment(
+  certificateId: string,
+  paymentStatus: string,
+  paymentMethod: string,
+) {
+  try {
+    await prisma.certificate.update({
+      where: { id: certificateId },
+      data: {
+        paymentStatus: paymentStatus as any,
+        paymentMethod: paymentMethod as any,
+      },
+    });
+    revalidatePath("/admin/certificates");
+    return ok;
+  } catch {
+    return err("Failed");
+  }
+}
+
+export async function updateWaitlist(id: string, formData: FormData) {
+  try {
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
+    const phone = formData.get("phone") as string;
+    const coursesRaw = formData.get("courses") as string;
+    const notes = formData.get("notes") as string;
+    const courses = coursesRaw ? coursesRaw.split("||").filter(Boolean) : [];
+    if (!firstName || !lastName || !phone || courses.length === 0) {
+      return err(
+        "First name, last name, phone, and at least one course are required",
+      );
+    }
+    await prisma.teacherWaitlist.update({
+      where: { id },
+      data: {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim(),
+        courses,
+        notes: notes?.trim() || null,
+      },
+    });
+    revalidatePath("/admin/waitlist");
+    revalidatePath(`/admin/waitlist/${id}`);
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update waitlist");
   }
 }

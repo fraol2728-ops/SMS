@@ -2,12 +2,14 @@ export const dynamic = "force-dynamic";
 
 import { RemainingList } from "@/components/admin/remaining/RemainingList";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
 type RemainingPaymentSummary = { remainingAmount: number; dueDate: Date };
 
 export default async function RemainingPage() {
+  await requireAdmin();
   const campusId = await getCurrentUserCampusId();
 
   const remainingPayments = await prisma.paymentRemaining.findMany({

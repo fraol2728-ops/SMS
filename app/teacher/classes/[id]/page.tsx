@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { Calendar, ClipboardCheck, Clock, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { requireTeacher } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -12,6 +13,7 @@ export default async function TeacherClassDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireTeacher();
   const { id } = await params;
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
@@ -24,7 +26,7 @@ export default async function TeacherClassDetailPage({
   if (!teacher?.teacherProfile) redirect("/unauthorized");
 
   const classRecord = await prisma.class.findUnique({
-    where: { id },
+    where: { id, status: "STARTED" },
     include: {
       course: true,
       lab: { include: { campus: true } },
@@ -68,8 +70,9 @@ export default async function TeacherClassDetailPage({
             {classRecord.course.title}
           </h1>
           <p className="mt-1 text-gray-500">
-            {classRecord.lab.name} • {classRecord.lab.campus.name} • {timeLabel}{" "}
-            • {daysLabel}
+            {classRecord.lab?.name ?? "Online"} •{" "}
+            {classRecord.lab?.campus.name ?? "Online"} • {timeLabel} •{" "}
+            {daysLabel}
           </p>
         </div>
         <Link href={`/teacher/attendance?classId=${classRecord.id}`}>

@@ -24,7 +24,8 @@ type DefaultClassValues = {
   labId?: string;
   timeSlot?: string;
   days?: string;
-  classType?: "GROUP" | "PERSONAL";
+  classType?: "GROUP" | "PERSONAL" | "ONLINE";
+  onlineLink?: string;
   startDate?: string;
   endDate?: string;
   capacity?: number;
@@ -55,6 +56,9 @@ export function ClassForm({
     defaultValues?.courseId ?? "",
   );
   const [endDate, setEndDate] = useState(defaultValues?.endDate ?? "");
+  const [classType, setClassType] = useState(
+    defaultValues?.classType ?? "GROUP",
+  );
   const isEdit = Boolean(defaultValues?.id);
 
   function recalculateEndDate(courseId: string) {
@@ -143,31 +147,50 @@ export function ClassForm({
             id="classType"
             name="classType"
             required
-            defaultValue={defaultValues?.classType ?? "GROUP"}
+            value={classType}
+            onChange={(event) =>
+              setClassType(
+                event.target.value as "GROUP" | "PERSONAL" | "ONLINE",
+              )
+            }
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           >
             <option value="GROUP">Group Class</option>
             <option value="PERSONAL">Personal Class</option>
+            <option value="ONLINE">Online Class</option>
           </select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="labId">Lab *</Label>
-          <select
-            id="labId"
-            name="labId"
-            required
-            defaultValue={defaultValues?.labId ?? ""}
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-          >
-            <option value="">Select lab</option>
-            {labs.map((lab) => (
-              <option key={lab.id} value={lab.id}>
-                {lab.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {classType === "ONLINE" ? (
+          <div className="space-y-2">
+            <Label htmlFor="onlineLink">Meeting Link (optional)</Label>
+            <input
+              id="onlineLink"
+              name="onlineLink"
+              placeholder="https://zoom.us/j/..."
+              defaultValue={defaultValues?.onlineLink ?? ""}
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label htmlFor="labId">Lab *</Label>
+            <select
+              id="labId"
+              name="labId"
+              required
+              defaultValue={defaultValues?.labId ?? ""}
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="">Select lab</option>
+              {labs.map((lab) => (
+                <option key={lab.id} value={lab.id}>
+                  {lab.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="startDate">Start Date *</Label>
