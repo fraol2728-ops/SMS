@@ -29,10 +29,10 @@ export default async function NewStudentPage() {
     orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
   });
 
-  const formattedClasses = classes.map((classRecord: ClassWithDateFields) => ({
+  const formattedClasses = classes.map((classRecord) => ({
     ...classRecord,
-    startDate: classRecord.startDate?.toISOString().slice(0, 10) ?? "",
-    endDate: classRecord.endDate?.toISOString().slice(0, 10) ?? "",
+    startDate: classRecord.startDate?.toISOString().slice(0, 10) ?? null,
+    endDate: classRecord.endDate?.toISOString().slice(0, 10) ?? null,
   }));
 
   return (

@@ -28,24 +28,31 @@ export default async function EditStudentPage({
     },
     orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
   });
+
+  const formattedClasses = classes.map((classItem) => ({
+    ...classItem,
+    startDate: classItem.startDate?.toISOString().slice(0, 10) ?? null,
+    endDate: classItem.endDate?.toISOString().slice(0, 10) ?? null,
+  }));
+
   return (
     <div className="space-y-6">
       <PageHeader title="Edit student" />
       <StudentForm
-        classes={classes}
+        classes={formattedClasses}
         defaultValues={{
           id: student.id,
           firstName: student.firstName,
           lastName: student.lastName,
           email: student.email,
-          phone: student.phone,
-          gender: student.gender,
-          address: student.address,
+          phone: student.phone ?? undefined,
+          gender: student.gender ?? undefined,
+          address: student.address ?? undefined,
           dateOfBirth: student.dateOfBirth?.toISOString(),
-          guardianName: student.studentProfile?.guardianName,
-          guardianPhone: student.studentProfile?.guardianPhone,
-          emergencyContact: student.studentProfile?.emergencyContact,
-          notes: student.studentProfile?.notes,
+          guardianName: student.studentProfile?.guardianName ?? undefined,
+          guardianPhone: student.studentProfile?.guardianPhone ?? undefined,
+          emergencyContact: student.studentProfile?.emergencyContact ?? undefined,
+          notes: student.studentProfile?.notes ?? undefined,
         }}
       />
     </div>

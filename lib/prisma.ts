@@ -1,16 +1,8 @@
+import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-type GeneratedPrismaClient = {
-  // biome-ignore lint/suspicious/noExplicitAny: Preserve the generated Prisma client's flexible API when generated types are unavailable in CI.
-  [key: string]: any;
-};
-
-const { PrismaClient } = require("@prisma/client") as {
-  PrismaClient: new (options?: unknown) => GeneratedPrismaClient;
-};
-
 const globalForPrisma = globalThis as unknown as {
-  prisma: GeneratedPrismaClient | undefined;
+  prisma: PrismaClient | undefined;
 };
 
 function createPrismaClient() {
