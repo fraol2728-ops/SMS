@@ -1,17 +1,30 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-export function DataTable({
+type DataTableColumn<T> = {
+  key: string;
+  label: string;
+  render?: (row: T) => React.ReactNode;
+};
+
+export function DataTable<T extends Record<string, unknown>>({
   columns,
   data,
   emptyMessage = "No data found.",
 }: {
-  columns: { key: string; label: string; render?: (row: any) => React.ReactNode }[];
-  data: any[];
+  columns: DataTableColumn<T>[];
+  data: T[];
   emptyMessage?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-md border">
-      <Table>
+    <div className="overflow-x-auto rounded-md border">
+      <Table className="min-w-full">
         <TableHeader>
           <TableRow>
             {columns.map((column) => (
@@ -22,17 +35,22 @@ export function DataTable({
         <TableBody>
           {data.length ? (
             data.map((row, idx) => (
-              <TableRow key={row.id ?? idx} className="odd:bg-muted/30">
+              <TableRow className="odd:bg-muted/30" key={String(row.id ?? idx)}>
                 {columns.map((column) => (
                   <TableCell key={`${column.key}-${idx}`}>
-                    {column.render ? column.render(row) : row[column.key]}
+                    {column.render
+                      ? column.render(row)
+                      : (row[column.key] as React.ReactNode)}
                   </TableCell>
                 ))}
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="py-8 text-center text-muted-foreground">
+              <TableCell
+                className="py-8 text-center text-muted-foreground"
+                colSpan={columns.length}
+              >
                 {emptyMessage}
               </TableCell>
             </TableRow>

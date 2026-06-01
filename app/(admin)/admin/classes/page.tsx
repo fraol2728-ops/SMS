@@ -53,7 +53,7 @@ export default async function ClassesPage({
         title="Classes"
         action={{ label: "Add class", href: "/admin/classes/new" }}
       />
-      <div className="flex gap-2 rounded-xl border bg-white p-2">
+      <div className="flex flex-wrap gap-2 rounded-xl border bg-white p-2">
         <Button
           asChild
           variant={status === "REGISTRATION" ? "default" : "outline"}
