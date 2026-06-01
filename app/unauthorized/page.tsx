@@ -1,12 +1,13 @@
 import { SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
 
-export default function UnauthorizedPage({
+export default async function UnauthorizedPage({
   searchParams,
 }: {
-  searchParams: { reason?: string };
+  searchParams?: Promise<{ reason?: string }>;
 }) {
-  const isNoRole = searchParams.reason === "no-role";
+  const { reason } = (await searchParams) ?? {};
+  const isNoRole = reason === "no-role";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gray-50">

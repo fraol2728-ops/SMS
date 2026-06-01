@@ -1,4 +1,8 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import {
+  clerkClient,
+  clerkMiddleware,
+  createRouteMatcher,
+} from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
@@ -11,11 +15,55 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 // Define which paths each role can access
-const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
+const ROLE_ALLOWED_PATHS = {
   SUPER_ADMIN: ["/super-admin", "/admin", "/api"],
   ADMIN: ["/admin", "/api"],
   TEACHER: ["/teacher", "/api"],
   STUDENT: ["/student", "/api"],
+} as const;
+
+type Role = keyof typeof ROLE_ALLOWED_PATHS;
+type RoleMetadata = { role?: string; campusId?: string };
+type SessionClaimsWithRole = {
+  metadata?: RoleMetadata;
+  publicMetadata?: RoleMetadata;
+  public_metadata?: RoleMetadata;
+};
+
+const ROLE_HOME: Record<Role, string> = {
+  SUPER_ADMIN: "/super-admin",
+  ADMIN: "/admin",
+  TEACHER: "/teacher",
+  STUDENT: "/student",
+};
+
+const normalizeRole = (role?: string): Role | undefined => {
+  const normalizedRole = role?.toUpperCase();
+
+  if (normalizedRole && Object.hasOwn(ROLE_ALLOWED_PATHS, normalizedRole)) {
+    return normalizedRole as Role;
+  }
+
+  return undefined;
+};
+
+const getRoleFromSessionOrUser = async (
+  userId: string,
+  sessionClaims: unknown,
+): Promise<Role | undefined> => {
+  const claims = sessionClaims as SessionClaimsWithRole | undefined;
+  const roleFromClaims = normalizeRole(
+    claims?.metadata?.role ??
+      claims?.publicMetadata?.role ??
+      claims?.public_metadata?.role,
+  );
+
+  if (roleFromClaims) return roleFromClaims;
+
+  const clerk = await clerkClient();
+  const user = await clerk.users.getUser(userId);
+
+  return normalizeRole(user.publicMetadata.role as string | undefined);
 };
 
 export default clerkMiddleware(async (auth, req) => {
@@ -27,14 +75,7 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
-  const metadata = sessionClaims?.metadata as
-    | {
-        role?: string;
-        campusId?: string;
-      }
-    | undefined;
-
-  const role = metadata?.role;
+  const role = await getRoleFromSessionOrUser(userId, sessionClaims);
   const path = req.nextUrl.pathname;
 
   if (!role) {
@@ -48,16 +89,7 @@ export default clerkMiddleware(async (auth, req) => {
   const isAllowed = allowedPaths.some((p) => path.startsWith(p));
 
   if (!isAllowed) {
-    // Redirect each role to their home
-    const roleHome: Record<string, string> = {
-      SUPER_ADMIN: "/super-admin",
-      ADMIN: "/admin",
-      TEACHER: "/teacher",
-      STUDENT: "/student",
-    };
-    return NextResponse.redirect(
-      new URL(roleHome[role] ?? "/unauthorized", req.url),
-    );
+    return NextResponse.redirect(new URL(ROLE_HOME[role], req.url));
   }
 
   return NextResponse.next();
