@@ -65,7 +65,7 @@ export default async function CoursesPage() {
             key: "actions",
             label: "Actions",
             render: (r) => (
-              <div className="space-x-2">
+              <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
                   <Link href={`/admin/courses/${r.id}`}>View</Link>
                 </Button>

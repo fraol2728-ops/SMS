@@ -56,7 +56,7 @@ export function StudentsTable({ students }: { students: StudentTableRow[] }) {
             key: "actions",
             label: "Actions",
             render: (row) => (
-              <div className="space-x-2">
+              <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
                   <Link href={`/admin/students/${row.id}`}>View</Link>
                 </Button>

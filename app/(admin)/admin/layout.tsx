@@ -1,36 +1,38 @@
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { AdminHeader } from "@/components/admin/layout/AdminHeader";
 import { AdminSidebar } from "@/components/admin/layout/AdminSidebar";
-import { requireAdmin } from "@/lib/auth-check";
-
-const titles: Record<string, string> = {
-  "": "Dashboard",
-  students: "Students",
-  courses: "Courses",
-  teachers: "Teachers",
-  classes: "Classes",
-  attendance: "Attendance",
-  payments: "Payments",
-  reports: "Reports",
-  notifications: "Notifications",
-};
+import { prisma } from "@/lib/prisma";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await requireAdmin();
-  // Kept simple for server layout; client sidebar handles active route state.
-  const title = titles[""];
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
+
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    include: {
+      campus: true,
+      adminSettings: true,
+    },
+  });
+
+  if (!dbUser) redirect("/sign-in");
+
+  const role = dbUser.role;
+  if (role !== "ADMIN" && role !== "SUPER_ADMIN") redirect("/unauthorized");
+
+  const theme = dbUser.adminSettings?.sidebarTheme ?? "dark";
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      <AdminSidebar />
-      <div className="ml-[240px]">
-        <AdminHeader title={title} />
-        <main className="h-[calc(100vh-64px)] overflow-y-auto p-6">
-          {children}
-        </main>
+    <div className="flex min-h-screen bg-gray-50">
+      <AdminSidebar theme={theme} user={dbUser} />
+      <div className="flex min-w-0 flex-1 flex-col lg:ml-64">
+        <AdminHeader user={dbUser} />
+        <main className="flex-1 overflow-x-hidden p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );
