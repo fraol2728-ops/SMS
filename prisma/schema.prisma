@@ -231,6 +231,8 @@ model User {
   lastName    String
   email       String    @unique
   phone       String?
+  telegram    String?
+  whatsapp    String?
   avatar      String?
   gender      Gender?
   dateOfBirth DateTime?
@@ -286,9 +288,12 @@ model AdminSettings {
   defaultCourseDuration Int @default(8)
 
   // Appearance
-  sidebarTheme String @default("dark")
-  dateFormat   String @default("DD/MM/YYYY")
-  timeFormat   String @default("12h")
+  sidebarTheme   String @default("dark")
+  colorMode      String @default("system")
+  accentColor    String @default("blue")
+  calendarSystem String @default("gregorian")
+  dateFormat     String @default("DD/MM/YYYY")
+  timeFormat     String @default("12h")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -303,6 +308,7 @@ model StudentProfile {
   guardianPhone    String?
   emergencyContact String?
   notes            String?
+  registrationDate DateTime @default(now())
 
   enrollments  Enrollment[]
   assessment   StudentAssessment?
@@ -314,7 +320,8 @@ model TeacherProfile {
   userId      String  @unique
   user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   teacherCode String  @unique
-  specialty   String?
+  specialty   String? // Deprecated: use specialties
+  specialties String[] @default([])
   bio         String?
 
   classes Class[]

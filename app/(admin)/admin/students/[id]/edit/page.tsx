@@ -48,6 +48,10 @@ export default async function EditStudentPage({
           lastName: student.lastName,
           email: student.email,
           phone: student.phone ?? undefined,
+          telegram: student.telegram ?? undefined,
+          whatsapp: student.whatsapp ?? undefined,
+          registrationDate:
+            student.studentProfile?.registrationDate?.toISOString(),
           gender: student.gender ?? undefined,
           address: student.address ?? undefined,
           dateOfBirth: student.dateOfBirth?.toISOString(),

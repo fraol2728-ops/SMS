@@ -5,8 +5,14 @@ import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { prisma } from "@/lib/prisma";
 
-export default async function SuperAdminPaymentsPage() {
+export default async function SuperAdminPaymentsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ campusId?: string }>;
+}) {
+  const { campusId } = (await searchParams) ?? {};
   const payments = await prisma.payment.findMany({
+    where: { user: { campusId: campusId || undefined } },
     include: {
       user: { include: { campus: true } },
       enrollment: { include: { course: { include: { campus: true } } } },

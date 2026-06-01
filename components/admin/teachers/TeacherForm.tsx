@@ -21,6 +21,7 @@ type DefaultTeacherValues = {
   phone?: string;
   gender?: string;
   specialty?: string;
+  specialties?: string[];
   bio?: string;
   waitlistId?: string;
 };
@@ -32,7 +33,20 @@ export function TeacherForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [specialties, setSpecialties] = useState<string[]>(
+    defaultValues?.specialties ??
+      (defaultValues?.specialty ? [defaultValues.specialty] : []),
+  );
+  const [specialtyInput, setSpecialtyInput] = useState("");
   const isEdit = Boolean(defaultValues?.id);
+
+  function addSpecialty() {
+    const value = specialtyInput.trim();
+    if (value && !specialties.includes(value)) {
+      setSpecialties([...specialties, value]);
+      setSpecialtyInput("");
+    }
+  }
 
   async function onSubmit(formData: FormData) {
     setLoading(true);
@@ -123,7 +137,7 @@ export function TeacherForm({
             id="gender"
             name="gender"
             defaultValue={defaultValues?.gender ?? ""}
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            className="h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           >
             <option value="">Select gender</option>
             <option value="MALE">Male</option>
@@ -131,14 +145,51 @@ export function TeacherForm({
             <option value="OTHER">Other</option>
           </select>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="specialty">Specialty</Label>
-          <Input
-            id="specialty"
-            name="specialty"
-            placeholder="e.g. Graphic Design"
-            defaultValue={defaultValues?.specialty ?? ""}
+        <div className="space-y-2 md:col-span-2">
+          <Label>Specialties (courses they can teach)</Label>
+          <div className="flex gap-2">
+            <Input
+              value={specialtyInput}
+              onChange={(e) => setSpecialtyInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addSpecialty();
+                }
+              }}
+              placeholder="Type specialty and press Enter or Add"
+            />
+            <Button type="button" variant="outline" onClick={addSpecialty}>
+              Add
+            </Button>
+          </div>
+          {specialties.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {specialties.map((s) => (
+                <span
+                  key={s}
+                  className="flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                >
+                  {s}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSpecialties(specialties.filter((x) => x !== s))
+                    }
+                    className="ml-1 hover:text-red-600"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <input
+            type="hidden"
+            name="specialties"
+            value={specialties.join("||")}
           />
+          <input type="hidden" name="specialty" value={specialties[0] ?? ""} />
         </div>
         <div className="space-y-2 md:col-span-2">
           <Label htmlFor="bio">Bio</Label>

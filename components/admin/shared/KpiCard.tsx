@@ -21,15 +21,17 @@ export function KpiCard({
   color: "blue" | "green" | "amber" | "purple";
 }) {
   return (
-    <Card>
+    <Card className="bg-white dark:bg-gray-900 dark:border-gray-700">
       <CardContent className="p-5">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">{title}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
           <div className={cn("rounded-md p-2", colorMap[color])}>
             <Icon className="h-4 w-4" />
           </div>
         </div>
-        <p className="text-3xl font-bold">{value}</p>
+        <p className="text-3xl font-bold text-gray-900 dark:text-white">
+          {value}
+        </p>
       </CardContent>
     </Card>
   );

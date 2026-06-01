@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
+import { ContactButtons } from "@/components/shared/ContactButtons";
 import { requireTeacher } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -79,6 +80,12 @@ export default async function TeacherStudentDetailPage({
             <div className="mt-2 flex items-center gap-4 text-gray-400 text-sm">
               {student.phone && <span>📱 {student.phone}</span>}
               {student.gender && <span>{student.gender}</span>}
+            </div>
+            <div className="mt-4">
+              <ContactButtons
+                phone={student.phone}
+                showTelegramWhatsapp={false}
+              />
             </div>
           </div>
         </div>
