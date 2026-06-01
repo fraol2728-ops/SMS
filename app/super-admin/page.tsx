@@ -26,7 +26,12 @@ type WeeklyEnrollment = {
   course: { title: string };
 };
 
-export default async function SuperAdminDashboard() {
+export default async function SuperAdminDashboard({
+  searchParams,
+}: {
+  searchParams?: Promise<{ campusId?: string }>;
+}) {
+  const { campusId } = (await searchParams) ?? {};
   const now = new Date();
   const chartStart = new Date(now);
   chartStart.setDate(now.getDate() - 29);
@@ -46,11 +51,18 @@ export default async function SuperAdminDashboard() {
     newStudents,
     weeklyEnrollments,
   ] = await Promise.all([
-    prisma.user.count({ where: { role: "STUDENT" } }),
-    prisma.user.count({ where: { role: "TEACHER" } }),
-    prisma.course.count({ where: { isActive: true } }),
+    prisma.user.count({
+      where: { role: "STUDENT", campusId: campusId || undefined },
+    }),
+    prisma.user.count({
+      where: { role: "TEACHER", campusId: campusId || undefined },
+    }),
+    prisma.course.count({
+      where: { isActive: true, campusId: campusId || undefined },
+    }),
     prisma.campus.count(),
     prisma.campus.findMany({
+      where: { id: campusId || undefined },
       include: {
         _count: {
           select: {
@@ -63,6 +75,7 @@ export default async function SuperAdminDashboard() {
     prisma.payment.aggregate({
       where: {
         status: "PAID",
+        user: { campusId: campusId || undefined },
         paidAt: {
           gte: new Date(now.getFullYear(), now.getMonth(), 1),
         },
@@ -72,6 +85,7 @@ export default async function SuperAdminDashboard() {
     prisma.payment.findMany({
       where: {
         status: "PAID",
+        user: { campusId: campusId || undefined },
         paidAt: { gte: chartStart },
       },
       select: { amount: true, paidAt: true },
@@ -79,35 +93,76 @@ export default async function SuperAdminDashboard() {
     prisma.user.findMany({
       where: {
         role: "STUDENT",
+        campusId: campusId || undefined,
         createdAt: { gte: chartStart },
       },
       select: { createdAt: true },
     }),
     prisma.enrollment.findMany({
-      where: { createdAt: { gte: weekStart } },
+      where: {
+        createdAt: { gte: weekStart },
+        class: { campusId: campusId || undefined },
+      },
       orderBy: { createdAt: "desc" },
       include: { student: { include: { user: true } }, course: true },
       take: 12,
     }),
   ]);
 
-  const revenueSeries = buildTrendSeries(payments, 30, (item) => item.paidAt!, (item) => item.amount);
-  const registrationSeries = buildTrendSeries(newStudents, 30, (item) => item.createdAt, () => 1);
-  const weeklyEnrollmentSeries = buildTrendSeries(weeklyEnrollments, 7, (item) => item.createdAt, () => 1);
+  const revenueSeries = buildTrendSeries(
+    payments,
+    30,
+    (item) => item.paidAt!,
+    (item) => item.amount,
+  );
+  const registrationSeries = buildTrendSeries(
+    newStudents,
+    30,
+    (item) => item.createdAt,
+    () => 1,
+  );
+  const weeklyEnrollmentSeries = buildTrendSeries(
+    weeklyEnrollments,
+    7,
+    (item) => item.createdAt,
+    () => 1,
+  );
   const totalMonthlyRevenue = monthlyRevenue._sum.amount ?? 0;
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Overview</h1>
-        <p className="text-muted-foreground">All campuses combined</p>
+        <p className="text-muted-foreground">
+          {campusId ? "Selected campus" : "All campuses combined"}
+        </p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Students" value={totalStudents} icon={Users} color="blue" />
-        <KpiCard title="Total Teachers" value={totalTeachers} icon={GraduationCap} color="green" />
-        <KpiCard title="Active Courses" value={totalCourses} icon={BookOpen} color="purple" />
-        <KpiCard title="Monthly Revenue" value={`ETB ${totalMonthlyRevenue.toLocaleString()}`} icon={CreditCard} color="amber" />
+        <KpiCard
+          title="Total Students"
+          value={totalStudents}
+          icon={Users}
+          color="blue"
+        />
+        <KpiCard
+          title="Total Teachers"
+          value={totalTeachers}
+          icon={GraduationCap}
+          color="green"
+        />
+        <KpiCard
+          title="Active Courses"
+          value={totalCourses}
+          icon={BookOpen}
+          color="purple"
+        />
+        <KpiCard
+          title="Monthly Revenue"
+          value={`ETB ${totalMonthlyRevenue.toLocaleString()}`}
+          icon={CreditCard}
+          color="amber"
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -130,7 +185,9 @@ export default async function SuperAdminDashboard() {
       <section className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">Weekly insights</p>
+            <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
+              Weekly insights
+            </p>
             <h2 className="text-2xl font-semibold">Recent enrollments</h2>
           </div>
           <div className="rounded-3xl bg-slate-950/5 px-4 py-3 text-sm font-semibold text-slate-900">
@@ -142,7 +199,9 @@ export default async function SuperAdminDashboard() {
           <div className="overflow-hidden rounded-3xl border bg-white shadow-sm">
             <div className="px-6 py-5 border-b bg-slate-50">
               <p className="font-semibold">Latest weekly enrollments</p>
-              <p className="text-sm text-muted-foreground">Showing the most recent 12 enrollments.</p>
+              <p className="text-sm text-muted-foreground">
+                Showing the most recent 12 enrollments.
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
@@ -155,12 +214,18 @@ export default async function SuperAdminDashboard() {
                 </thead>
                 <tbody>
                   {weeklyEnrollments.map((enrollment) => (
-                    <tr key={enrollment.id} className="border-b last:border-b-0">
+                    <tr
+                      key={enrollment.id}
+                      className="border-b last:border-b-0"
+                    >
                       <td className="px-4 py-3">
-                        {enrollment.student.user.firstName} {enrollment.student.user.lastName}
+                        {enrollment.student.user.firstName}{" "}
+                        {enrollment.student.user.lastName}
                       </td>
                       <td className="px-4 py-3">{enrollment.course.title}</td>
-                      <td className="px-4 py-3">{enrollment.createdAt.toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        {enrollment.createdAt.toLocaleDateString()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -173,7 +238,10 @@ export default async function SuperAdminDashboard() {
               <p className="text-sm font-semibold">Enrollments by day</p>
               <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[11px] text-slate-600">
                 {weeklyEnrollmentSeries.map((point) => (
-                  <div key={point.label} className="rounded-2xl bg-white px-2 py-3 shadow-sm">
+                  <div
+                    key={point.label}
+                    className="rounded-2xl bg-white px-2 py-3 shadow-sm"
+                  >
                     <p className="font-semibold">{point.value}</p>
                     <p>{point.label}</p>
                   </div>
@@ -182,8 +250,12 @@ export default async function SuperAdminDashboard() {
             </div>
             <div className="rounded-3xl border bg-slate-950/5 p-5 shadow-sm">
               <p className="text-sm font-semibold">Top weekly metric</p>
-              <p className="mt-2 text-3xl font-semibold">{weeklyEnrollments.length}</p>
-              <p className="text-sm text-muted-foreground">Enrollments created in the past 7 days.</p>
+              <p className="mt-2 text-3xl font-semibold">
+                {weeklyEnrollments.length}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Enrollments created in the past 7 days.
+              </p>
             </div>
           </div>
         </div>

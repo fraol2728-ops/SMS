@@ -19,7 +19,13 @@ export type StudentTableRow = {
   paymentStatus: string;
 };
 
-export function StudentsTable({ students }: { students: StudentTableRow[] }) {
+export function StudentsTable({
+  students,
+  className = "",
+}: {
+  students: StudentTableRow[];
+  className?: string;
+}) {
   const [search, setSearch] = useState("");
   const filtered = useMemo(
     () =>
@@ -32,7 +38,7 @@ export function StudentsTable({ students }: { students: StudentTableRow[] }) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${className}`}>
       <Input
         placeholder="Search by code, name, phone, lab, or course"
         value={search}

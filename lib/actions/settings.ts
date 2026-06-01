@@ -162,6 +162,9 @@ export async function updateClassSettings(data: {
 
 export async function updateAppearanceSettings(data: {
   sidebarTheme: string;
+  colorMode: string;
+  accentColor: string;
+  calendarSystem: string;
   dateFormat: string;
   timeFormat: string;
 }) {
