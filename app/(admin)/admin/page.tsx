@@ -134,7 +134,7 @@ export default async function AdminPage() {
   const revenueSeries = buildTrendSeries(
     payments,
     30,
-    (item) => item.paidAt!,
+    (item) => item.paidAt ?? new Date(0),
     (item) => item.amount,
   );
   const registrationSeries = buildTrendSeries(
@@ -157,7 +157,7 @@ export default async function AdminPage() {
         <div className="space-y-3">
           {overduePayments > 0 ? (
             <Link href="/admin/remaining">
-              <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 transition-colors hover:bg-red-100">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-red-200 bg-red-50 p-4 transition-colors hover:bg-red-100">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
                     <span className="font-bold text-red-600">
@@ -181,7 +181,7 @@ export default async function AdminPage() {
 
           {dueSoonPayments > 0 ? (
             <Link href="/admin/remaining">
-              <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 p-4 transition-colors hover:bg-amber-100">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-amber-200 bg-amber-50 p-4 transition-colors hover:bg-amber-100">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
                     <span className="font-bold text-amber-600">
@@ -266,7 +266,7 @@ export default async function AdminPage() {
 
         <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
           <div className="overflow-hidden rounded-3xl border bg-white shadow-sm">
-            <div className="px-6 py-5 border-b bg-slate-50">
+            <div className="border-b bg-slate-50 px-4 py-5 sm:px-6">
               <p className="font-semibold">Latest weekly enrollments</p>
               <p className="text-sm text-muted-foreground">
                 Showing the most recent 12 enrollments.
@@ -319,7 +319,7 @@ export default async function AdminPage() {
             </div>
             <div className="rounded-3xl border bg-slate-950/5 p-5 shadow-sm">
               <p className="text-sm font-semibold">Top weekly metric</p>
-              <p className="mt-2 text-3xl font-semibold">
+              <p className="mt-2 text-2xl font-semibold sm:text-3xl">
                 {weeklyEnrollments.length}
               </p>
               <p className="text-sm text-muted-foreground">
@@ -332,7 +332,7 @@ export default async function AdminPage() {
 
       <section className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
               <h3 className="text-lg font-semibold">Recent enrollments</h3>
               <p className="text-sm text-slate-500">
@@ -343,7 +343,7 @@ export default async function AdminPage() {
               {recentEnrollments.length} entries
             </span>
           </div>
-          <div className="overflow-x-auto px-6 py-4">
+          <div className="overflow-x-auto px-4 py-4 sm:px-6">
             <table className="min-w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-[0.16em] text-slate-500">
                 <tr>
@@ -377,7 +377,7 @@ export default async function AdminPage() {
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
               <h3 className="text-lg font-semibold">Recent payments</h3>
               <p className="text-sm text-slate-500">
@@ -388,7 +388,7 @@ export default async function AdminPage() {
               {recentPayments.length} payments
             </span>
           </div>
-          <div className="overflow-x-auto px-6 py-4">
+          <div className="overflow-x-auto px-4 py-4 sm:px-6">
             <table className="min-w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-[0.16em] text-slate-500">
                 <tr>
