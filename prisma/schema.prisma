@@ -196,26 +196,26 @@ model AssetLog {
 }
 
 model Class {
-  id          String         @id @default(cuid())
-  campusId    String
-  campus      Campus         @relation(fields: [campusId], references: [id])
-  courseId    String
-  course      Course         @relation(fields: [courseId], references: [id])
-  teacherId   String
-  teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
-  labId       String?
-  lab         Lab?           @relation(fields: [labId], references: [id])
-  timeSlot    TimeSlot
-  days        ClassDays
-  startDate   DateTime?
-  endDate     DateTime?
-  classType   ClassType      @default(GROUP)
-  status      ClassStatus    @default(REGISTRATION)
-  onlineLink  String?
-  capacity    Int            @default(20)
-  isActive    Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id         String         @id @default(cuid())
+  campusId   String
+  campus     Campus         @relation(fields: [campusId], references: [id])
+  courseId   String
+  course     Course         @relation(fields: [courseId], references: [id])
+  teacherId  String
+  teacher    TeacherProfile @relation(fields: [teacherId], references: [id])
+  labId      String?
+  lab        Lab?           @relation(fields: [labId], references: [id])
+  timeSlot   TimeSlot
+  days       ClassDays
+  startDate  DateTime?
+  endDate    DateTime?
+  classType  ClassType      @default(GROUP)
+  status     ClassStatus    @default(REGISTRATION)
+  onlineLink String?
+  capacity   Int            @default(20)
+  isActive   Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   enrollments Enrollment[]
   attendance  Attendance[]
@@ -224,33 +224,74 @@ model Class {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  clerkId     String   @unique
+  id          String    @id @default(cuid())
+  clerkId     String    @unique
   role        Role
   firstName   String
   lastName    String
-  email       String   @unique
+  email       String    @unique
   phone       String?
   avatar      String?
   gender      Gender?
   dateOfBirth DateTime?
   address     String?
   campusId    String?
-  campus      Campus?  @relation(fields: [campusId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  campus      Campus?   @relation(fields: [campusId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  studentProfile  StudentProfile?
-  teacherProfile  TeacherProfile?
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+  adminSettings  AdminSettings?
 
-  sentReports     Report[]       @relation("ReportSender")
-  receivedReports Report[]       @relation("ReportReceiver")
-  notifications   Notification[]
-  payments        Payment[]
-  partialPayments PartialPayment[]
-  assetLogs       AssetLog[]
+  sentReports         Report[]         @relation("ReportSender")
+  receivedReports     Report[]         @relation("ReportReceiver")
+  notifications       Notification[]
+  payments            Payment[]
+  partialPayments     PartialPayment[]
+  assetLogs           AssetLog[]
   approvedWithdrawals Withdrawal[]
-  claimedCertificates Certificate[] @relation("CertificateClaimedBy")
+  claimedCertificates Certificate[]    @relation("CertificateClaimedBy")
+}
+
+model AdminSettings {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Profile
+  profilePicture String?
+
+  // Dashboard customization
+  dashboardCards         String[] @default(["students", "revenue", "classes", "teachers", "attendance"])
+  dashboardDefaultView   String   @default("monthly")
+  dashboardPinnedActions String[] @default(["add_student", "mark_attendance", "view_remaining"])
+
+  // Notification preferences
+  emailNotifications    Boolean @default(true)
+  notifyOverduePayments Boolean @default(true)
+  notifyTeacherReports  Boolean @default(true)
+  notifyClassEndingSoon Boolean @default(true)
+  notifyClassFull       Boolean @default(true)
+  notificationFrequency String  @default("instant")
+
+  // Payment settings
+  defaultCurrency           String @default("ETB")
+  paymentGracePeriodDays    Int    @default(7)
+  defaultCertificateFee     Float  @default(0)
+  paymentReminderDaysBefore Int    @default(3)
+
+  // Class settings
+  defaultClassCapacity  Int @default(20)
+  defaultCourseDuration Int @default(8)
+
+  // Appearance
+  sidebarTheme String @default("dark")
+  dateFormat   String @default("DD/MM/YYYY")
+  timeFormat   String @default("12h")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model StudentProfile {
@@ -269,30 +310,30 @@ model StudentProfile {
 }
 
 model TeacherProfile {
-  id           String  @id @default(cuid())
-  userId       String  @unique
-  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  teacherCode  String  @unique
-  specialty    String?
-  bio          String?
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teacherCode String  @unique
+  specialty   String?
+  bio         String?
 
-  classes    Class[]
+  classes Class[]
 }
 
 model Course {
-  id          String    @id @default(cuid())
-  title       String
-  slug        String    @unique
-  description String?
-  classType   ClassType
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  description   String?
+  classType     ClassType
   durationWeeks Int
-  fee         Float
-  isActive    Boolean   @default(true)
-  thumbnail   String?
-  campusId    String
-  campus      Campus    @relation(fields: [campusId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  fee           Float
+  isActive      Boolean   @default(true)
+  thumbnail     String?
+  campusId      String
+  campus        Campus    @relation(fields: [campusId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   enrollments  Enrollment[]
   classes      Class[]
@@ -337,19 +378,19 @@ model Attendance {
 }
 
 model Payment {
-  id           String        @id @default(cuid())
+  id           String         @id @default(cuid())
   userId       String
-  user         User          @relation(fields: [userId], references: [id])
+  user         User           @relation(fields: [userId], references: [id])
   enrollmentId String
-  enrollment   Enrollment    @relation(fields: [enrollmentId], references: [id])
+  enrollment   Enrollment     @relation(fields: [enrollmentId], references: [id])
   amount       Float
   method       PaymentMethod?
-  status       PaymentStatus @default(PENDING)
+  status       PaymentStatus  @default(PENDING)
   dueDate      DateTime?
   paidAt       DateTime?
   receiptUrl   String?
   note         String?
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime       @default(now())
 }
 
 model PaymentRemaining {
@@ -380,40 +421,40 @@ model PartialPayment {
 }
 
 model Report {
-  id          String       @id @default(cuid())
-  senderId    String
-  sender      User         @relation("ReportSender", fields: [senderId], references: [id])
-  receiverId  String
-  receiver    User         @relation("ReportReceiver", fields: [receiverId], references: [id])
-  studentId   String?
-  title       String
-  content     String
-  status      ReportStatus @default(UNREAD)
+  id           String       @id @default(cuid())
+  senderId     String
+  sender       User         @relation("ReportSender", fields: [senderId], references: [id])
+  receiverId   String
+  receiver     User         @relation("ReportReceiver", fields: [receiverId], references: [id])
+  studentId    String?
+  title        String
+  content      String
+  status       ReportStatus @default(UNREAD)
   replyContent String?
-  repliedAt   DateTime?
-  createdAt   DateTime     @default(now())
+  repliedAt    DateTime?
+  createdAt    DateTime     @default(now())
 }
 
 model Material {
-  id          String   @id @default(cuid())
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id])
-  uploadedBy  String
-  title       String
-  fileUrl     String
-  fileType    String?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id])
+  uploadedBy String
+  title      String
+  fileUrl    String
+  fileType   String?
+  createdAt  DateTime @default(now())
 }
 
 model Notification {
-  id          String             @id @default(cuid())
-  userId      String
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  target      NotificationTarget
-  title       String
-  body        String
-  isRead      Boolean            @default(false)
-  createdAt   DateTime           @default(now())
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  target    NotificationTarget
+  title     String
+  body      String
+  isRead    Boolean            @default(false)
+  createdAt DateTime           @default(now())
 }
 
 model Withdrawal {
@@ -433,20 +474,20 @@ model Withdrawal {
 }
 
 model StudentAssessment {
-  id                         String         @id @default(cuid())
-  studentId                  String         @unique
-  student                    StudentProfile @relation(fields: [studentId], references: [id])
-  hasBasicComputerKnowledge  Boolean?
-  courseUnderstanding        String[]
-  socialMediaPlatforms       String[]
-  canCreateSimplePost        String?
-  canUseBrowser              String?
-  hasActiveEmail             Boolean?
-  canLoginEmail              Boolean?
-  hasDevice                  Boolean?
-  hasInternetConnection      Boolean?
-  createdAt                  DateTime       @default(now())
-  updatedAt                  DateTime       @updatedAt
+  id                        String         @id @default(cuid())
+  studentId                 String         @unique
+  student                   StudentProfile @relation(fields: [studentId], references: [id])
+  hasBasicComputerKnowledge Boolean?
+  courseUnderstanding       String[]
+  socialMediaPlatforms      String[]
+  canCreateSimplePost       String?
+  canUseBrowser             String?
+  hasActiveEmail            Boolean?
+  canLoginEmail             Boolean?
+  hasDevice                 Boolean?
+  hasInternetConnection     Boolean?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
 }
 
 model TeacherWaitlist {
