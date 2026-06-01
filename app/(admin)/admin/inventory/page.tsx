@@ -12,10 +12,7 @@ export default async function InventoryPage() {
   const campusId = await getCurrentUserCampusId();
 
   const labs = (await prisma.lab.findMany({
-    where: {
-      campusId: campusId ?? undefined,
-      isActive: true,
-    },
+    where: campusId ? { campusId } : {},
     include: {
       campus: { select: { name: true } },
       _count: { select: { assets: true } },
