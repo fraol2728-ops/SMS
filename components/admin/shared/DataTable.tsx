@@ -23,10 +23,10 @@ export function DataTable<T extends Record<string, unknown>>({
   emptyMessage?: string;
 }) {
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="overflow-x-auto rounded-md border dark:border-gray-700">
       <Table className="min-w-full">
         <TableHeader>
-          <TableRow>
+          <TableRow className="border-b bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
             {columns.map((column) => (
               <TableHead key={column.key}>{column.label}</TableHead>
             ))}
@@ -35,9 +35,15 @@ export function DataTable<T extends Record<string, unknown>>({
         <TableBody>
           {data.length ? (
             data.map((row, idx) => (
-              <TableRow className="odd:bg-muted/30" key={String(row.id ?? idx)}>
+              <TableRow
+                className="border-b odd:bg-muted/30 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                key={String(row.id ?? idx)}
+              >
                 {columns.map((column) => (
-                  <TableCell key={`${column.key}-${idx}`}>
+                  <TableCell
+                    className="dark:text-white"
+                    key={`${column.key}-${idx}`}
+                  >
                     {column.render
                       ? column.render(row)
                       : (row[column.key] as React.ReactNode)}
@@ -48,7 +54,7 @@ export function DataTable<T extends Record<string, unknown>>({
           ) : (
             <TableRow>
               <TableCell
-                className="py-8 text-center text-muted-foreground"
+                className="py-8 text-center text-gray-500 dark:text-gray-400"
                 colSpan={columns.length}
               >
                 {emptyMessage}

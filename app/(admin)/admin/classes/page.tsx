@@ -53,7 +53,7 @@ export default async function ClassesPage({
         title="Classes"
         action={{ label: "Add class", href: "/admin/classes/new" }}
       />
-      <div className="flex flex-wrap gap-2 rounded-xl border bg-white p-2">
+      <div className="flex flex-wrap gap-2 rounded-xl border bg-white p-2 dark:border-gray-700 dark:bg-gray-900">
         <Button
           asChild
           variant={status === "REGISTRATION" ? "default" : "outline"}
@@ -71,69 +71,102 @@ export default async function ClassesPage({
           <Link href="/admin/history">Ended</Link>
         </Button>
       </div>
-      <DataTable
-        data={classes}
-        emptyMessage="No classes yet. Create a class to start enrolling students."
-        columns={[
-          {
-            key: "lab",
-            label: "Lab",
-            render: (r) => (
-              <Link
-                href={`/admin/classes/${r.id}`}
-                className="font-medium text-blue-600 hover:underline"
-              >
-                {r.lab?.name ?? "Online"}
-              </Link>
-            ),
-          },
-          { key: "course", label: "Course", render: (r) => r.course.title },
-          {
-            key: "teacher",
-            label: "Teacher",
-            render: (r) =>
-              `${r.teacher.user.firstName} ${r.teacher.user.lastName}`,
-          },
-          {
-            key: "timeSlot",
-            label: "Time",
-            render: (r) => TIME_SLOTS[r.timeSlot as keyof typeof TIME_SLOTS],
-          },
-          {
-            key: "days",
-            label: "Days",
-            render: (r) => CLASS_DAYS[r.days as keyof typeof CLASS_DAYS],
-          },
-          {
-            key: "students",
-            label: "Students",
-            render: (r) => `${r._count.enrollments} / ${r.capacity}`,
-          },
-          {
-            key: "status",
-            label: "Status",
-            render: (r) => (
-              <Badge variant={r.status === "STARTED" ? "default" : "secondary"}>
-                {r.status}
-              </Badge>
-            ),
-          },
-          {
-            key: "actions",
-            label: "Actions",
-            render: (r) => (
-              <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm" variant="outline">
-                  <Link href={`/admin/classes/${r.id}`}>View</Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link href={`/admin/classes/${r.id}/edit`}>Edit</Link>
-                </Button>
+      <div className="space-y-2 md:hidden">
+        {classes.map((c) => (
+          <Link key={c.id} href={`/admin/classes/${c.id}`}>
+            <div className="rounded-xl border bg-white p-4 transition-all hover:border-blue-300 dark:border-gray-700 dark:bg-gray-900">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {c.course.title}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {c.lab?.name ?? "Online"}
+                  </p>
+                </div>
+                <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                  {c._count.enrollments}/{c.capacity}
+                </span>
               </div>
-            ),
-          },
-        ]}
-      />
+              <div className="mt-2 flex gap-2">
+                <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                  {TIME_SLOTS[c.timeSlot as keyof typeof TIME_SLOTS]}
+                </span>
+                <span className="rounded-full bg-purple-50 px-2 py-1 text-xs text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                  {CLASS_DAYS[c.days as keyof typeof CLASS_DAYS]}
+                </span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+      <div className="hidden md:block">
+        <DataTable
+          data={classes}
+          emptyMessage="No classes yet. Create a class to start enrolling students."
+          columns={[
+            {
+              key: "lab",
+              label: "Lab",
+              render: (r) => (
+                <Link
+                  href={`/admin/classes/${r.id}`}
+                  className="font-medium text-blue-600 hover:underline"
+                >
+                  {r.lab?.name ?? "Online"}
+                </Link>
+              ),
+            },
+            { key: "course", label: "Course", render: (r) => r.course.title },
+            {
+              key: "teacher",
+              label: "Teacher",
+              render: (r) =>
+                `${r.teacher.user.firstName} ${r.teacher.user.lastName}`,
+            },
+            {
+              key: "timeSlot",
+              label: "Time",
+              render: (r) => TIME_SLOTS[r.timeSlot as keyof typeof TIME_SLOTS],
+            },
+            {
+              key: "days",
+              label: "Days",
+              render: (r) => CLASS_DAYS[r.days as keyof typeof CLASS_DAYS],
+            },
+            {
+              key: "students",
+              label: "Students",
+              render: (r) => `${r._count.enrollments} / ${r.capacity}`,
+            },
+            {
+              key: "status",
+              label: "Status",
+              render: (r) => (
+                <Badge
+                  variant={r.status === "STARTED" ? "default" : "secondary"}
+                >
+                  {r.status}
+                </Badge>
+              ),
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              render: (r) => (
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/admin/classes/${r.id}`}>View</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/admin/classes/${r.id}/edit`}>Edit</Link>
+                  </Button>
+                </div>
+              ),
+            },
+          ]}
+        />
+      </div>
     </div>
   );
 }

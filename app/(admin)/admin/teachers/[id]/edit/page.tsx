@@ -31,6 +31,7 @@ export default async function EditTeacherPage({
           phone: teacher.phone ?? "",
           gender: teacher.gender ?? "",
           specialty: teacher.teacherProfile?.specialty ?? "",
+          specialties: teacher.teacherProfile?.specialties ?? [],
           bio: teacher.teacherProfile?.bio ?? "",
         }}
       />

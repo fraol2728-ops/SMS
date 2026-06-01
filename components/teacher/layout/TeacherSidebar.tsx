@@ -81,7 +81,7 @@ export function TeacherSidebar({
         </div>
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {navLinks.map(({ href, label, icon: Icon, exact }) => {
           const active = isActive(href, exact);
           return (

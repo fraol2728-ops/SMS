@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import {
   StudentsTable,
@@ -86,7 +87,43 @@ export default async function StudentsPage() {
         title="Students"
         action={{ label: "Add student", href: "/admin/students/new" }}
       />
-      <StudentsTable students={rows} />
+      <div className="space-y-2 md:hidden">
+        {students.map((student) => {
+          const enrollments = student.studentProfile?.enrollments ?? [];
+          const activeEnrollment = enrollments.find(
+            (enrollment) => enrollment.status === "ACTIVE",
+          );
+          return (
+            <Link key={student.id} href={`/admin/students/${student.id}`}>
+              <div className="flex items-center justify-between rounded-xl border bg-white p-4 transition-all hover:border-blue-300 active:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:active:bg-gray-800">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                    {student.firstName[0]}
+                    {student.lastName[0]}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {student.firstName} {student.lastName}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {student.studentProfile?.studentCode ?? "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                    {activeEnrollment?.class?.course?.title ?? "No class"}
+                  </span>
+                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                    ›
+                  </p>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+      <StudentsTable className="hidden md:block" students={rows} />
     </div>
   );
 }

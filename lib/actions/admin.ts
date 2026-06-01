@@ -181,6 +181,8 @@ export async function createStudent(input: ActionInput) {
           lastName: v.lastName,
           email,
           phone: v.phone,
+          telegram: v.telegram?.trim() || v.phone || null,
+          whatsapp: v.whatsapp?.trim() || v.phone || null,
           gender: v.gender,
           dateOfBirth: v.dateOfBirth ? new Date(v.dateOfBirth) : undefined,
           address: v.address,
@@ -188,6 +190,9 @@ export async function createStudent(input: ActionInput) {
           studentProfile: {
             create: {
               studentCode,
+              registrationDate: v.registrationDate
+                ? new Date(v.registrationDate)
+                : new Date(),
               guardianName: v.guardianName,
               guardianPhone: v.guardianPhone,
               emergencyContact: v.emergencyContact,
@@ -349,11 +354,16 @@ export async function updateStudent(id: string, formData: FormData) {
         lastName: v.lastName,
         email: v.email,
         phone: v.phone,
+        telegram: v.telegram?.trim() || v.phone || null,
+        whatsapp: v.whatsapp?.trim() || v.phone || null,
         gender: v.gender,
         dateOfBirth: v.dateOfBirth ? new Date(v.dateOfBirth) : undefined,
         address: v.address,
         studentProfile: {
           update: {
+            registrationDate: v.registrationDate
+              ? new Date(v.registrationDate)
+              : undefined,
             guardianName: v.guardianName,
             guardianPhone: v.guardianPhone,
             emergencyContact: v.emergencyContact,
@@ -601,11 +611,16 @@ export async function updateCourse(id: string, formData: FormData) {
 export async function createTeacher(formData: FormData) {
   try {
     const raw = actionInputToObject(formData);
+    const specialtiesRaw = raw.specialties as string | undefined;
+    const specialties = specialtiesRaw
+      ? specialtiesRaw.split("||").filter(Boolean)
+      : [];
     const normalized = {
       ...raw,
       gender: emptyToUndefined(raw.gender),
       phone: emptyToUndefined(raw.phone),
-      specialty: emptyToUndefined(raw.specialty),
+      specialty: specialties[0] ?? emptyToUndefined(raw.specialty),
+      specialties: specialtiesRaw,
       bio: emptyToUndefined(raw.bio),
     };
     const v = teacherSchema.parse(normalized);
@@ -637,7 +652,8 @@ export async function createTeacher(formData: FormData) {
         teacherProfile: {
           create: {
             teacherCode: `TCH-${String(c + 1).padStart(3, "0")}`,
-            specialty: v.specialty,
+            specialties,
+            specialty: specialties[0] || v.specialty || null,
             bio: v.bio,
           },
         },
@@ -672,11 +688,16 @@ export async function createTeacher(formData: FormData) {
 export async function updateTeacher(id: string, formData: FormData) {
   try {
     const normalized = actionInputToObject(formData);
+    const specialtiesRaw = normalized.specialties as string | undefined;
+    const specialties = specialtiesRaw
+      ? specialtiesRaw.split("||").filter(Boolean)
+      : [];
     const v = updateTeacherSchema.parse({
       ...normalized,
       gender: emptyToUndefined(normalized.gender),
       phone: emptyToUndefined(normalized.phone),
-      specialty: emptyToUndefined(normalized.specialty),
+      specialty: specialties[0] ?? emptyToUndefined(normalized.specialty),
+      specialties: specialtiesRaw,
       bio: emptyToUndefined(normalized.bio),
     });
 
@@ -690,7 +711,8 @@ export async function updateTeacher(id: string, formData: FormData) {
         gender: v.gender,
         teacherProfile: {
           update: {
-            specialty: v.specialty,
+            specialties,
+            specialty: specialties[0] || v.specialty || null,
             bio: v.bio,
           },
         },

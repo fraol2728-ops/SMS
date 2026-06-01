@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
+import { ContactButtons } from "@/components/shared/ContactButtons";
 import { ChangeClassModal } from "@/components/admin/students/ChangeClassModal";
 import { ClaimCertificateModal } from "@/components/admin/students/ClaimCertificateModal";
 import { DropButton } from "@/components/admin/students/DropButton";
@@ -172,6 +173,13 @@ export default async function StudentDetailPage({
                   </div>
                 </div>
               </div>
+
+              <ContactButtons
+                phone={student.phone}
+                telegram={student.telegram}
+                whatsapp={student.whatsapp}
+                showTelegramWhatsapp
+              />
 
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
                 <div className="grid gap-4 sm:grid-cols-2">
