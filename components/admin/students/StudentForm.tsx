@@ -32,6 +32,9 @@ type DefaultStudentValues = {
   lastName?: string;
   email?: string;
   phone?: string;
+  telegram?: string;
+  whatsapp?: string;
+  registrationDate?: string;
   gender?: string;
   dateOfBirth?: string;
   address?: string;
@@ -183,6 +186,43 @@ export function StudentForm({
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="registrationDate">Registration Date</Label>
+            <input
+              id="registrationDate"
+              name="registrationDate"
+              type="date"
+              defaultValue={
+                defaultValues?.registrationDate?.slice(0, 10) ??
+                new Date().toISOString().slice(0, 10)
+              }
+              className="h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="telegram">Telegram (optional)</Label>
+            <Input
+              id="telegram"
+              name="telegram"
+              placeholder="Phone number or @username"
+              defaultValue={defaultValues?.telegram ?? ""}
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave blank to use phone number
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp">WhatsApp (optional)</Label>
+            <Input
+              id="whatsapp"
+              name="whatsapp"
+              placeholder="Phone number"
+              defaultValue={defaultValues?.whatsapp ?? ""}
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave blank to use phone number
+            </p>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="email">Email (optional)</Label>
             <Input
               id="email"
@@ -202,7 +242,7 @@ export function StudentForm({
               id="gender"
               name="gender"
               defaultValue={defaultValues?.gender ?? ""}
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              className="h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             >
               <option value="">Select gender</option>
               <option value="MALE">Male</option>
@@ -302,7 +342,7 @@ export function StudentForm({
                 required
                 value={selectedClassId}
                 onChange={(event) => onClassSelect(event.target.value)}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               >
                 <option value="">
                   {filteredClasses.length === 0
@@ -373,7 +413,7 @@ export function StudentForm({
                 name="paymentStatus"
                 value={paymentStatus}
                 onChange={(event) => setPaymentStatus(event.target.value)}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               >
                 <option value="PAID">Paid in Full</option>
                 <option value="PENDING">Partial / Pending</option>
@@ -406,7 +446,7 @@ export function StudentForm({
                 <Label>Payment Method *</Label>
                 <select
                   name="paymentMethod"
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  className="h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                 >
                   <option value="CASH">Cash</option>
                   <option value="BANK_TRANSFER">Bank Transfer</option>

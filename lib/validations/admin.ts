@@ -4,6 +4,9 @@ export const studentSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   phone: z.string().min(1, "Phone number is required"),
+  telegram: z.string().optional(),
+  whatsapp: z.string().optional(),
+  registrationDate: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")).optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   dateOfBirth: z.string().optional(),
@@ -30,6 +33,7 @@ export const teacherSchema = z.object({
   phone: z.string().optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   specialty: z.string().optional(),
+  specialties: z.string().optional(),
   bio: z.string().optional(),
 });
 

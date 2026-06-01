@@ -30,41 +30,53 @@ const EXPORTS = [
 
 export function DataExportSettings() {
   const [downloading, setDownloading] = useState<string | null>(null);
-  async function handleExport(type: string) {
-    setDownloading(type);
+  async function handleExport(id: string) {
+    setDownloading(id);
     try {
-      const response = await fetch(`/api/reports?type=${type}`);
-      if (!response.ok) throw new Error("Export failed");
+      const urlMap: Record<string, string> = {
+        students: "/api/export/students",
+        payments: "/api/export/payments",
+        history: "/api/export/history",
+      };
+      const url = urlMap[id];
+      if (!url) throw new Error("Unknown export type");
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Export failed");
+      }
+
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `exceed-${type}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.href = objectUrl;
+      a.download = `exceed-${id}-${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
       document.body.removeChild(a);
-      toast.success(`${type} data exported successfully`);
-    } catch {
-      toast.error("Export failed. Please try again.");
+      toast.success(`${id} exported successfully`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Export failed");
     } finally {
       setDownloading(null);
     }
   }
   return (
-    <div className="space-y-6 rounded-xl border bg-white p-4 sm:p-6">
+    <div className="space-y-6 rounded-xl border bg-white p-4 dark:border-gray-700 dark:bg-gray-900 sm:p-6">
       <div>
-        <h2 className="mb-1 text-lg font-semibold text-gray-900">
+        <h2 className="mb-1 text-lg font-semibold text-gray-900 dark:text-white">
           Data & Export
         </h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Download your data as Excel files
         </p>
       </div>
       <div className="space-y-3">
         {EXPORTS.map(({ id, label, description, icon: Icon, color }) => (
           <div
-            className="flex flex-col gap-3 rounded-xl border p-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 rounded-xl border p-4 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 sm:flex-row sm:items-center sm:justify-between"
             key={id}
           >
             <div className="flex items-center gap-4">
@@ -74,7 +86,9 @@ export function DataExportSettings() {
                 <Icon size={18} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">{label}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {label}
+                </p>
                 <p className="mt-0.5 text-xs text-gray-400">{description}</p>
               </div>
             </div>

@@ -6,9 +6,14 @@ import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 
-export default async function AdminsPage() {
+export default async function AdminsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ campusId?: string }>;
+}) {
+  const { campusId } = (await searchParams) ?? {};
   const admins = await prisma.user.findMany({
-    where: { role: "ADMIN" },
+    where: { role: "ADMIN", campusId: campusId || undefined },
     include: { campus: true },
     orderBy: { createdAt: "desc" },
   });

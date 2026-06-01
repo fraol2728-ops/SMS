@@ -190,7 +190,7 @@ export function AdminSidebar({
           </div>
         </div>
       </div>
-      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {NAV_LINKS.map(({ href, label, icon: Icon, exact }) => {
           const active = isActive(href, exact);
           return (

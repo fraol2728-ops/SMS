@@ -19,18 +19,18 @@ export function AdminHeader({ user }: { user: AdminLayoutUser }) {
   const now = new Date();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center justify-between border-b bg-white px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center justify-between border-b bg-white dark:border-gray-700 dark:bg-gray-900 px-4 sm:px-6">
       <div className="flex items-center gap-3">
         <button
           aria-label="Open navigation"
-          className="rounded-lg p-2 transition-colors hover:bg-gray-100 lg:hidden"
+          className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
           onClick={openSidebar}
           type="button"
         >
-          <Menu className="text-gray-600" size={20} />
+          <Menu className="text-gray-600 dark:text-gray-300" size={20} />
         </button>
         <div className="hidden sm:block">
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-gray-500">
             {now.toLocaleDateString("en-GB", {
               weekday: "long",
               day: "2-digit",
@@ -44,14 +44,14 @@ export function AdminHeader({ user }: { user: AdminLayoutUser }) {
       <div className="flex items-center gap-2 sm:gap-3">
         <Link href="/admin/notifications">
           <button
-            className="relative rounded-lg p-2 transition-colors hover:bg-gray-100"
+            className="relative rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
             type="button"
           >
-            <Bell className="text-gray-600" size={20} />
+            <Bell className="text-gray-600 dark:text-gray-300" size={20} />
           </button>
         </Link>
         <Link href="/admin/settings">
-          <div className="hidden items-center gap-2 text-sm text-gray-600 transition-colors hover:text-gray-900 sm:flex">
+          <div className="hidden items-center gap-2 text-sm text-gray-600 dark:text-gray-300 transition-colors hover:text-gray-900 dark:hover:text-white sm:flex">
             <p className="font-medium">
               {user.firstName} {user.lastName}
             </p>

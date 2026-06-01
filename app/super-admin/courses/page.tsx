@@ -7,8 +7,14 @@ import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 
-export default async function SuperAdminCoursesPage() {
+export default async function SuperAdminCoursesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ campusId?: string }>;
+}) {
+  const { campusId } = (await searchParams) ?? {};
   const courses = await prisma.course.findMany({
+    where: { campusId: campusId || undefined },
     include: { campus: true, _count: { select: { enrollments: true } } },
     orderBy: { createdAt: "desc" },
   });

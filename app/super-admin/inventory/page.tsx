@@ -4,8 +4,14 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { prisma } from "@/lib/prisma";
 
-export default async function SuperAdminInventoryPage() {
+export default async function SuperAdminInventoryPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ campusId?: string }>;
+}) {
+  const { campusId } = (await searchParams) ?? {};
   const labs = (await prisma.lab.findMany({
+    where: { campusId: campusId || undefined },
     include: {
       campus: true,
       _count: { select: { assets: true } },
