@@ -47,9 +47,14 @@ type DefaultStudentValues = {
 export function StudentForm({
   classes,
   defaultValues,
+  defaultPersonalValues,
 }: {
   classes: ClassOption[];
   defaultValues?: DefaultStudentValues;
+  defaultPersonalValues?: Pick<
+    DefaultStudentValues,
+    "firstName" | "lastName" | "phone"
+  >;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -164,7 +169,11 @@ export function StudentForm({
               id="firstName"
               name="firstName"
               required
-              defaultValue={defaultValues?.firstName ?? ""}
+              defaultValue={
+                defaultValues?.firstName ??
+                defaultPersonalValues?.firstName ??
+                ""
+              }
             />
           </div>
           <div className="space-y-2">
@@ -173,7 +182,9 @@ export function StudentForm({
               id="lastName"
               name="lastName"
               required
-              defaultValue={defaultValues?.lastName ?? ""}
+              defaultValue={
+                defaultValues?.lastName ?? defaultPersonalValues?.lastName ?? ""
+              }
             />
           </div>
           <div className="space-y-2">
@@ -182,7 +193,9 @@ export function StudentForm({
               id="phone"
               name="phone"
               required
-              defaultValue={defaultValues?.phone ?? ""}
+              defaultValue={
+                defaultValues?.phone ?? defaultPersonalValues?.phone ?? ""
+              }
             />
           </div>
           <div className="space-y-2">

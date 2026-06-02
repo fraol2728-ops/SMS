@@ -12,9 +12,18 @@ type ClassWithDateFields = {
   endDate: Date | null;
 };
 
-export default async function NewStudentPage() {
+export default async function NewStudentPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+  }>;
+}) {
   await requireAdmin();
   const campusId = await getCurrentUserCampusId();
+  const params = (await searchParams) ?? {};
   const classes = await prisma.class.findMany({
     where: {
       campusId: campusId ?? undefined,
@@ -50,7 +59,14 @@ export default async function NewStudentPage() {
           before registering a student.
         </div>
       ) : null}
-      <StudentForm classes={formattedClasses} />
+      <StudentForm
+        classes={formattedClasses}
+        defaultPersonalValues={{
+          firstName: params.firstName,
+          lastName: params.lastName,
+          phone: params.phone,
+        }}
+      />
     </div>
   );
 }

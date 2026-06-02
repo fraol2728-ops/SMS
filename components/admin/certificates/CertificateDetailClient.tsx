@@ -50,7 +50,8 @@ export function CertificateDetailClient({ cert }: { cert: any }) {
       setDeliverLoading(false);
     }
   }
-  const user = cert.student.user;
+  const user = cert.student?.user;
+  const studentName = cert.manualStudentName ?? (`${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || "Manual student");
   return (
     <div className="space-y-6">
       <div className="bg-white border rounded-xl p-6">
@@ -60,7 +61,7 @@ export function CertificateDetailClient({ cert }: { cert: any }) {
           </div>
           <div>
             <h2 className="text-xl font-bold">
-              {user.firstName} {user.lastName}
+              {studentName}
             </h2>
             <p className="text-muted-foreground">{cert.course.title}</p>
             <p className="text-xs text-muted-foreground mt-1">

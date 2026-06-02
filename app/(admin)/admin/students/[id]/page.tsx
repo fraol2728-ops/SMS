@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
-import { ContactButtons } from "@/components/shared/ContactButtons";
+import { AddCOCModal } from "@/components/admin/students/AddCOCModal";
 import { ChangeClassModal } from "@/components/admin/students/ChangeClassModal";
 import { ClaimCertificateModal } from "@/components/admin/students/ClaimCertificateModal";
 import { DropButton } from "@/components/admin/students/DropButton";
 import { WithdrawModal } from "@/components/admin/students/WithdrawModal";
+import { ContactButtons } from "@/components/shared/ContactButtons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -261,6 +262,14 @@ export default async function StudentDetailPage({
                     hasRemaining={remainingAmount > 0}
                     remainingAmount={remainingAmount}
                   />
+                  {student.studentProfile ? (
+                    <AddCOCModal
+                      studentProfileId={student.studentProfile.id}
+                      studentName={`${student.firstName} ${student.lastName}`}
+                      phone={student.phone}
+                      gender={student.gender}
+                    />
+                  ) : null}
                 </div>
               </div>
             </div>
