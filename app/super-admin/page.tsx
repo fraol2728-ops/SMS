@@ -26,12 +26,25 @@ type WeeklyEnrollment = {
   course: { title: string };
 };
 
+import { redirect } from "next/navigation";
+
 export default async function SuperAdminDashboard({
   searchParams,
 }: {
   searchParams?: Promise<{ campusId?: string }>;
 }) {
   const { campusId } = (await searchParams) ?? {};
+
+  const defaultCampus = await prisma.campus.findFirst({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: { id: true },
+  });
+
+  if (!campusId && defaultCampus) {
+    redirect(`/super-admin?campusId=${defaultCampus.id}`);
+  }
+
   const now = new Date();
   const chartStart = new Date(now);
   chartStart.setDate(now.getDate() - 29);

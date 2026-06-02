@@ -1,7 +1,7 @@
 "use client";
 
 import { SignOutButton } from "@clerk/nextjs";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -34,9 +34,8 @@ export function SuperAdminSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [selectedCampusId, setSelectedCampusId] = useState(
-    searchParams.get("campusId") ?? "all",
-  );
+  const defaultCampusId = searchParams.get("campusId") ?? campuses[0]?.id ?? "all";
+  const [selectedCampusId, setSelectedCampusId] = useState(defaultCampusId);
   const [campusDropdownOpen, setCampusDropdownOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -85,7 +84,25 @@ export function SuperAdminSidebar({
       </div>
 
       <div className="flex-shrink-0 border-gray-800 border-b px-3 py-3">
-        <p className="mb-2 px-1 text-gray-500 text-xs">CAMPUS</p>
+        <div className="mb-2 flex items-center justify-between gap-3 px-1 text-xs uppercase tracking-[0.24em] text-gray-500">
+          <span>CAMPUS</span>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/super-admin/campuses/new"
+              className="inline-flex items-center gap-1 rounded-full border border-gray-700 bg-gray-800 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:border-purple-500 hover:text-purple-300"
+            >
+              <Plus size={12} />
+              Add
+            </Link>
+            <Link
+              href="/super-admin/admins/new"
+              className="inline-flex items-center gap-1 rounded-full border border-gray-700 bg-gray-800 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:border-cyan-500 hover:text-cyan-300"
+            >
+              <UserPlus size={12} />
+              Admin
+            </Link>
+          </div>
+        </div>
         <div className="relative">
           <button
             onClick={() => setCampusDropdownOpen(!campusDropdownOpen)}
