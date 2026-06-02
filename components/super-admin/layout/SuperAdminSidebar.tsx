@@ -1,245 +1,244 @@
 "use client";
 
-import { SignOutButton } from "@clerk/nextjs";
-import { ChevronDown, LogOut, Plus, UserPlus } from "lucide-react";
+import {
+  AlertCircle,
+  Award,
+  Bell,
+  BookOpen,
+  Building2,
+  Calendar,
+  CheckSquare,
+  ChevronRight,
+  ClipboardCheck,
+  Clock,
+  CreditCard,
+  FileCheck,
+  FileText,
+  GraduationCap,
+  History,
+  Mail,
+  MessageSquarePlus,
+  Package,
+  Settings,
+  Shield,
+  UserMinus,
+  Users,
+  UserX,
+  X,
+} from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
 
-const NAV_LINKS = [
-  { href: "/super-admin", label: "Overview", exact: true },
-  { href: "/super-admin/campuses", label: "Campuses" },
-  { href: "/super-admin/admins", label: "Admins" },
-  { href: "/super-admin/students", label: "All Students" },
-  { href: "/super-admin/teachers", label: "All Teachers" },
-  { href: "/super-admin/courses", label: "All Courses" },
-  { href: "/super-admin/classes", label: "All Classes" },
-  { href: "/super-admin/payments", label: "All Payments" },
-  { href: "/super-admin/reports", label: "Reports" },
-  { href: "/super-admin/inventory", label: "Inventory" },
-  { href: "/super-admin/settings", label: "Settings" },
+const CAMPUS_NAV = [
+  { href: "", label: "Dashboard", icon: Building2, exact: true },
+  { href: "/students", label: "Students", icon: Users },
+  { href: "/withdrawn", label: "Withdrawn", icon: UserX },
+  { href: "/dropped", label: "Dropped", icon: UserMinus },
+  { href: "/courses", label: "Courses", icon: BookOpen },
+  { href: "/classes", label: "Classes", icon: Calendar },
+  { href: "/teachers", label: "Teachers", icon: GraduationCap },
+  { href: "/waitlist", label: "Waitlist", icon: Clock },
+  { href: "/attendance", label: "Attendance", icon: ClipboardCheck },
+  { href: "/payments", label: "Payments", icon: CreditCard },
+  { href: "/remaining", label: "Remaining", icon: AlertCircle },
+  { href: "/reports", label: "Reports", icon: FileText },
+  { href: "/certificates", label: "Certificates", icon: Award },
+  { href: "/coc", label: "COC", icon: FileCheck },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/mail", label: "Mail", icon: Mail },
+  { href: "/requests", label: "Requests", icon: MessageSquarePlus },
+  { href: "/history", label: "History", icon: History },
+  { href: "/inventory", label: "Inventory", icon: Package },
+  { href: "/notifications", label: "Notifications", icon: Bell },
 ];
 
-type Campus = { id: string; name: string };
+const SUPER_ADMIN_NAV = [
+  { href: "/super-admin/admins", label: "All Admins", icon: Shield },
+  {
+    href: "/super-admin/campuses",
+    label: "Campus Management",
+    icon: Building2,
+  },
+  { href: "/super-admin/settings", label: "System Settings", icon: Settings },
+];
 
+type Campus = { id: string; name: string; color: string };
 type Admin = { firstName: string; lastName: string };
 
+const CAMPUS_COLORS: Record<
+  string,
+  { header: string; active: string; hover: string; border: string }
+> = {
+  blue: {
+    header: "bg-blue-600",
+    active: "bg-blue-600 text-white",
+    hover: "hover:bg-blue-50 dark:hover:bg-blue-900/20",
+    border: "border-blue-200",
+  },
+  green: {
+    header: "bg-green-600",
+    active: "bg-green-600 text-white",
+    hover: "hover:bg-green-50 dark:hover:bg-green-900/20",
+    border: "border-green-200",
+  },
+  purple: {
+    header: "bg-purple-600",
+    active: "bg-purple-600 text-white",
+    hover: "hover:bg-purple-50 dark:hover:bg-purple-900/20",
+    border: "border-purple-200",
+  },
+  red: {
+    header: "bg-red-600",
+    active: "bg-red-600 text-white",
+    hover: "hover:bg-red-50 dark:hover:bg-red-900/20",
+    border: "border-red-200",
+  },
+  amber: {
+    header: "bg-amber-500",
+    active: "bg-amber-500 text-white",
+    hover: "hover:bg-amber-50 dark:hover:bg-amber-900/20",
+    border: "border-amber-200",
+  },
+  rose: {
+    header: "bg-rose-600",
+    active: "bg-rose-600 text-white",
+    hover: "hover:bg-rose-50 dark:hover:bg-rose-900/20",
+    border: "border-rose-200",
+  },
+  indigo: {
+    header: "bg-indigo-600",
+    active: "bg-indigo-600 text-white",
+    hover: "hover:bg-indigo-50 dark:hover:bg-indigo-900/20",
+    border: "border-indigo-200",
+  },
+  teal: {
+    header: "bg-teal-600",
+    active: "bg-teal-600 text-white",
+    hover: "hover:bg-teal-50 dark:hover:bg-teal-900/20",
+    border: "border-teal-200",
+  },
+};
+
+function getCampusInitials(name: string) {
+  return name
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 export function SuperAdminSidebar({
-  campuses,
-  admin,
+  campus,
+  campusId,
+  admin: _admin,
+  onClose,
 }: {
-  campuses: Campus[];
+  campus: Campus | undefined;
+  campusId: string;
   admin: Admin;
+  onClose: () => void;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const defaultCampusId = searchParams.get("campusId") ?? campuses[0]?.id ?? "all";
-  const [selectedCampusId, setSelectedCampusId] = useState(defaultCampusId);
-  const [campusDropdownOpen, setCampusDropdownOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const colors = CAMPUS_COLORS[campus?.color ?? "blue"] ?? CAMPUS_COLORS.blue;
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
     return pathname.startsWith(href);
   }
 
-  function selectCampus(campusId: string) {
-    setSelectedCampusId(campusId);
-    setCampusDropdownOpen(false);
-    const params = new URLSearchParams(searchParams.toString());
-    if (campusId === "all") params.delete("campusId");
-    else params.set("campusId", campusId);
-    const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+  function campusHref(suffix: string) {
+    if (suffix === "") return `/super-admin?campusId=${campusId}`;
+    return `/super-admin${suffix}?campusId=${campusId}`;
   }
 
-  const selectedCampus = campuses.find((c) => c.id === selectedCampusId);
-  const displayName =
-    selectedCampusId === "all"
-      ? "All Campuses"
-      : (selectedCampus?.name ?? "Select Campus");
-
-  const SidebarContent = () => (
-    <div className="flex h-full flex-col bg-gray-900">
-      <div className="flex-shrink-0 border-gray-800 border-b p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-600">
-              <span className="font-bold text-sm text-white">E</span>
-            </div>
-            <div>
-              <h1 className="font-bold text-white">Exceed</h1>
-              <p className="text-gray-400 text-xs">Super Admin</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="text-gray-400 hover:text-white lg:hidden"
-            type="button"
-          >
-            ×
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-shrink-0 border-gray-800 border-b px-3 py-3">
-        <div className="mb-2 flex items-center justify-between gap-3 px-1 text-xs uppercase tracking-[0.24em] text-gray-500">
-          <span>CAMPUS</span>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/super-admin/campuses/new"
-              className="inline-flex items-center gap-1 rounded-full border border-gray-700 bg-gray-800 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:border-purple-500 hover:text-purple-300"
-            >
-              <Plus size={12} />
-              Add
-            </Link>
-            <Link
-              href="/super-admin/admins/new"
-              className="inline-flex items-center gap-1 rounded-full border border-gray-700 bg-gray-800 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:border-cyan-500 hover:text-cyan-300"
-            >
-              <UserPlus size={12} />
-              Admin
-            </Link>
-          </div>
-        </div>
-        <div className="relative">
-          <button
-            onClick={() => setCampusDropdownOpen(!campusDropdownOpen)}
-            className="flex w-full items-center justify-between rounded-xl bg-gray-800 px-3 py-2.5 font-medium text-sm text-white transition-colors hover:bg-gray-700"
-            type="button"
-          >
-            <div className="flex min-w-0 items-center gap-2">
-              <div
-                className={`h-2 w-2 rounded-full ${
-                  selectedCampusId === "all" ? "bg-purple-500" : "bg-green-500"
-                }`}
-              />
-              <span className="truncate">{displayName}</span>
-            </div>
-            <ChevronDown
-              size={14}
-              className={`flex-shrink-0 text-gray-400 transition-transform ${
-                campusDropdownOpen ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {campusDropdownOpen && (
-            <div className="absolute top-full right-0 left-0 z-10 mt-1 overflow-hidden rounded-xl border border-gray-700 bg-gray-800 shadow-xl">
-              <button
-                onClick={() => selectCampus("all")}
-                className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors ${
-                  selectedCampusId === "all"
-                    ? "bg-purple-600 text-white"
-                    : "text-gray-300 hover:bg-gray-700"
-                }`}
-                type="button"
-              >
-                <div className="h-2 w-2 rounded-full bg-purple-500" />
-                All Campuses
-              </button>
-              {campuses.map((campus) => (
-                <button
-                  key={campus.id}
-                  onClick={() => selectCampus(campus.id)}
-                  className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors ${
-                    selectedCampusId === campus.id
-                      ? "bg-purple-600 text-white"
-                      : "text-gray-300 hover:bg-gray-700"
-                  }`}
-                  type="button"
-                >
-                  <div className="h-2 w-2 rounded-full bg-green-500" />
-                  {campus.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-shrink-0 border-gray-800 border-b px-3 py-3">
-        <div className="flex items-center gap-3 rounded-xl bg-gray-800 p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-500/20 font-bold text-purple-400 text-sm">
-            {admin.firstName?.[0]}
-            {admin.lastName?.[0]}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate font-medium text-sm text-white">
-              {admin.firstName} {admin.lastName}
-            </p>
-            <p className="text-gray-400 text-xs">Super Admin</p>
-          </div>
-        </div>
-      </div>
-
-      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {NAV_LINKS.map(({ href, label, exact }) => {
-          const active = isActive(href, exact);
-          return (
-            <Link
-              key={href}
-              href={
-                selectedCampusId !== "all"
-                  ? `${href}?campusId=${selectedCampusId}`
-                  : href
-              }
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 font-medium text-sm transition-all ${
-                active
-                  ? "bg-purple-600 text-white"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-white"
-              }`}
-            >
-              {label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="flex-shrink-0 border-gray-800 border-t p-3">
-        <SignOutButton redirectUrl="/sign-in">
-          <button
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 font-medium text-gray-400 text-sm transition-all hover:bg-gray-800 hover:text-white"
-            type="button"
-          >
-            <LogOut size={17} />
-            Sign Out
-          </button>
-        </SignOutButton>
-      </div>
-    </div>
-  );
-
   return (
-    <>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col lg:flex">
-        <SidebarContent />
-      </aside>
-
-      {sidebarOpen && (
-        <button
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-          type="button"
-          aria-label="Close navigation"
-        />
-      )}
-
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col transition-transform duration-300 lg:hidden ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+    <div className="flex h-full flex-col border-gray-200 border-r bg-white dark:border-gray-700 dark:bg-gray-900">
+      <div
+        className={`${colors.header} flex flex-shrink-0 items-center justify-between p-4`}
       >
-        <SidebarContent />
-      </aside>
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 font-bold text-sm text-white">
+            {campus ? getCampusInitials(campus.name) : "SA"}
+          </div>
+          <div>
+            <p className="font-semibold text-white leading-none">
+              {campus?.name ?? "Super Admin"}
+            </p>
+            <p className="mt-0.5 text-white/70 text-xs">Campus Portal</p>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-1 text-white/70 hover:text-white lg:hidden"
+          type="button"
+        >
+          <X size={18} />
+        </button>
+      </div>
 
-      <button
-        id="super-sidebar-toggle"
-        onClick={() => setSidebarOpen(true)}
-        className="hidden"
-        type="button"
-      />
-    </>
+      <nav className="flex-1 overflow-y-auto p-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <p className="px-3 py-2 font-semibold text-gray-400 text-xs uppercase tracking-wider dark:text-gray-500">
+          {campus?.name ?? "Campus"}
+        </p>
+
+        <div className="space-y-0.5">
+          {CAMPUS_NAV.map(({ href, label, icon: Icon, exact }) => {
+            const fullHref = campusHref(href);
+            const active = exact
+              ? pathname === "/super-admin" || pathname === "/super-admin/"
+              : pathname.includes(`/super-admin${href}`);
+
+            return (
+              <Link
+                key={href}
+                href={fullHref}
+                onClick={onClose}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-sm transition-all ${
+                  active
+                    ? colors.active
+                    : `text-gray-600 ${colors.hover} hover:text-gray-900 dark:text-gray-400 dark:hover:text-white`
+                }`}
+              >
+                <Icon size={16} className="flex-shrink-0" />
+                <span className="truncate">{label}</span>
+                {active ? (
+                  <ChevronRight
+                    size={12}
+                    className="ml-auto flex-shrink-0 opacity-70"
+                  />
+                ) : null}
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 border-gray-200 border-t pt-4 dark:border-gray-700">
+          <p className="px-3 py-2 font-semibold text-gray-400 text-xs uppercase tracking-wider dark:text-gray-500">
+            Super Admin
+          </p>
+          <div className="space-y-0.5">
+            {SUPER_ADMIN_NAV.map(({ href, label, icon: Icon }) => {
+              const active = isActive(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onClose}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-sm transition-all ${
+                    active
+                      ? "bg-purple-600 text-white"
+                      : "text-gray-600 hover:bg-purple-50 hover:text-purple-700 dark:text-gray-400 dark:hover:bg-purple-900/20 dark:hover:text-purple-400"
+                  }`}
+                >
+                  <Icon size={16} className="flex-shrink-0" />
+                  <span className="truncate">{label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+    </div>
   );
 }
