@@ -1,6 +1,7 @@
 "use server";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
+import type { PaymentMethod, PaymentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
@@ -1229,8 +1230,9 @@ export async function claimCertificate(
       data: {
         studentId: student.studentProfile.id,
         courseId: enrollment.class.courseId,
-        paymentStatus: paymentStatus as any,
-        paymentMethod: paymentStatus === "PAID" ? (paymentMethod as any) : null,
+        paymentStatus: paymentStatus as PaymentStatus,
+        paymentMethod:
+          paymentStatus === "PAID" ? (paymentMethod as PaymentMethod) : null,
         claimedById: adminId,
         notes: notes?.trim() || null,
         isDelivered: false,
@@ -1244,6 +1246,36 @@ export async function claimCertificate(
   }
 }
 
+export async function createManualCertificate(formData: FormData) {
+  try {
+    const adminId = await getCurrentAdminUserId();
+    if (!adminId) return err("Not authenticated");
+    const studentName = formData.get("studentName") as string;
+    const courseId = formData.get("courseId") as string;
+    const paymentStatus = formData.get("paymentStatus") as string;
+    const paymentMethod = formData.get("paymentMethod") as string;
+    const notes = formData.get("notes") as string;
+    if (!studentName?.trim() || !courseId)
+      return err("Student name and course are required");
+    await prisma.certificate.create({
+      data: {
+        manualStudentName: studentName.trim(),
+        courseId,
+        paymentStatus: paymentStatus as PaymentStatus,
+        paymentMethod:
+          paymentStatus === "PAID" ? (paymentMethod as PaymentMethod) : null,
+        claimedById: adminId,
+        notes: notes?.trim() || null,
+        isDelivered: false,
+        verifyCode: `CERT-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+      },
+    });
+    revalidatePath("/admin/certificates");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed");
+  }
+}
 export async function markCertificateDelivered(certificateId: string) {
   try {
     await prisma.certificate.update({
@@ -1265,8 +1297,8 @@ export async function updateCertificatePayment(
     await prisma.certificate.update({
       where: { id: certificateId },
       data: {
-        paymentStatus: paymentStatus as any,
-        paymentMethod: paymentMethod as any,
+        paymentStatus: paymentStatus as PaymentStatus,
+        paymentMethod: paymentMethod as PaymentMethod,
       },
     });
     revalidatePath("/admin/certificates");
