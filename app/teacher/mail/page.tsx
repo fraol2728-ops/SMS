@@ -15,7 +15,11 @@ export default async function TeacherMailPage() {
   if (!currentUser) redirect("/sign-in");
   const [inbox, sent, admins] = await Promise.all([
     prisma.message.findMany({
-      where: { receiverId: currentUser.id, parentId: null },
+      where: {
+        receiverId: currentUser.id,
+        parentId: null,
+        sender: { role: { in: ["ADMIN", "SUPER_ADMIN"] } },
+      },
       include: {
         sender: { select: { firstName: true, lastName: true, role: true } },
         replies: { select: { id: true } },
@@ -23,7 +27,11 @@ export default async function TeacherMailPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.message.findMany({
-      where: { senderId: currentUser.id, parentId: null },
+      where: {
+        senderId: currentUser.id,
+        parentId: null,
+        receiver: { role: { in: ["ADMIN", "SUPER_ADMIN"] } },
+      },
       include: {
         receiver: { select: { firstName: true, lastName: true, role: true } },
         replies: { select: { id: true } },
