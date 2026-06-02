@@ -3,10 +3,12 @@
 import { SignOutButton } from "@clerk/nextjs";
 import {
   BookOpen,
+  CheckSquare,
   ClipboardCheck,
   FileText,
   LayoutDashboard,
   LogOut,
+  Mail,
   Package,
   User,
   Users,
@@ -26,6 +28,8 @@ const navLinks = [
   { href: "/teacher/attendance", label: "Attendance", icon: ClipboardCheck },
   { href: "/teacher/students", label: "My Students", icon: Users },
   { href: "/teacher/reports", label: "Reports", icon: FileText },
+  { href: "/teacher/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/teacher/mail", label: "Mail", icon: Mail },
   { href: "/teacher/inventory", label: "Inventory", icon: Package },
   { href: "/teacher/profile", label: "My Profile", icon: User },
 ];

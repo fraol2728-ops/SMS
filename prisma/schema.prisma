@@ -139,6 +139,26 @@ enum AssetLogAction {
   RETURNED
 }
 
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum RequestStatus {
+  PENDING
+  CONTACTED
+  ENROLLED
+  DECLINED
+}
+
 model Campus {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -147,10 +167,13 @@ model Campus {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users   User[]
-  courses Course[]
-  classes Class[]
-  labs    Lab[]
+  users          User[]
+  courses        Course[]
+  classes        Class[]
+  labs           Lab[]
+  cocStudents    COCStudent[]
+  tasks          Task[]
+  courseRequests CourseRequest[]
 }
 
 model Lab {
@@ -254,6 +277,12 @@ model User {
   assetLogs           AssetLog[]
   approvedWithdrawals Withdrawal[]
   claimedCertificates Certificate[]    @relation("CertificateClaimedBy")
+  addedCOCStudents    COCStudent[]
+  createdTasks        Task[]           @relation("TaskCreator")
+  assignedTasks       Task[]           @relation("TaskAssignee")
+  sentMessages        Message[]        @relation("MessageSender")
+  receivedMessages    Message[]        @relation("MessageReceiver")
+  courseRequests      CourseRequest[]
 }
 
 model AdminSettings {
@@ -300,10 +329,10 @@ model AdminSettings {
 }
 
 model StudentProfile {
-  id               String  @id @default(cuid())
-  userId           String  @unique
-  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  studentCode      String  @unique
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentCode      String   @unique
   guardianName     String?
   guardianPhone    String?
   emergencyContact String?
@@ -313,13 +342,14 @@ model StudentProfile {
   enrollments  Enrollment[]
   assessment   StudentAssessment?
   certificates Certificate[]
+  cocEntries   COCStudent[]
 }
 
 model TeacherProfile {
-  id          String  @id @default(cuid())
-  userId      String  @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  teacherCode String  @unique
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teacherCode String   @unique
   specialty   String? // Deprecated: use specialties
   specialties String[] @default([])
   bio         String?
@@ -511,21 +541,95 @@ model TeacherWaitlist {
 }
 
 model Certificate {
-  id            String         @id @default(cuid())
-  studentId     String
-  student       StudentProfile @relation(fields: [studentId], references: [id])
-  courseId      String
-  course        Course         @relation(fields: [courseId], references: [id])
-  issuedAt      DateTime       @default(now())
-  fileUrl       String?
-  verifyCode    String         @unique @default(cuid())
-  claimedById   String?
-  claimedBy     User?          @relation("CertificateClaimedBy", fields: [claimedById], references: [id])
-  paymentStatus PaymentStatus  @default(PENDING)
-  paymentMethod PaymentMethod?
-  isDelivered   Boolean        @default(false)
-  deliveredAt   DateTime?
-  notes         String?
+  id                String          @id @default(cuid())
+  studentId         String?
+  student           StudentProfile? @relation(fields: [studentId], references: [id])
+  manualStudentName String?
+  courseId          String
+  course            Course          @relation(fields: [courseId], references: [id])
+  issuedAt          DateTime        @default(now())
+  fileUrl           String?
+  verifyCode        String          @unique @default(cuid())
+  claimedById       String?
+  claimedBy         User?           @relation("CertificateClaimedBy", fields: [claimedById], references: [id])
+  paymentStatus     PaymentStatus   @default(PENDING)
+  paymentMethod     PaymentMethod?
+  isDelivered       Boolean         @default(false)
+  deliveredAt       DateTime?
+  notes             String?
+}
+
+model COCStudent {
+  id               String          @id @default(cuid())
+  studentProfileId String?
+  studentProfile   StudentProfile? @relation(fields: [studentProfileId], references: [id])
+  fullName         String
+  gender           String?
+  phone            String?
+  regNo            String?
+  campusId         String?
+  campus           Campus?         @relation(fields: [campusId], references: [id])
+  paymentAmount    Float
+  paymentStatus    PaymentStatus   @default(PENDING)
+  paymentMethod    PaymentMethod?
+  addedById        String
+  addedBy          User            @relation(fields: [addedById], references: [id])
+  examDate         DateTime?
+  result           String?
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model Task {
+  id            String       @id @default(cuid())
+  title         String
+  description   String?
+  priority      TaskPriority @default(MEDIUM)
+  status        TaskStatus   @default(PENDING)
+  dueDate       DateTime?
+  createdById   String
+  createdBy     User         @relation("TaskCreator", fields: [createdById], references: [id])
+  assigneeId    String?
+  assignee      User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  completedAt   DateTime?
+  completedNote String?
+  campusId      String?
+  campus        Campus?      @relation(fields: [campusId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Message {
+  id         String    @id @default(cuid())
+  senderId   String
+  sender     User      @relation("MessageSender", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User      @relation("MessageReceiver", fields: [receiverId], references: [id])
+  subject    String
+  body       String
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  parentId   String?
+  parent     Message?  @relation("MessageThread", fields: [parentId], references: [id])
+  replies    Message[] @relation("MessageThread")
+  createdAt  DateTime  @default(now())
+}
+
+model CourseRequest {
+  id         String        @id @default(cuid())
+  firstName  String
+  lastName   String
+  phone      String
+  courseName String
+  notes      String?
+  status     RequestStatus @default(PENDING)
+  campusId   String?
+  campus     Campus?       @relation(fields: [campusId], references: [id])
+  addedById  String
+  addedBy    User          @relation(fields: [addedById], references: [id])
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 }
 
 // Developer must run: npx prisma db push

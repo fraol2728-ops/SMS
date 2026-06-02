@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { ExportCertificatesButton } from "@/components/admin/certificates/ExportButton";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
@@ -11,7 +12,10 @@ export default async function CertificatesPage() {
   const certificates = await prisma.certificate.findMany({
     where: {
       isDelivered: false,
-      student: { user: campusId ? { campusId } : undefined },
+      OR: [
+        { student: { user: campusId ? { campusId } : undefined } },
+        { studentId: null },
+      ],
     },
     include: { student: { include: { user: true } }, course: true },
     orderBy: { issuedAt: "desc" },
@@ -21,7 +25,11 @@ export default async function CertificatesPage() {
       <PageHeader
         title="Certificates"
         description={`${certificates.length} pending certificate${certificates.length !== 1 ? "s" : ""}`}
+        action={{ label: "Add Certificate", href: "/admin/certificates/new" }}
       />
+      <div className="flex justify-end">
+        <ExportCertificatesButton certificates={certificates} />
+      </div>
       {certificates.length === 0 ? (
         <div className="bg-white border rounded-xl p-12 text-center">
           <p className="text-4xl mb-3">🎓</p>
@@ -30,7 +38,11 @@ export default async function CertificatesPage() {
       ) : (
         <div className="space-y-3">
           {certificates.map((cert) => {
-            const user = cert.student.user;
+            const user = cert.student?.user;
+            const studentName =
+              cert.manualStudentName ??
+              `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ??
+              "Manual student";
             return (
               <Link key={cert.id} href={`/admin/certificates/${cert.id}`}>
                 <div className="bg-white border rounded-xl p-5 hover:border-yellow-300">
@@ -40,9 +52,7 @@ export default async function CertificatesPage() {
                         🎓
                       </div>
                       <div>
-                        <p className="font-semibold">
-                          {user.firstName} {user.lastName}
-                        </p>
+                        <p className="font-semibold">{studentName}</p>
                         <p className="text-sm text-muted-foreground">
                           {cert.course.title}
                         </p>
