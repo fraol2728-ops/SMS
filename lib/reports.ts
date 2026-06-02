@@ -42,6 +42,7 @@ type ReportPayment = {
   method: string | null;
   status: string;
   createdAt: Date;
+  paidAt: Date | null;
   user: { firstName: string; lastName: string };
   enrollment: { class: { course: { title: string } } | null } | null;
 };
@@ -127,14 +128,15 @@ export async function generateReport(
           student: { include: { user: true } },
           class: { include: { course: true, lab: { select: { name: true } } } },
           payments: {
-            orderBy: { createdAt: "desc" },
+            orderBy: { paidAt: "desc" },
             take: 1,
           },
         },
       }),
       prisma.payment.findMany({
         where: {
-          createdAt: { gte: startDate },
+          status: "PAID",
+          paidAt: { gte: startDate },
           user: userCampusFilter,
         },
         include: {
@@ -298,7 +300,7 @@ export async function generateReport(
     p.amount,
     p.method ?? "",
     p.status,
-    p.createdAt.toLocaleDateString("en-GB"),
+    (p.paidAt ?? p.createdAt).toLocaleDateString("en-GB"),
   ]);
   const ws4 = XLSX.utils.aoa_to_sheet([paymentHeaders, ...paymentRows]);
   ws4["!cols"] = [
@@ -351,6 +353,43 @@ export async function generateReport(
     { wch: 10 },
   ];
   XLSX.utils.book_append_sheet(wb, ws5, "Classes Overview");
+
+  if (type === "weekly") {
+    const tasks = await prisma.task.findMany({
+      where: {
+        campusId: campusId ?? undefined,
+        createdAt: { gte: startDate },
+      },
+      include: {
+        assignee: { select: { firstName: true, lastName: true, role: true } },
+        createdBy: { select: { firstName: true, lastName: true } },
+      },
+    });
+    const taskHeaders = [
+      "Title",
+      "Priority",
+      "Assigned To",
+      "Role",
+      "Status",
+      "Due Date",
+      "Completed",
+      "Note",
+    ];
+    const taskRows = tasks.map((t) => [
+      t.title,
+      t.priority,
+      t.assignee
+        ? `${t.assignee.firstName} ${t.assignee.lastName}`
+        : "Unassigned",
+      t.assignee?.role ?? "",
+      t.status,
+      t.dueDate ? new Date(t.dueDate).toLocaleDateString("en-GB") : "",
+      t.completedAt ? new Date(t.completedAt).toLocaleDateString("en-GB") : "",
+      t.completedNote ?? "",
+    ]);
+    const taskSheet = XLSX.utils.aoa_to_sheet([taskHeaders, ...taskRows]);
+    XLSX.utils.book_append_sheet(wb, taskSheet, "Tasks");
+  }
 
   const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 

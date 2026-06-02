@@ -46,7 +46,9 @@ export default async function AdminPage() {
     totalStudents,
     activeEnrollments,
     activeCourses,
+    revenue,
     monthlyRevenue,
+    totalRemaining,
     payments,
     newStudents,
     weeklyEnrollments,
@@ -67,16 +69,30 @@ export default async function AdminPage() {
     prisma.payment.aggregate({
       where: {
         status: "PAID",
-        paidAt: { gte: firstDay },
-        ...(campusId ? { enrollment: { course: { campusId } } } : {}),
+        user: campusId ? { campusId } : undefined,
       },
       _sum: { amount: true },
+    }),
+    prisma.payment.aggregate({
+      where: {
+        status: "PAID",
+        paidAt: { gte: firstDay },
+        user: campusId ? { campusId } : undefined,
+      },
+      _sum: { amount: true },
+    }),
+    prisma.paymentRemaining.aggregate({
+      where: {
+        status: { not: "PAID" },
+        enrollment: { class: campusId ? { campusId } : undefined },
+      },
+      _sum: { remainingAmount: true },
     }),
     prisma.payment.findMany({
       where: {
         status: "PAID",
         paidAt: { gte: chartStart },
-        ...(campusId ? { enrollment: { course: { campusId } } } : {}),
+        user: campusId ? { campusId } : undefined,
       },
       select: { amount: true, paidAt: true },
     }),
@@ -149,7 +165,9 @@ export default async function AdminPage() {
     (item) => item.createdAt,
     () => 1,
   );
+  const totalRevenue = revenue._sum.amount ?? 0;
   const totalMonthlyRevenue = monthlyRevenue._sum.amount ?? 0;
+  const outstandingRemaining = totalRemaining._sum.remainingAmount ?? 0;
 
   return (
     <div className="space-y-6">
@@ -205,7 +223,7 @@ export default async function AdminPage() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard
           title="Total Students"
           value={totalStudents}
@@ -225,10 +243,22 @@ export default async function AdminPage() {
           color="purple"
         />
         <KpiCard
+          title="Total Revenue"
+          value={`ETB ${totalRevenue.toLocaleString()}`}
+          icon={CreditCard}
+          color="amber"
+        />
+        <KpiCard
           title="Monthly Revenue"
           value={`ETB ${totalMonthlyRevenue.toLocaleString()}`}
           icon={CreditCard}
           color="amber"
+        />
+        <KpiCard
+          title="Outstanding"
+          value={`ETB ${outstandingRemaining.toLocaleString()}`}
+          icon={CreditCard}
+          color="purple"
         />
       </div>
 
