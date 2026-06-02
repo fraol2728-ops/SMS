@@ -4,9 +4,9 @@ import Link from "next/link";
 export default function UnauthorizedPage({
   searchParams,
 }: {
-  searchParams: { reason?: string };
+  searchParams?: { reason?: string };
 }) {
-  const isNoRole = searchParams.reason === "no-role";
+  const isNoRole = searchParams?.reason === "no-role";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gray-50">
