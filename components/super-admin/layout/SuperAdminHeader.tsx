@@ -1,101 +1,84 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { UserButton } from "@clerk/nextjs";
+import { Bell, Menu } from "lucide-react";
 
-type Campus = {
-  id: string;
-  name: string;
+type Campus = { id: string; name: string; color: string };
+type Admin = { firstName: string; lastName: string };
+
+const CAMPUS_COLORS: Record<string, string> = {
+  blue: "text-blue-600",
+  green: "text-green-600",
+  purple: "text-purple-600",
+  red: "text-red-600",
+  amber: "text-amber-600",
+  rose: "text-rose-600",
+  indigo: "text-indigo-600",
+  teal: "text-teal-600",
 };
 
 export function SuperAdminHeader({
-  name,
-  campuses,
+  campus,
+  admin,
+  onMenuClick,
 }: {
-  name: string;
-  campuses: Campus[];
+  campus: Campus | undefined;
+  admin: Admin;
+  onMenuClick: () => void;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const selectedCampusId =
-    searchParams.get("campusId") ?? campuses[0]?.id ?? "all";
-
-  const selectedCampus =
-    selectedCampusId === "all"
-      ? { id: "all", name: "All Campuses" }
-      : campuses.find((campus) => campus.id === selectedCampusId) ?? {
-          id: "all",
-          name: "All Campuses",
-        };
-
-  function selectCampus(campusId: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (campusId === "all") params.delete("campusId");
-    else params.set("campusId", campusId);
-    const query = params.toString();
-    setMenuOpen(false);
-    router.push(query ? `${pathname}?${query}` : pathname);
-  }
+  const now = new Date();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 px-4 py-2 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 sm:px-6">
-      <div className="flex h-16 items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => document.getElementById("super-sidebar-toggle")?.click()}
-            className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
-            type="button"
-          >
-            ☰
-          </button>
+    <header className="sticky top-0 z-20 flex h-16 flex-shrink-0 items-center justify-between border-gray-200 border-b bg-white px-4 dark:border-gray-700 dark:bg-gray-900 sm:px-6">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onMenuClick}
+          className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
+          type="button"
+        >
+          <Menu size={20} className="text-gray-600 dark:text-gray-300" />
+        </button>
 
-          <div className="relative">
-            <button
-              onClick={() => setMenuOpen((open) => !open)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-600"
-              type="button"
+        <div>
+          <div className="flex items-center gap-2">
+            <h2
+              className={`font-bold text-sm sm:text-base ${CAMPUS_COLORS[campus?.color ?? "blue"] ?? "text-blue-600"}`}
             >
-              <span>{selectedCampus.name}</span>
-              <ChevronDown size={16} className="text-slate-500" />
-            </button>
+              {campus?.name ?? "Super Admin"}
+            </h2>
+            <span className="hidden rounded-full bg-gray-100 px-2 py-0.5 text-gray-400 text-xs dark:bg-gray-800 sm:inline">
+              Super Admin View
+            </span>
+          </div>
+          <p className="mt-0.5 hidden text-gray-400 text-xs sm:block">
+            {now.toLocaleDateString("en-GB", {
+              weekday: "long",
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+      </div>
 
-            {menuOpen && campuses.length > 0 && (
-              <div className="absolute left-0 top-full z-40 mt-2 w-72 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
-                <button
-                  type="button"
-                  onClick={() => selectCampus("all")}
-                  className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium transition ${
-                    selectedCampusId === "all"
-                      ? "bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-white"
-                      : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-900"
-                  }`}
-                >
-                  <span>All Campuses</span>
-                </button>
-                {campuses.map((campus) => (
-                  <button
-                    key={campus.id}
-                    type="button"
-                    onClick={() => selectCampus(campus.id)}
-                    className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium transition ${
-                      selectedCampusId === campus.id
-                        ? "bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-white"
-                        : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-900"
-                    }`}
-                  >
-                    <span>{campus.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <button
+          className="relative rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+          type="button"
+        >
+          <Bell size={20} className="text-gray-600 dark:text-gray-300" />
+        </button>
+        <div className="hidden items-center gap-2 sm:flex">
+          <div className="text-right">
+            <p className="font-medium text-gray-900 text-sm leading-none dark:text-white">
+              {admin.firstName} {admin.lastName}
+            </p>
+            <p className="mt-0.5 text-purple-600 text-xs dark:text-purple-400">
+              Super Admin
+            </p>
           </div>
         </div>
-
-        <div className="ml-auto text-sm text-slate-500 dark:text-slate-400">{name}</div>
+        <UserButton />
       </div>
     </header>
   );
