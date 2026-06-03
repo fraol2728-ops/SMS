@@ -29,7 +29,7 @@ export function SuperAdminHeader({
   const now = new Date();
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 flex-shrink-0 items-center justify-between border-gray-200 border-b bg-white px-4 dark:border-gray-700 dark:bg-gray-900 sm:px-6">
+    <header className="sticky top-14 z-20 flex h-16 flex-shrink-0 items-center justify-between border-gray-200 border-b bg-white px-4 dark:border-gray-700 dark:bg-gray-900 sm:px-6 lg:top-0">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}

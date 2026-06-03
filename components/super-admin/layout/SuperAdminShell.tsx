@@ -72,14 +72,14 @@ export function SuperAdminShell({
       {sidebarOpen ? (
         <button
           aria-label="Close sidebar"
-          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
+          className="fixed top-14 right-0 bottom-0 left-0 z-30 bg-black/60 lg:inset-0 lg:hidden"
           onClick={() => setSidebarOpen(false)}
           type="button"
         />
       ) : null}
 
       <div
-        className={`fixed top-0 bottom-0 left-16 z-40 w-56 transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed top-14 bottom-0 left-0 z-40 w-56 transition-transform duration-300 lg:top-0 lg:left-16 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -91,7 +91,7 @@ export function SuperAdminShell({
         />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col lg:ml-72">
+      <div className="flex min-w-0 flex-1 flex-col pt-14 lg:pt-0 lg:ml-72">
         <SuperAdminHeader
           campus={selectedCampus}
           admin={admin}
