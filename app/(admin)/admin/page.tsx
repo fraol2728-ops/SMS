@@ -1,5 +1,8 @@
+import { auth } from "@clerk/nextjs/server";
 import { BookOpen, CreditCard, GraduationCap, Users } from "lucide-react";
-import Link from "next/link";
+import { ActivityTableCard } from "@/components/admin/dashboard/ActivityTableCard";
+import { DashboardHero } from "@/components/admin/dashboard/DashboardHero";
+import { PaymentAlerts } from "@/components/admin/dashboard/PaymentAlerts";
 import { KpiCard } from "@/components/admin/shared/KpiCard";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { TrendChart } from "@/components/admin/shared/TrendChart";
@@ -29,8 +32,25 @@ type RecentPayment = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  const { userId } = await auth();
   await requireAdmin();
   const campusId = await getCurrentUserCampusId();
+  const adminUser = userId
+    ? await prisma.user.findUnique({
+        where: { clerkId: userId },
+        select: {
+          firstName: true,
+          lastName: true,
+          campus: { select: { name: true } },
+        },
+      })
+    : null;
+  const dateLabel = new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
   const campusCourseWhere = campusId ? { course: { campusId } } : {};
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -169,289 +189,266 @@ export default async function AdminPage() {
   const totalMonthlyRevenue = monthlyRevenue._sum.amount ?? 0;
   const outstandingRemaining = totalRemaining._sum.remainingAmount ?? 0;
 
+  const adminName = adminUser
+    ? `${adminUser.firstName} ${adminUser.lastName}`
+    : "Admin";
+
+  const tableHeadClass =
+    "text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground";
+  const tableRowClass =
+    "border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/30";
+
   return (
-    <div className="space-y-6">
-      {overduePayments > 0 || dueSoonPayments > 0 ? (
-        <div className="space-y-3">
-          {overduePayments > 0 ? (
-            <Link href="/admin/remaining">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-red-200 bg-red-50 p-4 transition-colors hover:bg-red-100">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
-                    <span className="font-bold text-red-600">
-                      {overduePayments}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-red-800">
-                      Overdue Payments
-                    </p>
-                    <p className="text-sm text-red-600">
-                      {overduePayments} student{overduePayments > 1 ? "s" : ""}{" "}
-                      have overdue remaining payments
-                    </p>
-                  </div>
-                </div>
-                <span className="text-sm text-red-500">View →</span>
-              </div>
-            </Link>
-          ) : null}
+    <div className="space-y-6 sm:space-y-8">
+      <DashboardHero
+        adminName={adminName}
+        campusName={adminUser?.campus?.name}
+        dateLabel={dateLabel}
+      />
 
-          {dueSoonPayments > 0 ? (
-            <Link href="/admin/remaining">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-amber-200 bg-amber-50 p-4 transition-colors hover:bg-amber-100">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
-                    <span className="font-bold text-amber-600">
-                      {dueSoonPayments}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-amber-800">
-                      Due This Week
-                    </p>
-                    <p className="text-sm text-amber-600">
-                      {dueSoonPayments} student{dueSoonPayments > 1 ? "s" : ""}{" "}
-                      have payments due within 7 days
-                    </p>
-                  </div>
-                </div>
-                <span className="text-sm text-amber-500">View →</span>
-              </div>
-            </Link>
-          ) : null}
+      <PaymentAlerts
+        overdueCount={overduePayments}
+        dueSoonCount={dueSoonPayments}
+      />
+
+      <section>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Overview
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+          <KpiCard
+            title="Total Students"
+            value={totalStudents}
+            icon={Users}
+            color="blue"
+            href="/admin/students"
+            hint="All registered students"
+          />
+          <KpiCard
+            title="Active Enrollments"
+            value={activeEnrollments}
+            icon={BookOpen}
+            color="green"
+            hint="Currently in progress"
+          />
+          <KpiCard
+            title="Active Courses"
+            value={activeCourses}
+            icon={GraduationCap}
+            color="purple"
+            href="/admin/courses"
+          />
+          <KpiCard
+            title="Total Revenue"
+            value={`ETB ${totalRevenue.toLocaleString()}`}
+            icon={CreditCard}
+            color="amber"
+            href="/admin/payments"
+          />
+          <KpiCard
+            title="Monthly Revenue"
+            value={`ETB ${totalMonthlyRevenue.toLocaleString()}`}
+            icon={CreditCard}
+            color="amber"
+            hint="Paid this month"
+          />
+          <KpiCard
+            title="Outstanding"
+            value={`ETB ${outstandingRemaining.toLocaleString()}`}
+            icon={CreditCard}
+            color="rose"
+            href="/admin/remaining"
+            hint="Remaining balances"
+          />
         </div>
-      ) : null}
+      </section>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <KpiCard
-          title="Total Students"
-          value={totalStudents}
-          icon={Users}
-          color="blue"
-        />
-        <KpiCard
-          title="Active Enrollments"
-          value={activeEnrollments}
-          icon={BookOpen}
-          color="green"
-        />
-        <KpiCard
-          title="Active Courses"
-          value={activeCourses}
-          icon={GraduationCap}
-          color="purple"
-        />
-        <KpiCard
-          title="Total Revenue"
-          value={`ETB ${totalRevenue.toLocaleString()}`}
-          icon={CreditCard}
-          color="amber"
-        />
-        <KpiCard
-          title="Monthly Revenue"
-          value={`ETB ${totalMonthlyRevenue.toLocaleString()}`}
-          icon={CreditCard}
-          color="amber"
-        />
-        <KpiCard
-          title="Outstanding"
-          value={`ETB ${outstandingRemaining.toLocaleString()}`}
-          icon={CreditCard}
-          color="purple"
-        />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <TrendChart
-          title="Monthly revenue"
-          subtitle="30-day payment trend"
-          value={`ETB ${totalMonthlyRevenue.toLocaleString()}`}
-          data={revenueSeries}
-          accent="#0284c7"
-        />
-        <TrendChart
-          title="New students per day"
-          subtitle="Registrations over the last 30 days"
-          value={newStudents.length}
-          data={registrationSeries}
-          accent="#9333ea"
-        />
-      </div>
+      <section>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Trends
+        </p>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <TrendChart
+            title="Monthly revenue"
+            subtitle="30-day payment trend"
+            value={`ETB ${totalMonthlyRevenue.toLocaleString()}`}
+            data={revenueSeries}
+            accent="#0ea5e9"
+          />
+          <TrendChart
+            title="New students per day"
+            subtitle="Registrations over the last 30 days"
+            value={newStudents.length}
+            data={registrationSeries}
+            accent="#8b5cf6"
+          />
+        </div>
+      </section>
 
       <section className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Weekly activity
             </p>
-            <h2 className="text-2xl font-semibold">
-              Recent enrollments this week
+            <h2 className="text-xl font-bold text-foreground sm:text-2xl">
+              Enrollments this week
             </h2>
           </div>
-          <div className="rounded-3xl bg-slate-950/5 px-4 py-3 text-sm font-semibold text-slate-900">
-            {weeklyEnrollments.length} enrollments in the last 7 days
+          <div className="w-fit rounded-2xl border border-border/60 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary">
+            {weeklyEnrollments.length} new in 7 days
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-          <div className="overflow-hidden rounded-3xl border bg-white shadow-sm">
-            <div className="border-b bg-slate-50 px-4 py-5 sm:px-6">
-              <p className="font-semibold">Latest weekly enrollments</p>
-              <p className="text-sm text-muted-foreground">
-                Showing the most recent 12 enrollments.
-              </p>
-            </div>
-            <div className="overflow-x-auto">
+        <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
+          <ActivityTableCard
+            title="Latest weekly enrollments"
+            subtitle="Most recent sign-ups from the past 7 days"
+            badge={`${weeklyEnrollments.length} total`}
+          >
+            {weeklyEnrollments.length > 0 ? (
               <table className="min-w-full text-sm">
-                <thead className="bg-slate-100 text-left text-xs uppercase tracking-[0.16em] text-slate-600">
+                <thead className={tableHeadClass}>
                   <tr>
-                    <th className="px-4 py-3">Student</th>
-                    <th className="px-4 py-3">Course</th>
-                    <th className="px-4 py-3">Date</th>
+                    <th className="pb-3 pr-4">Student</th>
+                    <th className="pb-3 pr-4">Course</th>
+                    <th className="pb-3">Date</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="text-foreground">
                   {weeklyEnrollments.map((enrollment) => (
-                    <tr
-                      key={enrollment.id}
-                      className="border-b last:border-b-0"
-                    >
-                      <td className="px-4 py-3">
+                    <tr key={enrollment.id} className={tableRowClass}>
+                      <td className="py-3 pr-4 font-medium">
                         {enrollment.student.user.firstName}{" "}
                         {enrollment.student.user.lastName}
                       </td>
-                      <td className="px-4 py-3">{enrollment.course.title}</td>
-                      <td className="px-4 py-3">
+                      <td className="py-3 pr-4 text-muted-foreground">
+                        {enrollment.course.title}
+                      </td>
+                      <td className="py-3 text-muted-foreground">
                         {enrollment.createdAt.toLocaleDateString()}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No enrollments this week yet.
+              </p>
+            )}
+          </ActivityTableCard>
 
-          <div className="space-y-4">
-            <div className="rounded-3xl border bg-slate-950/5 p-5 shadow-sm">
-              <p className="text-sm font-semibold">Enrollments by day</p>
-              <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[11px] text-slate-600">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm sm:rounded-3xl sm:p-5">
+              <p className="text-sm font-semibold text-foreground">
+                Enrollments by day
+              </p>
+              <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
                 {weeklyEnrollmentSeries.map((point) => (
                   <div
                     key={point.label}
-                    className="rounded-2xl bg-white px-2 py-3 shadow-sm"
+                    className="rounded-xl border border-border/50 bg-muted/30 px-1.5 py-2.5 text-center"
                   >
-                    <p className="font-semibold">{point.value}</p>
-                    <p>{point.label}</p>
+                    <p className="text-base font-bold text-foreground">
+                      {point.value}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      {point.label}
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="rounded-3xl border bg-slate-950/5 p-5 shadow-sm">
-              <p className="text-sm font-semibold">Top weekly metric</p>
-              <p className="mt-2 text-2xl font-semibold sm:text-3xl">
+            <div className="rounded-2xl border border-border/70 bg-gradient-to-br from-primary/10 via-card to-card p-4 shadow-sm sm:rounded-3xl sm:p-5">
+              <p className="text-sm font-semibold text-muted-foreground">
+                Weekly total
+              </p>
+              <p className="mt-2 text-3xl font-bold text-foreground">
                 {weeklyEnrollments.length}
               </p>
-              <p className="text-sm text-muted-foreground">
-                Enrollments created in the past 7 days.
+              <p className="mt-1 text-sm text-muted-foreground">
+                Enrollments created in the past 7 days
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div>
-              <h3 className="text-lg font-semibold">Recent enrollments</h3>
-              <p className="text-sm text-slate-500">
-                Latest student course activity.
-              </p>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-700">
-              {recentEnrollments.length} entries
-            </span>
-          </div>
-          <div className="overflow-x-auto px-4 py-4 sm:px-6">
-            <table className="min-w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-[0.16em] text-slate-500">
-                <tr>
-                  <th className="pb-3 pr-6">Student</th>
-                  <th className="pb-3 pr-6">Course</th>
-                  <th className="pb-3 pr-6">Start date</th>
-                  <th className="pb-3">Status</th>
+      <section className="grid gap-4 xl:grid-cols-2 xl:gap-6">
+        <ActivityTableCard
+          title="Recent enrollments"
+          subtitle="Latest student course activity"
+          badge={`${recentEnrollments.length} entries`}
+        >
+          <table className="min-w-full text-sm">
+            <thead className={tableHeadClass}>
+              <tr>
+                <th className="pb-3 pr-4">Student</th>
+                <th className="pb-3 pr-4">Course</th>
+                <th className="pb-3 pr-4">Start</th>
+                <th className="pb-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="text-foreground">
+              {(recentEnrollments as RecentEnrollment[]).map((e) => (
+                <tr key={e.id} className={tableRowClass}>
+                  <td className="py-3 pr-4 font-medium">
+                    {e.student.user.firstName} {e.student.user.lastName}
+                  </td>
+                  <td className="py-3 pr-4 text-muted-foreground">
+                    {e.course.title}
+                  </td>
+                  <td className="py-3 pr-4 text-muted-foreground">
+                    {e.startDate.toLocaleDateString()}
+                  </td>
+                  <td className="py-3">
+                    <StatusBadge status={e.status} />
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-700">
-                {(recentEnrollments as RecentEnrollment[]).map((e) => (
-                  <tr
-                    key={e.id}
-                    className="hover:bg-slate-50 transition-colors"
-                  >
-                    <td className="py-4 pr-6 font-medium text-slate-900">
-                      {e.student.user.firstName} {e.student.user.lastName}
-                    </td>
-                    <td className="py-4 pr-6">{e.course.title}</td>
-                    <td className="py-4 pr-6">
-                      {e.startDate.toLocaleDateString()}
-                    </td>
-                    <td className="py-4">
-                      <StatusBadge status={e.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              ))}
+            </tbody>
+          </table>
+        </ActivityTableCard>
 
-        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div>
-              <h3 className="text-lg font-semibold">Recent payments</h3>
-              <p className="text-sm text-slate-500">
-                Most recent student transactions.
-              </p>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-700">
-              {recentPayments.length} payments
-            </span>
-          </div>
-          <div className="overflow-x-auto px-4 py-4 sm:px-6">
-            <table className="min-w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-[0.16em] text-slate-500">
-                <tr>
-                  <th className="pb-3 pr-6">Student</th>
-                  <th className="pb-3 pr-6">Course</th>
-                  <th className="pb-3 pr-6">Amount</th>
-                  <th className="pb-3 pr-6">Method</th>
-                  <th className="pb-3">Status</th>
+        <ActivityTableCard
+          title="Recent payments"
+          subtitle="Most recent student transactions"
+          badge={`${recentPayments.length} payments`}
+        >
+          <table className="min-w-full text-sm">
+            <thead className={tableHeadClass}>
+              <tr>
+                <th className="pb-3 pr-4">Student</th>
+                <th className="pb-3 pr-4">Course</th>
+                <th className="pb-3 pr-4">Amount</th>
+                <th className="pb-3 pr-4 hidden sm:table-cell">Method</th>
+                <th className="pb-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="text-foreground">
+              {(recentPayments as RecentPayment[]).map((p) => (
+                <tr key={p.id} className={tableRowClass}>
+                  <td className="py-3 pr-4 font-medium">
+                    {p.user.firstName} {p.user.lastName}
+                  </td>
+                  <td className="py-3 pr-4 text-muted-foreground">
+                    {p.enrollment.course.title}
+                  </td>
+                  <td className="py-3 pr-4 font-medium">
+                    ETB {p.amount.toLocaleString()}
+                  </td>
+                  <td className="hidden py-3 pr-4 text-muted-foreground sm:table-cell">
+                    {p.method ?? "-"}
+                  </td>
+                  <td className="py-3">
+                    <StatusBadge status={p.status} />
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-700">
-                {(recentPayments as RecentPayment[]).map((p) => (
-                  <tr
-                    key={p.id}
-                    className="hover:bg-slate-50 transition-colors"
-                  >
-                    <td className="py-4 pr-6 font-medium text-slate-900">
-                      {p.user.firstName} {p.user.lastName}
-                    </td>
-                    <td className="py-4 pr-6">{p.enrollment.course.title}</td>
-                    <td className="py-4 pr-6">
-                      ETB {p.amount.toLocaleString()}
-                    </td>
-                    <td className="py-4 pr-6">{p.method ?? "-"}</td>
-                    <td className="py-4">
-                      <StatusBadge status={p.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              ))}
+            </tbody>
+          </table>
+        </ActivityTableCard>
       </section>
     </div>
   );
