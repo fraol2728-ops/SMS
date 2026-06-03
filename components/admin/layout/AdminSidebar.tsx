@@ -30,6 +30,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ExceedLogo } from "@/components/brand/ExceedLogo";
 
 const NAV_LINKS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -159,19 +160,11 @@ export function AdminSidebar({
       <div
         className={`flex flex-shrink-0 items-center justify-between border-b p-5 ${colors.header}`}
       >
-        <div className="flex items-center gap-3">
-          <div
-            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${colors.logo}`}
-          >
-            <span className="text-sm font-bold text-white">E</span>
-          </div>
-          <div>
-            <h1 className="font-bold leading-none text-white">Exceed</h1>
-            <p className="mt-0.5 text-xs text-white opacity-60">
-              {user.campus?.name ?? "Admin"} Portal
-            </p>
-          </div>
-        </div>
+        <ExceedLogo
+          subtitle={`${user.campus?.name ?? "Admin"} Portal`}
+          subtitleClassName="text-white/60"
+          imageClassName="max-h-11 max-w-[150px]"
+        />
         <button
           className="p-1 text-white opacity-60 hover:opacity-100 lg:hidden"
           onClick={() => setOpen(false)}

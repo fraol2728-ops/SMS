@@ -2,6 +2,7 @@
 
 import { SignIn } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
+import { ExceedLogo } from "@/components/brand/ExceedLogo";
 
 const ANIMATED_WORDS = [
   "Students",
@@ -62,14 +63,11 @@ export function HomeClient() {
 
         {/* Content */}
         <div className="relative z-10 max-w-xl">
-          {/* Logo badge */}
-          <div className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 border dark:border-gray-700 rounded-full px-4 py-2 mb-8">
-            <div className="w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-black text-xs">E</span>
-            </div>
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Exceed Training Center
-            </span>
+          <div className="mb-8">
+            <ExceedLogo
+              priority
+              imageClassName="max-h-14 max-w-[220px] sm:max-h-16 sm:max-w-[260px]"
+            />
           </div>
 
           {/* Main headline */}

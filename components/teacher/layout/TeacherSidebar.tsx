@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ExceedLogo } from "@/components/brand/ExceedLogo";
 
 const NAV_LINKS = [
   { href: "/teacher", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -63,15 +64,11 @@ export function TeacherSidebar({
     <div className="bg-gray-900 flex flex-col h-full">
       {/* Logo */}
       <div className="p-5 border-b border-gray-800 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-sm">E</span>
-          </div>
-          <div>
-            <h1 className="text-white font-bold leading-none">Exceed</h1>
-            <p className="text-gray-400 text-xs mt-0.5">Teacher Portal</p>
-          </div>
-        </div>
+        <ExceedLogo
+          subtitle="Teacher Portal"
+          subtitleClassName="text-gray-400"
+          imageClassName="max-h-11 max-w-[150px]"
+        />
         <button
           type="button"
           onClick={() => setOpen(false)}
