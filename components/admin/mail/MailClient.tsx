@@ -55,6 +55,7 @@ export function MailClient({
   );
   const [loading, setLoading] = useState(false);
   const [replyBody, setReplyBody] = useState("");
+  const [mobileView, setMobileView] = useState<"list" | "message">("list");
 
   async function handleSend(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -67,6 +68,7 @@ export function MailClient({
         toast.success("Message sent");
         setTab("sent");
         setSelectedMessage(null);
+        setMobileView("list");
         router.refresh();
         form.reset();
       } else {
@@ -127,6 +129,7 @@ export function MailClient({
     if (res.success) {
       toast.success("Message deleted");
       setSelectedMessage(null);
+      setMobileView("list");
       router.refresh();
     } else {
       toast.error(res.error);
@@ -136,13 +139,23 @@ export function MailClient({
   const messages = tab === "inbox" ? inbox : sent;
 
   return (
-    <div className="flex min-h-[400px] flex-col gap-4 lg:h-[calc(100vh-220px)] lg:flex-row">
-      <div className="flex flex-shrink-0 flex-col gap-3 lg:w-72">
+    <div
+      className="flex flex-col lg:flex-row gap-4"
+      style={{ height: "calc(100vh - 200px)" }}
+    >
+      <div
+        className={`lg:w-72 flex-shrink-0 ${
+          mobileView === "message"
+            ? "hidden lg:flex flex-col gap-3"
+            : "flex flex-col gap-3"
+        }`}
+      >
         <Button
           className="w-full gap-2"
           onClick={() => {
             setTab("compose");
             setSelectedMessage(null);
+            setMobileView("message");
           }}
         >
           <Pencil size={15} />
@@ -165,6 +178,7 @@ export function MailClient({
               onClick={() => {
                 setTab(id as "inbox" | "sent");
                 setSelectedMessage(null);
+                setMobileView("list");
               }}
               className={`flex w-full items-center justify-between border-b px-4 py-3 text-sm font-medium transition-colors last:border-b-0 dark:border-gray-700 ${
                 tab === id
@@ -203,6 +217,7 @@ export function MailClient({
                       key={msg.id}
                       onClick={() => {
                         setSelectedMessage(msg);
+                        setMobileView("message");
                         if (isUnread) void handleRead(msg.id);
                       }}
                       className={`w-full px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${
@@ -245,7 +260,20 @@ export function MailClient({
         )}
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div
+        className={`flex-1 min-w-0 ${
+          mobileView === "list" ? "hidden lg:block" : "block"
+        }`}
+      >
+        {mobileView === "message" && (
+          <button
+            type="button"
+            onClick={() => setMobileView("list")}
+            className="lg:hidden flex items-center gap-2 text-sm text-blue-600 mb-3"
+          >
+            ← Back
+          </button>
+        )}
         {tab === "compose" && (
           <div className="h-full rounded-xl border bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
             <h2 className="mb-5 font-semibold dark:text-white">New Message</h2>

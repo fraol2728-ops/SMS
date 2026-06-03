@@ -2,7 +2,6 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { TeacherHeader } from "@/components/teacher/layout/TeacherHeader";
 import { TeacherSidebar } from "@/components/teacher/layout/TeacherSidebar";
-import { requireTeacher } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
 
 export default async function TeacherLayout({
@@ -10,7 +9,6 @@ export default async function TeacherLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireTeacher();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
@@ -25,7 +23,13 @@ export default async function TeacherLayout({
         include: {
           classes: {
             where: { isActive: true, status: "STARTED" },
-            include: { course: true, lab: true },
+            include: {
+              course: true,
+              lab: true,
+              _count: {
+                select: { enrollments: { where: { status: "ACTIVE" } } },
+              },
+            },
           },
         },
       },
@@ -35,14 +39,14 @@ export default async function TeacherLayout({
   if (!dbUser) redirect("/unauthorized");
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
       <TeacherSidebar
         teacher={dbUser}
         classes={dbUser.teacherProfile?.classes ?? []}
       />
-      <div className="ml-64 flex flex-1 flex-col">
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         <TeacherHeader teacher={dbUser} />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

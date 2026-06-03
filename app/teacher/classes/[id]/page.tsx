@@ -64,9 +64,9 @@ export default async function TeacherClassDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-bold text-2xl text-gray-900">
+          <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
             {classRecord.course.title}
           </h1>
           <p className="mt-1 text-gray-500">
@@ -97,15 +97,18 @@ export default async function TeacherClassDetailPage({
           { label: "Time", value: timeLabel, icon: Clock },
           { label: "Days", value: daysLabel, icon: Calendar },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-xl border bg-white p-4">
+          <div
+            key={label}
+            className="rounded-xl border bg-white p-4 dark:border-gray-700 dark:bg-gray-900"
+          >
             <p className="mb-1 text-gray-400 text-xs">{label}</p>
-            <p className="font-bold text-gray-900">{value}</p>
+            <p className="font-bold text-gray-900 dark:text-white">{value}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-xl border bg-white p-6">
-        <h2 className="mb-5 font-semibold text-gray-900">
+      <div className="overflow-hidden rounded-xl border bg-white dark:border-gray-700 dark:bg-gray-900">
+        <h2 className="p-4 sm:p-6 pb-3 font-semibold text-gray-900 dark:text-white">
           Enrolled Students ({classRecord.enrollments.length})
         </h2>
 
@@ -115,89 +118,127 @@ export default async function TeacherClassDetailPage({
             <p className="text-gray-400">No students enrolled yet</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  {[
-                    "#",
-                    "Student",
-                    "Code",
-                    "Phone",
-                    "Gender",
-                    "Start Date",
-                    "Actions",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="px-3 py-3 text-left font-medium text-gray-400 text-xs"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {classRecord.enrollments.map(
-                  (enrollment: any, index: number) => {
-                    const user = enrollment.student.user;
-                    return (
-                      <tr
-                        key={enrollment.id}
-                        className="border-b hover:bg-gray-50"
+          <>
+            <div className="md:hidden divide-y dark:divide-gray-700">
+              {classRecord.enrollments.map((enrollment: any, index: number) => {
+                const user = enrollment.student.user;
+                return (
+                  <div
+                    key={enrollment.id}
+                    className="p-4 flex items-center gap-3"
+                  >
+                    <span className="text-xs text-gray-400 w-5">
+                      {index + 1}
+                    </span>
+                    <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-xs flex-shrink-0">
+                      {user.firstName[0]}
+                      {user.lastName[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium dark:text-white truncate">
+                        {user.firstName} {user.lastName}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {enrollment.student.studentCode}
+                      </p>
+                    </div>
+                    <Link href={`/teacher/students/${user.id}`}>
+                      <button
+                        type="button"
+                        className="text-xs text-blue-600 font-medium"
                       >
-                        <td className="px-3 py-3 text-gray-400 text-xs">
-                          {index + 1}
-                        </td>
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 text-xs">
-                              {user.firstName[0]}
-                              {user.lastName[0]}
+                        View
+                      </button>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b dark:border-gray-700">
+                    {[
+                      "#",
+                      "Student",
+                      "Code",
+                      "Phone",
+                      "Gender",
+                      "Start Date",
+                      "Actions",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="px-3 py-3 text-left font-medium text-gray-400 text-xs"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {classRecord.enrollments.map(
+                    (enrollment: any, index: number) => {
+                      const user = enrollment.student.user;
+                      return (
+                        <tr
+                          key={enrollment.id}
+                          className="border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                        >
+                          <td className="px-3 py-3 text-gray-400 text-xs">
+                            {index + 1}
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 text-xs">
+                                {user.firstName[0]}
+                                {user.lastName[0]}
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900 dark:text-white">
+                                  {user.firstName} {user.lastName}
+                                </p>
+                                <p className="text-gray-400 text-xs">
+                                  {user.email.includes("@exceed.local")
+                                    ? ""
+                                    : user.email}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-900">
-                                {user.firstName} {user.lastName}
-                              </p>
-                              <p className="text-gray-400 text-xs">
-                                {user.email.includes("@exceed.local")
-                                  ? ""
-                                  : user.email}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="rounded bg-gray-100 px-2 py-1 font-mono text-xs">
-                            {enrollment.student.studentCode}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-gray-500">
-                          {user.phone ?? "—"}
-                        </td>
-                        <td className="px-3 py-3 text-gray-500">
-                          {user.gender ?? "—"}
-                        </td>
-                        <td className="px-3 py-3 text-gray-500">
-                          {enrollment.startDate.toLocaleDateString("en-GB")}
-                        </td>
-                        <td className="px-3 py-3">
-                          <Link href={`/teacher/students/${user.id}`}>
-                            <button
-                              type="button"
-                              className="font-medium text-blue-600 text-xs hover:text-blue-800"
-                            >
-                              View
-                            </button>
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
-              </tbody>
-            </table>
-          </div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className="rounded bg-gray-100 px-2 py-1 font-mono text-xs dark:bg-gray-800 dark:text-gray-300">
+                              {enrollment.student.studentCode}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-gray-500">
+                            {user.phone ?? "—"}
+                          </td>
+                          <td className="px-3 py-3 text-gray-500">
+                            {user.gender ?? "—"}
+                          </td>
+                          <td className="px-3 py-3 text-gray-500">
+                            {enrollment.startDate.toLocaleDateString("en-GB")}
+                          </td>
+                          <td className="px-3 py-3">
+                            <Link href={`/teacher/students/${user.id}`}>
+                              <button
+                                type="button"
+                                className="font-medium text-blue-600 text-xs hover:text-blue-800"
+                              >
+                                View
+                              </button>
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>
