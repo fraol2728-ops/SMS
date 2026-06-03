@@ -43,7 +43,7 @@ export default async function SuperAdminStudentsPage({
           {students.map((student) => (
             <Link
               key={student.id}
-              href={`/admin/students/${student.userId}?campusId=${campusId ?? ""}`}
+              href={`/super-admin/students/${student.userId}?campusId=${campusId ?? ""}`}
             >
               <div className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
                 <div className="flex items-center gap-3">
@@ -95,7 +95,7 @@ export default async function SuperAdminStudentsPage({
                       {student.user.lastName[0]}
                     </div>
                     <Link
-                      href={`/admin/students/${student.userId}?campusId=${campusId ?? ""}`}
+                      href={`/super-admin/students/${student.userId}?campusId=${campusId ?? ""}`}
                     >
                       <p className="font-medium hover:text-blue-600 dark:text-white">
                         {student.user.firstName} {student.user.lastName}

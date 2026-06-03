@@ -50,7 +50,9 @@ export default async function SuperAdminCoursesPage({
             label: "Actions",
             render: (r) => (
               <Button asChild size="sm" variant="outline">
-                <Link href={`/admin/courses/${r.id}`}>View</Link>
+                <Link href={`/super-admin/courses?campusId=${r.campusId}`}>
+                  View
+                </Link>
               </Button>
             ),
           },

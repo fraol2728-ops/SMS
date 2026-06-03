@@ -48,7 +48,7 @@ export default async function SuperAdminClassesPage({
         title="Classes"
         action={{
           label: "New Class",
-          href: `/admin/classes/new?campusId=${campusId ?? ""}`,
+          href: `/super-admin/classes/new?campusId=${campusId ?? ""}`,
         }}
       />
       <div className="flex flex-wrap gap-2">
@@ -78,7 +78,7 @@ export default async function SuperAdminClassesPage({
         {classes.map((klass) => (
           <Link
             key={klass.id}
-            href={`/admin/classes/${klass.id}?campusId=${campusId ?? ""}`}
+            href={`/super-admin/classes/${klass.id}?campusId=${campusId ?? ""}`}
           >
             <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
               <div className="flex items-start justify-between">
@@ -164,7 +164,7 @@ export default async function SuperAdminClassesPage({
                 </td>
                 <td className="px-4 py-3">
                   <Link
-                    href={`/admin/classes/${klass.id}?campusId=${campusId ?? ""}`}
+                    href={`/super-admin/classes/${klass.id}?campusId=${campusId ?? ""}`}
                   >
                     <button
                       className="font-medium text-blue-600 text-xs hover:text-blue-800"

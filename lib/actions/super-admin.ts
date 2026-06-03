@@ -107,3 +107,30 @@ export async function moveCampus(studentId: string, newCampusId: string) {
     return err(e instanceof Error ? e.message : "Failed to move student");
   }
 }
+
+export async function updateCampus(id: string, formData: FormData) {
+  try {
+    const name = formData.get("name") as string;
+    const location = formData.get("location") as string;
+    const color = formData.get("color") as string;
+    const isActive = formData.get("isActive") === "true";
+
+    if (!name?.trim()) return err("Campus name is required");
+
+    await prisma.campus.update({
+      where: { id },
+      data: {
+        name: name.trim(),
+        location: location?.trim() || null,
+        color: color || "blue",
+        isActive,
+      },
+    });
+
+    revalidatePath("/super-admin/campuses");
+    revalidatePath(`/super-admin/campuses/${id}/edit`);
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update campus");
+  }
+}
