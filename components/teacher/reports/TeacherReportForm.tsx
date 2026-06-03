@@ -48,10 +48,12 @@ export function TeacherReportForm({ students }: { students: Student[] }) {
   }
 
   return (
-    <div className="rounded-xl border bg-white p-6">
+    <div className="rounded-xl border bg-white p-4 sm:p-6 dark:border-gray-700 dark:bg-gray-900">
       <div className="mb-5 flex items-center gap-2">
         <FileText size={20} className="text-blue-600" />
-        <h2 className="font-semibold text-gray-900">Send New Report</h2>
+        <h2 className="font-semibold text-gray-900 dark:text-white">
+          Send New Report
+        </h2>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4">
@@ -61,7 +63,7 @@ export function TeacherReportForm({ students }: { students: Student[] }) {
             name="reportType"
             value={reportType}
             onChange={(e) => setReportType(e.target.value)}
-            className="h-10 w-full rounded-lg border bg-gray-50 px-3 text-sm"
+            className="h-10 w-full rounded-lg border bg-gray-50 px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           >
             {REPORT_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -77,7 +79,7 @@ export function TeacherReportForm({ students }: { students: Student[] }) {
             name="studentId"
             value={selectedStudent}
             onChange={(e) => setSelectedStudent(e.target.value)}
-            className="h-10 w-full rounded-lg border bg-gray-50 px-3 text-sm"
+            className="h-10 w-full rounded-lg border bg-gray-50 px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           >
             <option value="">General report (not student-specific)</option>
             {students.map((s) => (
