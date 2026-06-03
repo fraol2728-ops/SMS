@@ -1,21 +1,31 @@
 "use client";
 
 import { MessageCircle, Phone, Send } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ContactButtonsProps {
   phone?: string | null;
   telegram?: string | null;
   whatsapp?: string | null;
   showTelegramWhatsapp?: boolean;
+  className?: string;
 }
+
+const contactBtnClass =
+  "flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium text-white transition-all";
 
 export function ContactButtons({
   phone,
   telegram,
   whatsapp,
   showTelegramWhatsapp = true,
+  className,
 }: ContactButtonsProps) {
   if (!phone && !telegram && !whatsapp) return null;
+
+  const showTelegram = showTelegramWhatsapp && (telegram || phone);
+  const showWhatsapp = showTelegramWhatsapp && (whatsapp || phone);
+  const count = [phone, showTelegram, showWhatsapp].filter(Boolean).length;
 
   function handleCall() {
     if (phone) window.open(`tel:${phone}`, "_self");
@@ -40,37 +50,45 @@ export function ContactButtons({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {phone && (
+    <div
+      className={cn(
+        "grid w-full gap-2",
+        count === 3 && "grid-cols-3",
+        count === 2 && "grid-cols-2",
+        count === 1 && "grid-cols-1",
+        className,
+      )}
+    >
+      {phone ? (
         <button
           onClick={handleCall}
-          className="flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-green-700"
+          className={cn(contactBtnClass, "bg-green-600 hover:bg-green-700")}
           type="button"
         >
           <Phone size={15} />
           Call
         </button>
-      )}
-      {showTelegramWhatsapp && (
-        <>
-          <button
-            onClick={handleTelegram}
-            className="flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-blue-600"
-            type="button"
-          >
-            <Send size={15} />
-            Telegram
-          </button>
-          <button
-            onClick={handleWhatsapp}
-            className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-emerald-600"
-            type="button"
-          >
-            <MessageCircle size={15} />
-            WhatsApp
-          </button>
-        </>
-      )}
+      ) : null}
+      {showTelegram ? (
+        <button
+          onClick={handleTelegram}
+          className={cn(contactBtnClass, "bg-blue-500 hover:bg-blue-600")}
+          type="button"
+        >
+          <Send size={15} />
+          Telegram
+        </button>
+      ) : null}
+      {showWhatsapp ? (
+        <button
+          onClick={handleWhatsapp}
+          className={cn(contactBtnClass, "bg-emerald-500 hover:bg-emerald-600")}
+          type="button"
+        >
+          <MessageCircle size={15} />
+          WhatsApp
+        </button>
+      ) : null}
     </div>
   );
 }

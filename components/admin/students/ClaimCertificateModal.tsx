@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { claimCertificate } from "@/lib/actions/admin";
@@ -12,12 +13,14 @@ export function ClaimCertificateModal({
   courseName,
   hasRemaining,
   remainingAmount,
+  className,
 }: {
   studentId: string;
   studentName: string;
   courseName: string;
   hasRemaining: boolean;
   remainingAmount: number;
+  className?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -45,7 +48,10 @@ export function ClaimCertificateModal({
     return (
       <Button
         onClick={() => setOpen(true)}
-        className="bg-yellow-500 hover:bg-yellow-600 text-white"
+        className={cn(
+          "h-10 w-full bg-yellow-500 text-white hover:bg-yellow-600",
+          className,
+        )}
       >
         🎓 Claim Certificate
       </Button>
