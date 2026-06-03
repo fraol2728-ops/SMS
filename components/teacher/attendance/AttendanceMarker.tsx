@@ -130,12 +130,12 @@ export function AttendanceMarker({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border bg-white p-5">
+      <div className="rounded-xl border bg-white p-4 sm:p-5 dark:border-gray-700 dark:bg-gray-900">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <label
               htmlFor="teacher-attendance-class"
-              className="font-medium text-gray-700 text-sm"
+              className="font-medium text-gray-700 text-sm dark:text-gray-300"
             >
               Select Class
             </label>
@@ -143,7 +143,7 @@ export function AttendanceMarker({
               id="teacher-attendance-class"
               value={classId}
               onChange={(e) => updateClass(e.target.value)}
-              className="h-10 w-full rounded-lg border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-10 w-full rounded-lg border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             >
               <option value="">Select a class...</option>
               {classes.map((c) => (
@@ -156,7 +156,7 @@ export function AttendanceMarker({
           <div className="space-y-1.5">
             <label
               htmlFor="teacher-attendance-date"
-              className="font-medium text-gray-700 text-sm"
+              className="font-medium text-gray-700 text-sm dark:text-gray-300"
             >
               Date
             </label>
@@ -166,7 +166,7 @@ export function AttendanceMarker({
               value={date}
               onChange={(e) => updateDate(e.target.value)}
               max={new Date().toISOString().slice(0, 10)}
-              className="h-10 w-full rounded-lg border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-10 w-full rounded-lg border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />
           </div>
         </div>
@@ -175,25 +175,25 @@ export function AttendanceMarker({
       {classId && students.length > 0 && (
         <>
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-green-100 bg-green-50 p-4 text-center">
+            <div className="rounded-xl border border-green-100 bg-green-50 p-3 sm:p-4 text-center dark:border-green-900/50 dark:bg-green-900/20">
               <p className="font-bold text-2xl text-green-700">
                 {presentCount}
               </p>
               <p className="mt-0.5 text-green-600 text-xs">Present</p>
             </div>
-            <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center">
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3 sm:p-4 text-center dark:border-red-900/50 dark:bg-red-900/20">
               <p className="font-bold text-2xl text-red-700">{absentCount}</p>
               <p className="mt-0.5 text-red-600 text-xs">Absent</p>
             </div>
-            <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 text-center">
+            <div className="rounded-xl border border-amber-100 bg-amber-50 p-3 sm:p-4 text-center dark:border-amber-900/50 dark:bg-amber-900/20">
               <p className="font-bold text-2xl text-amber-700">{lateCount}</p>
               <p className="mt-0.5 text-amber-600 text-xs">Late</p>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border bg-white">
-            <div className="flex items-center justify-between border-b bg-gray-50 px-6 py-4">
-              <h2 className="font-semibold text-gray-900">
+          <div className="overflow-hidden rounded-xl border bg-white dark:border-gray-700 dark:bg-gray-900">
+            <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-4 sm:px-6 dark:border-gray-700 dark:bg-gray-800">
+              <h2 className="font-semibold text-gray-900 dark:text-white">
                 {students.length} Students
               </h2>
               {saved && (
@@ -203,7 +203,7 @@ export function AttendanceMarker({
               )}
             </div>
 
-            <div className="divide-y">
+            <div className="divide-y dark:divide-gray-700">
               {students.map((enrollment, index) => {
                 const user = enrollment.student.user;
                 const status = attendance[enrollment.id] ?? "PRESENT";
@@ -211,15 +211,15 @@ export function AttendanceMarker({
                 return (
                   <div
                     key={enrollment.id}
-                    className={`flex items-center justify-between px-6 py-4 transition-colors ${
+                    className={`flex flex-col gap-3 px-4 py-4 transition-colors sm:flex-row sm:items-center sm:justify-between sm:px-6 ${
                       status === "ABSENT"
                         ? "bg-red-50/50"
                         : status === "LATE"
                           ? "bg-amber-50/50"
-                          : "hover:bg-gray-50"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                       <span className="w-6 text-right text-gray-400 text-sm">
                         {index + 1}
                       </span>
@@ -236,7 +236,7 @@ export function AttendanceMarker({
                         {user.lastName[0]}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-gray-900 dark:text-white">
                           {user.firstName} {user.lastName}
                         </p>
                         <p className="text-gray-400 text-xs">
@@ -245,7 +245,7 @@ export function AttendanceMarker({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                       <button
                         type="button"
                         onClick={() => setStatus(enrollment.id, "PRESENT")}
@@ -288,7 +288,7 @@ export function AttendanceMarker({
               })}
             </div>
 
-            <div className="border-t bg-gray-50 px-6 py-4">
+            <div className="border-t bg-gray-50 px-4 py-4 sm:px-6 dark:border-gray-700 dark:bg-gray-800">
               <Button
                 onClick={handleSubmit}
                 disabled={loading}
@@ -309,7 +309,7 @@ export function AttendanceMarker({
       )}
 
       {classId && students.length === 0 && (
-        <div className="rounded-xl border bg-white p-12 text-center">
+        <div className="rounded-xl border bg-white dark:border-gray-700 dark:bg-gray-900 p-12 text-center">
           <p className="text-gray-400">
             No students enrolled in this class yet.
           </p>
@@ -317,16 +317,18 @@ export function AttendanceMarker({
       )}
 
       {historyGroups.length > 0 && (
-        <div className="rounded-xl border bg-white p-6">
-          <h2 className="mb-5 font-semibold text-gray-900">Recent History</h2>
+        <div className="rounded-xl border bg-white dark:border-gray-700 dark:bg-gray-900 p-6">
+          <h2 className="mb-5 font-semibold text-gray-900 dark:text-white">
+            Recent History
+          </h2>
           <div className="space-y-3">
             {historyGroups.slice(0, 10).map((group, index) => (
               <div
                 key={`${group.date}-${index}`}
-                className="flex items-center justify-between rounded-xl bg-gray-50 p-4"
+                className="flex flex-col gap-3 rounded-xl bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:bg-gray-800"
               >
                 <div>
-                  <p className="font-medium text-gray-900">
+                  <p className="font-medium text-gray-900 dark:text-white">
                     {group.class?.course.title}
                   </p>
                   <p className="text-gray-400 text-xs">

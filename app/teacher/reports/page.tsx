@@ -66,15 +66,17 @@ export default async function TeacherReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-bold text-2xl text-gray-900">Reports</h1>
+        <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
+          Reports
+        </h1>
         <p className="mt-1 text-gray-500">Send reports to admin</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TeacherReportForm students={allStudents} />
 
-        <div className="rounded-xl border bg-white p-6">
-          <h2 className="mb-5 font-semibold text-gray-900">
+        <div className="rounded-xl border bg-white p-4 sm:p-6 dark:border-gray-700 dark:bg-gray-900">
+          <h2 className="mb-5 font-semibold text-gray-900 dark:text-white">
             Sent Reports ({teacher.sentReports.length})
           </h2>
           {teacher.sentReports.length === 0 ? (
@@ -84,9 +86,12 @@ export default async function TeacherReportsPage() {
           ) : (
             <div className="space-y-3">
               {teacher.sentReports.map((report: any) => (
-                <div key={report.id} className="rounded-xl bg-gray-50 p-4">
+                <div
+                  key={report.id}
+                  className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800"
+                >
                   <div className="mb-2 flex items-start justify-between">
-                    <p className="font-medium text-gray-900 text-sm">
+                    <p className="font-medium text-gray-900 dark:text-white text-sm">
                       {report.title}
                     </p>
                     <span
@@ -106,7 +111,7 @@ export default async function TeacherReportsPage() {
                     {new Date(report.createdAt).toLocaleDateString("en-GB")}
                   </p>
                   {report.replyContent && (
-                    <div className="mt-2 border-gray-200 border-t pt-2">
+                    <div className="mt-2 border-gray-200 border-t dark:border-gray-700 pt-2">
                       <p className="font-medium text-gray-500 text-xs">
                         Reply:
                       </p>
