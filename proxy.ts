@@ -1,3 +1,7 @@
+// IMPORTANT: Clerk Dashboard must have JWT template set to:
+// { "metadata": "{{user.public_metadata}}" }
+// Configure → Sessions → Customize session token
+
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
@@ -5,37 +9,33 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/unauthorized",
+  "/unauthorized(.*)",
   "/api/webhooks(.*)",
   "/api/cron(.*)",
+  "/api/sync-clerk-ids(.*)",
 ]);
-
-// Define which paths each role can access
-const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
-  SUPER_ADMIN: ["/super-admin", "/admin", "/api"],
-  ADMIN: ["/admin", "/api"],
-  TEACHER: ["/teacher", "/api"],
-  STUDENT: ["/student", "/api"],
-};
 
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) return NextResponse.next();
 
   const { userId, sessionClaims } = await auth();
+  const path = req.nextUrl.pathname;
 
   if (!userId) {
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
-  const metadata = sessionClaims?.metadata as
-    | {
-        role?: string;
-        campusId?: string;
-      }
-    | undefined;
-
-  const role = metadata?.role;
-  const path = req.nextUrl.pathname;
+  // Read role from multiple possible locations in sessionClaims
+  const claims = sessionClaims as {
+    metadata?: { role?: string };
+    publicMetadata?: { role?: string };
+    public_metadata?: { role?: string };
+  };
+  const role =
+    claims?.metadata?.role ||
+    claims?.publicMetadata?.role ||
+    claims?.public_metadata?.role ||
+    null;
 
   if (!role) {
     if (path === "/unauthorized") return NextResponse.next();
@@ -44,23 +44,36 @@ export default clerkMiddleware(async (auth, req) => {
     );
   }
 
-  const allowedPaths = ROLE_ALLOWED_PATHS[role] ?? [];
-  const isAllowed = allowedPaths.some((p) => path.startsWith(p));
-
-  if (!isAllowed) {
-    // Redirect each role to their home
-    const roleHome: Record<string, string> = {
-      SUPER_ADMIN: "/super-admin",
-      ADMIN: "/admin",
-      TEACHER: "/teacher",
-      STUDENT: "/student",
-    };
-    return NextResponse.redirect(
-      new URL(roleHome[role] ?? "/unauthorized", req.url),
-    );
+  // SUPER_ADMIN can access everything
+  if (role === "SUPER_ADMIN") {
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // ADMIN
+  if (role === "ADMIN") {
+    if (path.startsWith("/admin") || path.startsWith("/api")) {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL("/admin", req.url));
+  }
+
+  // TEACHER
+  if (role === "TEACHER") {
+    if (path.startsWith("/teacher") || path.startsWith("/api")) {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL("/teacher", req.url));
+  }
+
+  // STUDENT
+  if (role === "STUDENT") {
+    if (path.startsWith("/student") || path.startsWith("/api")) {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL("/student", req.url));
+  }
+
+  return NextResponse.redirect(new URL("/unauthorized", req.url));
 });
 
 export const config = {
