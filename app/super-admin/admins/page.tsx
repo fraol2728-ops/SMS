@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { prisma } from "@/lib/prisma";
 
@@ -19,9 +20,10 @@ export default async function SuperAdminAdminsPage() {
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {admins.map((admin) => (
-          <div
+          <Link
             key={admin.id}
-            className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900"
+            href={`/super-admin/admins/${admin.id}`}
+            className="block rounded-2xl border border-gray-200 bg-white p-5 transition-all hover:border-blue-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-700"
           >
             <div className="mb-4 flex items-center gap-4">
               <div
@@ -48,7 +50,7 @@ export default async function SuperAdminAdminsPage() {
               <p>📱 {admin.phone ?? "—"}</p>
               <p>🏫 {admin.campus?.name ?? "All Campuses"}</p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

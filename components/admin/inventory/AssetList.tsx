@@ -32,10 +32,14 @@ export function AssetList({
   labId,
   assetsByCategory,
   totalAssets,
+  basePath = "/admin/inventory",
+  queryString = "",
 }: {
   labId: string;
   assetsByCategory: Record<string, AssetRow[]>;
   totalAssets: number;
+  basePath?: string;
+  queryString?: string;
 }) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(Object.keys(assetsByCategory)),
@@ -58,7 +62,9 @@ export function AssetList({
           No assets recorded for this lab yet.
         </p>
         <Button asChild>
-          <Link href={`/admin/inventory/${labId}/add`}>Add first asset</Link>
+          <Link href={`${basePath}/${labId}/add${queryString}`}>
+            Add first asset
+          </Link>
         </Button>
       </div>
     );
@@ -212,7 +218,7 @@ export function AssetList({
                           <td className="px-4 py-3">
                             <Button asChild size="sm" variant="outline">
                               <Link
-                                href={`/admin/inventory/${labId}/assets/${asset.id}`}
+                                href={`${basePath}/${labId}/assets/${asset.id}${queryString}`}
                               >
                                 View
                               </Link>

@@ -21,3 +21,7 @@ export async function requireTeacher() {
 export async function requireStudent() {
   return requireRole("STUDENT");
 }
+
+export async function requireSuperAdmin() {
+  return requireRole("SUPER_ADMIN");
+}

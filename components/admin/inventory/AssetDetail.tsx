@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteAsset, updateAssetCondition, updateAssetDetails } from "@/lib/actions/inventory";
+import {
+  deleteAsset,
+  updateAssetCondition,
+  updateAssetDetails,
+} from "@/lib/actions/inventory";
 import {
   ASSET_CATEGORIES,
   ASSET_CONDITIONS,
@@ -55,9 +59,13 @@ type AssetDetailRecord = {
 export function AssetDetail({
   asset,
   labId,
+  basePath = "/admin/inventory",
+  queryString = "",
 }: {
   asset: AssetDetailRecord;
   labId: string;
+  basePath?: string;
+  queryString?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -122,7 +130,7 @@ export function AssetDetail({
       const res = await deleteAsset(asset.id);
       if (res.success) {
         toast.success("Asset deleted");
-        router.push(`/admin/inventory/${labId}`);
+        router.push(`${basePath}/${labId}${queryString}`);
       } else {
         toast.error(res.error);
       }
@@ -195,7 +203,7 @@ export function AssetDetail({
             Delete Asset
           </Button>
           <Button asChild variant="outline" size="sm">
-            <a href={`/admin/inventory/${labId}`}>← Back to lab</a>
+            <a href={`${basePath}/${labId}${queryString}`}>← Back to lab</a>
           </Button>
         </div>
       </div>
