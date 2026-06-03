@@ -13,9 +13,13 @@ import { ASSET_CATEGORIES } from "@/lib/constants";
 export function AddAssetForm({
   labId,
   labName,
+  redirectBasePath = "/admin/inventory",
+  redirectQueryString = "",
 }: {
   labId: string;
   labName: string;
+  redirectBasePath?: string;
+  redirectQueryString?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -29,7 +33,7 @@ export function AddAssetForm({
       const res = await addAsset(labId, formData);
       if (res.success) {
         toast.success("Asset added successfully");
-        router.push(`/admin/inventory/${labId}`);
+        router.push(`${redirectBasePath}/${labId}${redirectQueryString}`);
       } else {
         toast.error(res.error);
       }

@@ -33,14 +33,14 @@ export default async function SuperAdminTeachersPage({
         title="Teachers"
         action={{
           label: "Add Teacher",
-          href: `/admin/teachers/new?campusId=${campusId ?? ""}`,
+          href: `/super-admin/teachers/new?campusId=${campusId ?? ""}`,
         }}
       />
       <div className="space-y-2 md:hidden">
         {teachers.map((teacher) => (
           <Link
             key={teacher.id}
-            href={`/admin/teachers/${teacher.teacherProfile?.id ?? ""}?campusId=${campusId ?? ""}`}
+            href={`/super-admin/teachers/${teacher.teacherProfile?.id ?? ""}?campusId=${campusId ?? ""}`}
           >
             <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 font-bold text-green-700 text-sm dark:bg-green-900/30">
@@ -104,7 +104,7 @@ export default async function SuperAdminTeachersPage({
                       {teacher.lastName[0]}
                     </div>
                     <Link
-                      href={`/admin/teachers/${teacher.teacherProfile?.id ?? ""}?campusId=${campusId ?? ""}`}
+                      href={`/super-admin/teachers/${teacher.teacherProfile?.id ?? ""}?campusId=${campusId ?? ""}`}
                     >
                       <p className="font-medium hover:text-blue-600 dark:text-white">
                         {teacher.firstName} {teacher.lastName}

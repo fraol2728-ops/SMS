@@ -28,8 +28,10 @@ type DefaultTeacherValues = {
 
 export function TeacherForm({
   defaultValues,
+  redirectBasePath = "/admin/teachers",
 }: {
   defaultValues?: DefaultTeacherValues;
+  redirectBasePath?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -55,7 +57,7 @@ export function TeacherForm({
         const res = await updateTeacher(defaultValues.id, formData);
         if (res.success) {
           toast.success("Teacher updated successfully");
-          router.push(`/admin/teachers/${defaultValues.id}`);
+          router.push(`${redirectBasePath}/${defaultValues.id}`);
         } else {
           toast.error(res.error);
         }
@@ -65,7 +67,7 @@ export function TeacherForm({
           if (defaultValues?.waitlistId)
             await markWaitlistJoined(defaultValues.waitlistId);
           toast.success("Teacher added successfully");
-          router.push("/admin/teachers");
+          router.push(redirectBasePath);
         } else {
           toast.error(res.error);
         }
