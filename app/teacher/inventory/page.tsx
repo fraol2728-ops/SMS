@@ -51,27 +51,34 @@ export default async function TeacherInventoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-bold text-2xl text-gray-900">Inventory</h1>
+        <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
+          Inventory
+        </h1>
         <p className="mt-1 text-gray-500">View asset status in your labs</p>
       </div>
 
       {labs.length === 0 ? (
-        <div className="rounded-xl border bg-white p-12 text-center">
+        <div className="rounded-xl border bg-white p-8 sm:p-12 text-center dark:border-gray-700 dark:bg-gray-900">
           <Package size={32} className="mx-auto mb-2 text-gray-300" />
           <p className="text-gray-400">No labs assigned to your classes</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {labs.map((lab) => {
             const total = lab.assets.length;
             const issues = lab.assets.filter((a: any) =>
               ["DAMAGED", "MISSING", "UNDER_REPAIR"].includes(a.condition),
             ).length;
             return (
-              <div key={lab.id} className="rounded-xl border bg-white p-5">
+              <div
+                key={lab.id}
+                className="rounded-xl border bg-white p-5 dark:border-gray-700 dark:bg-gray-900"
+              >
                 <div className="mb-4 flex items-start justify-between">
                   <div>
-                    <h3 className="font-semibold text-gray-900">{lab.name}</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      {lab.name}
+                    </h3>
                     <p className="text-gray-400 text-xs">{total} assets</p>
                   </div>
                   {issues > 0 && (

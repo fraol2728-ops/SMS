@@ -64,20 +64,20 @@ export default async function TeacherStudentDetailPage({
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div className="rounded-xl border bg-white p-6">
-        <div className="flex items-center gap-5">
+      <div className="rounded-xl border bg-white p-4 sm:p-6 dark:border-gray-700 dark:bg-gray-900">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 font-bold text-2xl text-blue-700">
             {student.firstName[0]}
             {student.lastName[0]}
           </div>
           <div>
-            <h1 className="font-bold text-2xl text-gray-900">
+            <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
               {student.firstName} {student.lastName}
             </h1>
             <p className="text-gray-500">
               {student.studentProfile.studentCode}
             </p>
-            <div className="mt-2 flex items-center gap-4 text-gray-400 text-sm">
+            <div className="mt-2 flex flex-wrap items-center gap-3 sm:gap-4 text-gray-400 text-sm">
               {student.phone && <span>📱 {student.phone}</span>}
               {student.gender && <span>{student.gender}</span>}
             </div>
@@ -107,10 +107,10 @@ export default async function TeacherStudentDetailPage({
         return (
           <div
             key={enrollment.id}
-            className="space-y-5 rounded-xl border bg-white p-6"
+            className="space-y-5 rounded-xl border bg-white p-4 sm:p-6 dark:border-gray-700 dark:bg-gray-900"
           >
             <div>
-              <h2 className="font-semibold text-gray-900">
+              <h2 className="font-semibold text-gray-900 dark:text-white">
                 {enrollment.class?.course.title}
               </h2>
               <p className="text-gray-500 text-sm">
@@ -125,7 +125,7 @@ export default async function TeacherStudentDetailPage({
               </p>
             </div>
 
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 {
                   label: "Present",
@@ -152,7 +152,10 @@ export default async function TeacherStudentDetailPage({
                   bg: "bg-blue-50",
                 },
               ].map(({ label, value, color, bg }) => (
-                <div key={label} className={`${bg} rounded-xl p-3 text-center`}>
+                <div
+                  key={label}
+                  className={`${bg} rounded-xl p-3 text-center dark:bg-opacity-20`}
+                >
                   <p className={`font-bold text-xl ${color}`}>{value}</p>
                   <p className="mt-0.5 text-gray-400 text-xs">{label}</p>
                 </div>
@@ -160,7 +163,7 @@ export default async function TeacherStudentDetailPage({
             </div>
 
             <div>
-              <p className="mb-3 font-medium text-gray-700 text-sm">
+              <p className="mb-3 font-medium text-gray-700 text-sm dark:text-gray-300">
                 Recent Attendance
               </p>
               <div className="flex flex-wrap gap-2">

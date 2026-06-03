@@ -41,14 +41,16 @@ export default async function TeacherClassesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-bold text-2xl text-gray-900">My Classes</h1>
+        <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
+          My Classes
+        </h1>
         <p className="mt-1 text-gray-500">
           {classes.length} active class{classes.length !== 1 ? "es" : ""}
         </p>
       </div>
 
       {classes.length === 0 ? (
-        <div className="rounded-xl border bg-white p-12 text-center">
+        <div className="rounded-xl border bg-white p-8 sm:p-12 text-center dark:border-gray-700 dark:bg-gray-900">
           <BookOpen size={40} className="mx-auto mb-3 text-gray-300" />
           <p className="text-gray-500">No classes assigned yet.</p>
           <p className="mt-1 text-gray-400 text-sm">
@@ -56,20 +58,20 @@ export default async function TeacherClassesPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {classes.map((c: any) => {
             const fillPercent = Math.round(
               c.capacity ? (c._count.enrollments / c.capacity) * 100 : 0,
             );
             return (
               <Link key={c.id} href={`/teacher/classes/${c.id}`}>
-                <div className="cursor-pointer rounded-xl border bg-white p-5 transition-all hover:border-blue-300 hover:shadow-md">
+                <div className="cursor-pointer rounded-xl border bg-white p-5 transition-all hover:border-blue-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-600">
                   <div className="mb-4 flex items-start justify-between">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm">
                       <BookOpen size={22} className="text-white" />
                     </div>
                     <div className="text-right">
-                      <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-700 text-xs">
+                      <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-700 text-xs dark:bg-blue-900/30 dark:text-blue-300">
                         {c.lab?.name ?? "Online"}
                       </span>
                       <p className="mt-1 text-gray-400 text-xs">
@@ -78,7 +80,7 @@ export default async function TeacherClassesPage() {
                     </div>
                   </div>
 
-                  <h3 className="mb-1 font-bold text-gray-900 text-lg">
+                  <h3 className="mb-1 font-bold text-gray-900 text-lg dark:text-white">
                     {c.course.title}
                   </h3>
 
@@ -93,14 +95,14 @@ export default async function TeacherClassesPage() {
                     </div>
                   </div>
 
-                  <div className="border-t pt-4">
+                  <div className="border-t pt-4 dark:border-gray-700">
                     <div className="mb-1.5 flex justify-between text-sm">
                       <span className="text-gray-500">Students</span>
                       <span className="font-semibold">
                         {c._count.enrollments}/{c.capacity}
                       </span>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-gray-100">
+                    <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-800">
                       <div
                         className={`h-2 rounded-full transition-all ${
                           fillPercent >= 100

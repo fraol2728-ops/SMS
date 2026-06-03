@@ -10,9 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { completeTask } from "@/lib/actions/tasks";
 
 const PRIORITY_COLORS = {
-  LOW: "bg-gray-100 text-gray-600",
-  MEDIUM: "bg-blue-50 text-blue-700",
-  HIGH: "bg-red-50 text-red-700",
+  LOW: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+  MEDIUM: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  HIGH: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 export function TeacherTaskList({ tasks }: { tasks: any[] }) {
   const router = useRouter();
@@ -55,7 +55,7 @@ export function TeacherTaskList({ tasks }: { tasks: any[] }) {
             key={task.id}
             className={`bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-xl p-5 ${isCompleted ? "opacity-60" : ""} ${isOverdue ? "border-red-200" : ""}`}
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span
@@ -105,10 +105,11 @@ export function TeacherTaskList({ tasks }: { tasks: any[] }) {
               </div>
               {!isCompleted && (
                 <button
+                  type="button"
                   onClick={() =>
                     setCompletingId(isCompletingThis ? null : task.id)
                   }
-                  className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 text-sm rounded-xl font-medium"
+                  className="flex-shrink-0 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-700 text-sm rounded-xl font-medium"
                 >
                   <Check size={14} />
                   Complete
@@ -124,7 +125,7 @@ export function TeacherTaskList({ tasks }: { tasks: any[] }) {
                   rows={2}
                   placeholder="Describe what you did..."
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     onClick={() => handleComplete(task.id)}

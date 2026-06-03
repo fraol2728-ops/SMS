@@ -23,18 +23,20 @@ export default async function TeacherProfilePage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="font-bold text-2xl text-gray-900">My Profile</h1>
+        <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
+          My Profile
+        </h1>
         <p className="mt-1 text-gray-500">Your personal information</p>
       </div>
 
-      <div className="rounded-xl border bg-white p-6">
-        <div className="mb-6 flex items-center gap-5">
+      <div className="rounded-xl border bg-white p-4 sm:p-6 dark:border-gray-700 dark:bg-gray-900">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
           <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-100 font-bold text-3xl text-blue-700">
             {teacher.firstName[0]}
             {teacher.lastName[0]}
           </div>
           <div>
-            <h2 className="font-bold text-gray-900 text-xl">
+            <h2 className="font-bold text-gray-900 text-xl dark:text-white">
               {teacher.firstName} {teacher.lastName}
             </h2>
             <p className="text-gray-500">
@@ -46,7 +48,7 @@ export default async function TeacherProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {[
             {
               label: "Email",
@@ -66,15 +68,20 @@ export default async function TeacherProfilePage() {
               value: teacher.teacherProfile.teacherCode,
             },
           ].map(({ label, value }) => (
-            <div key={label} className="rounded-xl bg-gray-50 p-4">
+            <div
+              key={label}
+              className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800"
+            >
               <p className="mb-1 text-gray-400 text-xs">{label}</p>
-              <p className="font-medium text-gray-900">{value}</p>
+              <p className="font-medium text-gray-900 dark:text-white">
+                {value}
+              </p>
             </div>
           ))}
         </div>
 
         {teacher.teacherProfile.bio && (
-          <div className="mt-4 border-t pt-4">
+          <div className="mt-4 border-t pt-4 dark:border-gray-700">
             <p className="mb-2 text-gray-400 text-xs">Bio</p>
             <p className="text-gray-700 text-sm">
               {teacher.teacherProfile.bio}
