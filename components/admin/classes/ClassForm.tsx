@@ -44,11 +44,13 @@ export function ClassForm({
   teachers,
   labs,
   defaultValues,
+  redirectBasePath = "/admin/classes",
 }: {
   courses: Course[];
   teachers: Teacher[];
   labs: Lab[];
   defaultValues?: DefaultClassValues;
+  redirectBasePath?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -84,7 +86,7 @@ export function ClassForm({
         toast.success(
           isEdit ? "Class updated successfully" : "Class created successfully",
         );
-        router.push("/admin/classes");
+        router.push(redirectBasePath);
       } else {
         toast.error(res.error);
       }

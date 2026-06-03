@@ -48,6 +48,8 @@ export function StudentForm({
   classes,
   defaultValues,
   defaultPersonalValues,
+  redirectBasePath = "/admin/students",
+  classCreateHref = "/admin/classes/new",
 }: {
   classes: ClassOption[];
   defaultValues?: DefaultStudentValues;
@@ -55,6 +57,8 @@ export function StudentForm({
     DefaultStudentValues,
     "firstName" | "lastName" | "phone"
   >;
+  redirectBasePath?: string;
+  classCreateHref?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -108,7 +112,7 @@ export function StudentForm({
         const res = await updateStudent(defaultValues.id, formData);
         if (res.success) {
           toast.success("Student updated successfully");
-          router.push(`/admin/students/${defaultValues.id}`);
+          router.push(`${redirectBasePath}/${defaultValues.id}`);
         } else {
           toast.error(res.error);
         }
@@ -121,7 +125,7 @@ export function StudentForm({
         });
         if (res.success) {
           toast.success("Student registered successfully");
-          router.push("/admin/students");
+          router.push(redirectBasePath);
         } else {
           toast.error(res.error);
         }
@@ -387,7 +391,7 @@ export function StudentForm({
               {filteredClasses.length === 0 ? (
                 <p className="text-xs text-amber-600">
                   No {classType.toLowerCase()} classes created yet.
-                  <a href="/admin/classes/new" className="ml-1 underline">
+                  <a href={classCreateHref} className="ml-1 underline">
                     Create one first
                   </a>
                 </p>
