@@ -1355,3 +1355,57 @@ export async function updateWaitlist(id: string, formData: FormData) {
     return err(e instanceof Error ? e.message : "Failed to update waitlist");
   }
 }
+
+export async function sendStudentNotification(formData: FormData) {
+  try {
+    const adminId = await getCurrentAdminUserId();
+    if (!adminId) return err("Not authenticated");
+
+    const title = formData.get("title") as string;
+    const body = formData.get("body") as string;
+    const type = (formData.get("type") as string) || "INFO";
+    const target = formData.get("target") as string;
+    const campusId = await getCurrentAdminCampusId();
+
+    if (!title?.trim() || !body?.trim()) {
+      return err("Title and message are required");
+    }
+
+    let studentIds: string[] = [];
+
+    if (target === "ALL") {
+      const students = await prisma.user.findMany({
+        where: { role: "STUDENT", campusId: campusId ?? undefined },
+        select: { id: true },
+      });
+      studentIds = students.map((s) => s.id);
+    } else if (target === "CLASS" && formData.get("classId")) {
+      const classId = formData.get("classId") as string;
+      const enrollments = await prisma.enrollment.findMany({
+        where: { classId, status: "ACTIVE" },
+        include: { student: { select: { userId: true } } },
+      });
+      studentIds = enrollments.map((e) => e.student.userId);
+    }
+
+    if (studentIds.length === 0) return err("No students found");
+
+    await prisma.studentNotification.createMany({
+      data: studentIds.map((studentId) => ({
+        studentId,
+        title: title.trim(),
+        body: body.trim(),
+        type,
+        createdById: adminId,
+        campusId,
+      })),
+    });
+
+    revalidatePath("/admin/notifications");
+    revalidatePath("/student/notifications");
+    revalidatePath("/student");
+    return { success: true as const, count: studentIds.length };
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to send notification");
+  }
+}
