@@ -57,7 +57,7 @@ export default async function SuperAdminDashboard({
   const [
     totalStudents,
     totalTeachers,
-    activeClasses,
+    onRegistration,
     activeCourses,
     monthlyRevenue,
     remainingCount,
@@ -72,7 +72,11 @@ export default async function SuperAdminDashboard({
       where: { role: "TEACHER", campusId: effectiveCampusId },
     }),
     prisma.class.count({
-      where: { campusId: effectiveCampusId, status: "STARTED", isActive: true },
+      where: {
+        campusId: effectiveCampusId,
+        status: "REGISTRATION",
+        isActive: true,
+      },
     }),
     prisma.course.count({
       where: { campusId: effectiveCampusId, isActive: true },
@@ -137,12 +141,12 @@ export default async function SuperAdminDashboard({
       trend: null,
     },
     {
-      label: "Active Classes",
-      value: activeClasses,
+      label: "On Registration",
+      value: onRegistration,
       icon: Calendar,
       color: "bg-purple-50 dark:bg-purple-900/20",
       iconColor: "text-purple-600",
-      href: `/super-admin/classes?campusId=${effectiveCampusId}`,
+      href: `/super-admin/classes?campusId=${effectiveCampusId}&status=REGISTRATION`,
       trend: null,
     },
     {

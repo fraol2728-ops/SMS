@@ -9,7 +9,25 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateCOCStudent } from "@/lib/actions/coc";
 
-export function COCDetailClient({ student }: { student: any }) {
+type COCDetailStudent = {
+  id: string;
+  fullName: string;
+  gender?: string | null;
+  phone?: string | null;
+  regNo?: string | null;
+  campus?: { name: string } | null;
+  createdAt: Date | string;
+  paymentStatus: string;
+  paymentMethod?: string | null;
+  examDate?: Date | string | null;
+  result?: string | null;
+  notes?: string | null;
+  studentProfile?: {
+    user: { firstName: string; lastName: string };
+  } | null;
+};
+
+export function COCDetailClient({ student }: { student: COCDetailStudent }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(student.paymentStatus);
@@ -55,6 +73,7 @@ export function COCDetailClient({ student }: { student: any }) {
         </div>
         {student.phone && (
           <button
+            type="button"
             onClick={() => window.open(`tel:${student.phone}`, "_self")}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg"
           >

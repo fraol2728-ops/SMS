@@ -9,7 +9,29 @@ import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { deleteCOCStudent } from "@/lib/actions/coc";
 
-export function COCTable({ students }: { students: any[] }) {
+type COCStudentRow = {
+  id: string;
+  fullName: string;
+  gender?: string | null;
+  phone?: string | null;
+  regNo?: string | null;
+  paymentAmount: number;
+  paymentStatus: string;
+  paymentMethod?: string | null;
+  examDate?: Date | string | null;
+  result?: string | null;
+  notes?: string | null;
+  createdAt: Date | string;
+  addedBy?: { firstName: string; lastName: string } | null;
+};
+
+export function COCTable({
+  students,
+  basePath = "/admin/coc",
+}: {
+  students: COCStudentRow[];
+  basePath?: string;
+}) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const filtered = students.filter(
@@ -58,9 +80,9 @@ export function COCTable({ students }: { students: any[] }) {
     ws["!cols"] = headers.map(() => ({ wch: 18 }));
     XLSX.utils.book_append_sheet(wb, ws, "COC Students");
     const buffer = XLSX.write(wb, {
-      type: "array",
+      type: "array" as "buffer",
       bookType: "xlsx",
-    } as any) as unknown as ArrayBuffer;
+    }) as unknown as ArrayBuffer;
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
@@ -126,6 +148,7 @@ export function COCTable({ students }: { students: any[] }) {
                     <div className="flex items-center gap-2">
                       <span>{s.phone}</span>
                       <button
+                        type="button"
                         onClick={() => window.open(`tel:${s.phone}`, "_self")}
                         className="p-1 text-green-600 hover:bg-green-50 rounded-lg"
                       >
@@ -157,12 +180,13 @@ export function COCTable({ students }: { students: any[] }) {
                 <td className="py-3 px-4">
                   <div className="flex gap-2">
                     <Link
-                      href={`/admin/coc/${s.id}`}
+                      href={`${basePath}/${s.id}`}
                       className="text-xs text-blue-600 font-medium"
                     >
                       View
                     </Link>
                     <button
+                      type="button"
                       onClick={() => handleDelete(s.id)}
                       className="text-xs text-red-500 font-medium"
                     >
@@ -182,7 +206,7 @@ export function COCTable({ students }: { students: any[] }) {
       </div>
       <div className="md:hidden space-y-2">
         {filtered.map((s) => (
-          <Link key={s.id} href={`/admin/coc/${s.id}`}>
+          <Link key={s.id} href={`${basePath}/${s.id}`}>
             <div className="bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-xl p-4 flex justify-between">
               <div>
                 <p className="font-semibold dark:text-white">{s.fullName}</p>
