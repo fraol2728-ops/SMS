@@ -8,7 +8,26 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { deleteRequest, updateRequestStatus } from "@/lib/actions/requests";
 
-export function RequestDetailClient({ request }: { request: any }) {
+type CourseRequestDetail = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  courseName: string;
+  notes?: string | null;
+  status: string;
+  createdAt: Date | string;
+};
+
+export function RequestDetailClient({
+  request,
+  redirectTo = "/admin/requests",
+  studentCreateBasePath = "/admin/students/new",
+}: {
+  request: CourseRequestDetail;
+  redirectTo?: string;
+  studentCreateBasePath?: string;
+}) {
   const router = useRouter();
   const [status, setStatus] = useState(request.status);
   const [loading, setLoading] = useState(false);
@@ -30,10 +49,10 @@ export function RequestDetailClient({ request }: { request: any }) {
     const res = await deleteRequest(request.id);
     if (res.success) {
       toast.success("Request deleted");
-      router.push("/admin/requests");
+      router.push(redirectTo);
     }
   }
-  const regUrl = `/admin/students/new?firstName=${encodeURIComponent(request.firstName)}&lastName=${encodeURIComponent(request.lastName)}&phone=${encodeURIComponent(request.phone)}`;
+  const regUrl = `${studentCreateBasePath}?firstName=${encodeURIComponent(request.firstName)}&lastName=${encodeURIComponent(request.lastName)}&phone=${encodeURIComponent(request.phone)}`;
   return (
     <div className="bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-xl p-6">
       <div className="grid grid-cols-2 gap-4 mb-6">
@@ -63,6 +82,7 @@ export function RequestDetailClient({ request }: { request: any }) {
         </div>
       )}
       <button
+        type="button"
         onClick={() => window.open(`tel:${request.phone}`, "_self")}
         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm rounded-xl font-medium mb-6"
       >
@@ -75,6 +95,7 @@ export function RequestDetailClient({ request }: { request: any }) {
         <div className="flex flex-wrap gap-2">
           {["PENDING", "CONTACTED", "ENROLLED", "DECLINED"].map((s) => (
             <button
+              type="button"
               key={s}
               onClick={() => handleStatusUpdate(s)}
               disabled={loading || status === s}
