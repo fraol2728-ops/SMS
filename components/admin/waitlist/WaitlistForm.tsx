@@ -8,7 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { addToWaitlist, updateWaitlist } from "@/lib/actions/admin";
-export function WaitlistForm({ defaultValues }: { defaultValues?: any }) {
+export function WaitlistForm({
+  defaultValues,
+  redirectTo = "/admin/waitlist",
+}: {
+  defaultValues?: any;
+  redirectTo?: string;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<string[]>(
@@ -43,7 +49,7 @@ export function WaitlistForm({ defaultValues }: { defaultValues?: any }) {
             ? "Waiting list entry updated"
             : "Added to waiting list",
         );
-        router.push("/admin/waitlist");
+        router.push(redirectTo);
       } else toast.error(res.error);
     } finally {
       setLoading(false);
@@ -86,9 +92,12 @@ export function WaitlistForm({ defaultValues }: { defaultValues?: any }) {
           <Input
             value={courseInput}
             onChange={(e) => setCourseInput(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && (e.preventDefault(), addCourse())
-            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addCourse();
+              }
+            }}
             placeholder="Type course name and press Enter or Add"
           />
           <Button type="button" variant="outline" onClick={addCourse}>
