@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   FileText,
+  FolderOpen,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -28,6 +29,7 @@ const NAV_LINKS = [
   { href: "/teacher/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/teacher/mail", label: "Mail", icon: Mail },
   { href: "/teacher/reports", label: "Reports", icon: FileText },
+  { href: "/teacher/materials", label: "Materials", icon: FolderOpen },
   { href: "/teacher/inventory", label: "Inventory", icon: Package },
   { href: "/teacher/profile", label: "My Profile", icon: User },
 ];

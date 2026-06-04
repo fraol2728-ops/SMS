@@ -176,3 +176,82 @@ export async function sendReport(formData: FormData) {
     return err(e instanceof Error ? e.message : "Failed to send report");
   }
 }
+
+export async function addMaterial(formData: FormData) {
+  try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return err("Not authenticated");
+
+    const teacher = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true, teacherProfile: { select: { id: true } } },
+    });
+    if (!teacher?.teacherProfile) return err("Teacher not found");
+
+    const classId = formData.get("classId") as string;
+    const title = formData.get("title") as string;
+    const url = formData.get("url") as string;
+    const type = (formData.get("type") as string) || "LINK";
+    const description = formData.get("description") as string;
+
+    if (!classId || !title?.trim() || !url?.trim()) {
+      return err("Class, title, and URL are required");
+    }
+
+    const classRecord = await prisma.class.findUnique({
+      where: { id: classId },
+      select: { teacherId: true },
+    });
+
+    if (classRecord?.teacherId !== teacher.teacherProfile.id) {
+      return err("You can only add materials to your own classes");
+    }
+
+    await prisma.material.create({
+      data: {
+        classId,
+        uploadedById: teacher.id,
+        title: title.trim(),
+        url: url.trim(),
+        type: type as "LINK" | "PDF" | "VIDEO" | "DOCUMENT" | "OTHER",
+        description: description?.trim() || null,
+      },
+    });
+
+    revalidatePath("/teacher/materials");
+    revalidatePath("/student/materials");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to add material");
+  }
+}
+
+export async function deleteMaterial(materialId: string) {
+  try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return err("Not authenticated");
+
+    const teacher = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { teacherProfile: { select: { id: true } } },
+    });
+    if (!teacher?.teacherProfile) return err("Teacher not found");
+
+    const material = await prisma.material.findUnique({
+      where: { id: materialId },
+      include: { class: { select: { teacherId: true } } },
+    });
+
+    if (!material) return err("Material not found");
+    if (material.class.teacherId !== teacher.teacherProfile.id) {
+      return err("You can only delete materials from your own classes");
+    }
+
+    await prisma.material.delete({ where: { id: materialId } });
+    revalidatePath("/teacher/materials");
+    revalidatePath("/student/materials");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to delete material");
+  }
+}
