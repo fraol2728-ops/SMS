@@ -4,14 +4,24 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { removeFromWaitlist } from "@/lib/actions/admin";
-export function WaitlistDetailClient({ entry }: { entry: any }) {
+export function WaitlistDetailClient({
+  entry,
+  basePath = "/admin",
+  campusId,
+  redirectTo = "/admin/waitlist",
+}: {
+  entry: any;
+  basePath?: "/admin" | "/super-admin";
+  campusId?: string;
+  redirectTo?: string;
+}) {
   const router = useRouter();
   async function handleRemove() {
     if (!confirm("Remove this person from the waiting list?")) return;
     const res = await removeFromWaitlist(entry.id);
     if (res.success) {
       toast.success("Removed from waiting list");
-      router.push("/admin/waitlist");
+      router.push(redirectTo);
     } else toast.error(res.error);
   }
   return (
@@ -55,15 +65,17 @@ export function WaitlistDetailClient({ entry }: { entry: any }) {
         )}
         <div className="flex gap-3">
           <Link
-            href={`/admin/teachers/new?fromWaitlist=${entry.id}&firstName=${encodeURIComponent(entry.firstName)}&lastName=${encodeURIComponent(entry.lastName)}&phone=${encodeURIComponent(entry.phone)}`}
+            href={`${basePath}/teachers/new?fromWaitlist=${entry.id}&firstName=${encodeURIComponent(entry.firstName)}&lastName=${encodeURIComponent(entry.lastName)}&phone=${encodeURIComponent(entry.phone)}${campusId ? `&campusId=${campusId}` : ""}`}
           >
             <Button className="bg-green-600 hover:bg-green-700">
               ✅ Join — Add as Teacher
             </Button>
           </Link>
-          <Link href={`/admin/waitlist/${entry.id}/edit`}>
-            <Button variant="outline">Edit</Button>
-          </Link>
+          {basePath === "/admin" ? (
+            <Link href={`${basePath}/waitlist/${entry.id}/edit`}>
+              <Button variant="outline">Edit</Button>
+            </Link>
+          ) : null}
           <Button
             variant="outline"
             className="border-red-300 text-red-700 hover:bg-red-50"

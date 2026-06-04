@@ -8,7 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createManualCertificate } from "@/lib/actions/admin";
 
-export function ManualCertificateForm({ courses }: { courses: any[] }) {
+export function ManualCertificateForm({
+  courses,
+  redirectTo = "/admin/certificates",
+}: {
+  courses: any[];
+  redirectTo?: string;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("PAID");
@@ -19,7 +25,7 @@ export function ManualCertificateForm({ courses }: { courses: any[] }) {
       const res = await createManualCertificate(new FormData(e.currentTarget));
       if (res.success) {
         toast.success("Certificate added");
-        router.push("/admin/certificates");
+        router.push(redirectTo);
       } else toast.error(res.error);
     } finally {
       setLoading(false);

@@ -58,6 +58,7 @@ export default async function SuperAdminDashboard({
     totalStudents,
     totalTeachers,
     activeClasses,
+    activeCourses,
     monthlyRevenue,
     remainingCount,
     certificatesCount,
@@ -72,6 +73,9 @@ export default async function SuperAdminDashboard({
     }),
     prisma.class.count({
       where: { campusId: effectiveCampusId, status: "STARTED", isActive: true },
+    }),
+    prisma.course.count({
+      where: { campusId: effectiveCampusId, isActive: true },
     }),
     prisma.payment.aggregate({
       where: {
@@ -129,6 +133,7 @@ export default async function SuperAdminDashboard({
       icon: GraduationCap,
       color: "bg-green-50 dark:bg-green-900/20",
       iconColor: "text-green-600",
+      href: `/super-admin/teachers?campusId=${effectiveCampusId}`,
       trend: null,
     },
     {
@@ -137,6 +142,7 @@ export default async function SuperAdminDashboard({
       icon: Calendar,
       color: "bg-purple-50 dark:bg-purple-900/20",
       iconColor: "text-purple-600",
+      href: `/super-admin/classes?campusId=${effectiveCampusId}`,
       trend: null,
     },
     {
@@ -171,14 +177,16 @@ export default async function SuperAdminDashboard({
       icon: TrendingUp,
       color: "bg-teal-50 dark:bg-teal-900/20",
       iconColor: "text-teal-600",
+      href: `/super-admin/attendance?campusId=${effectiveCampusId}`,
       trend: null,
     },
     {
       label: "Active Courses",
-      value: activeClasses,
+      value: activeCourses,
       icon: BookOpen,
       color: "bg-indigo-50 dark:bg-indigo-900/20",
       iconColor: "text-indigo-600",
+      href: `/super-admin/courses?campusId=${effectiveCampusId}`,
       trend: null,
     },
   ];
