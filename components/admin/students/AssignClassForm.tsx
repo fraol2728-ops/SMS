@@ -9,9 +9,11 @@ import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 export function AssignClassForm({
   enrollmentId,
   availableClasses,
+  redirectTo = "/admin/withdrawn",
 }: {
   enrollmentId: string;
   availableClasses: any[];
+  redirectTo?: string;
 }) {
   const router = useRouter();
   const [classId, setClassId] = useState("");
@@ -27,7 +29,7 @@ export function AssignClassForm({
       const res = await assignWithdrawnStudent(enrollmentId, classId);
       if (res.success) {
         toast.success("Student assigned to class successfully");
-        router.push("/admin/withdrawn");
+        router.push(redirectTo);
       } else toast.error(res.error);
     } finally {
       setLoading(false);

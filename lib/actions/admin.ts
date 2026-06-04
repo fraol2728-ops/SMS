@@ -544,7 +544,13 @@ export async function createCourse(input: ActionInput) {
       isActive: parseBoolean(raw.isActive, true),
     });
 
-    const campusId = await getCurrentAdminCampusId();
+    const currentUser = await getCurrentUser();
+    const campusId =
+      currentUser?.role === "SUPER_ADMIN"
+        ? typeof raw.campusId === "string" && raw.campusId.trim()
+          ? raw.campusId.trim()
+          : null
+        : await getCurrentAdminCampusId();
     if (!campusId) return err("Could not determine your campus.");
 
     const createCourseWithSlug = () =>
@@ -572,6 +578,7 @@ export async function createCourse(input: ActionInput) {
     }
 
     revalidatePath("/admin/courses");
+    revalidatePath("/super-admin/courses");
     revalidatePath("/admin/students/new");
     return ok;
   } catch (e) {
@@ -603,6 +610,7 @@ export async function updateCourse(id: string, formData: FormData) {
       },
     });
     revalidatePath(`/admin/courses/${id}`);
+    revalidatePath("/super-admin/courses");
     return ok;
   } catch (e) {
     return err(e instanceof Error ? e.message : "Failed");
@@ -1109,6 +1117,7 @@ export async function assignWithdrawnStudent(
       data: { status: "RETURNED", actualReturnDate: new Date() },
     });
     revalidatePath("/admin/withdrawn");
+    revalidatePath("/super-admin/withdrawn");
     revalidatePath("/admin/students");
     return ok;
   } catch (e) {
@@ -1141,6 +1150,7 @@ export async function undropStudent(enrollmentId: string) {
       data: { status: "ACTIVE", endDate: null },
     });
     revalidatePath("/admin/dropped");
+    revalidatePath("/super-admin/dropped");
     revalidatePath("/admin/students");
     return ok;
   } catch (e) {
@@ -1169,6 +1179,7 @@ export async function addToWaitlist(formData: FormData) {
       },
     });
     revalidatePath("/admin/waitlist");
+    revalidatePath("/super-admin/waitlist");
     return ok;
   } catch (e) {
     return err(e instanceof Error ? e.message : "Failed to add to waitlist");
@@ -1179,6 +1190,7 @@ export async function removeFromWaitlist(id: string) {
   try {
     await prisma.teacherWaitlist.delete({ where: { id } });
     revalidatePath("/admin/waitlist");
+    revalidatePath("/super-admin/waitlist");
     return ok;
   } catch (e) {
     return err(e instanceof Error ? e.message : "Failed to remove");
@@ -1191,6 +1203,7 @@ export async function markWaitlistJoined(id: string) {
       data: { status: "JOINED" },
     });
     revalidatePath("/admin/waitlist");
+    revalidatePath("/super-admin/waitlist");
     return ok;
   } catch {
     return err("Failed");
@@ -1239,6 +1252,7 @@ export async function claimCertificate(
       },
     });
     revalidatePath("/admin/certificates");
+    revalidatePath("/super-admin/certificates");
     revalidatePath(`/admin/students/${studentUserId}`);
     return ok;
   } catch (e) {
@@ -1271,6 +1285,7 @@ export async function createManualCertificate(formData: FormData) {
       },
     });
     revalidatePath("/admin/certificates");
+    revalidatePath("/super-admin/certificates");
     return ok;
   } catch (e) {
     return err(e instanceof Error ? e.message : "Failed");
@@ -1283,6 +1298,7 @@ export async function markCertificateDelivered(certificateId: string) {
       data: { isDelivered: true, deliveredAt: new Date() },
     });
     revalidatePath("/admin/certificates");
+    revalidatePath("/super-admin/certificates");
     return ok;
   } catch {
     return err("Failed");
@@ -1302,6 +1318,7 @@ export async function updateCertificatePayment(
       },
     });
     revalidatePath("/admin/certificates");
+    revalidatePath("/super-admin/certificates");
     return ok;
   } catch {
     return err("Failed");

@@ -20,8 +20,12 @@ type CourseDefaults = {
 
 export function CourseForm({
   defaultValues,
+  campusId,
+  redirectTo = "/admin/courses",
 }: {
   defaultValues?: CourseDefaults;
+  campusId?: string;
+  redirectTo?: string;
 }) {
   const router = useRouter();
   const isEdit = Boolean(defaultValues);
@@ -40,11 +44,12 @@ export function CourseForm({
             fee: Number(values.fee),
             durationWeeks: Number(values.durationWeeks),
             isActive,
+            campusId,
           });
     setLoading(false);
 
     if (res.success) {
-      router.push("/admin/courses");
+      router.push(redirectTo);
       return;
     }
 
