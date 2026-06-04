@@ -9,7 +9,23 @@ const STATUS_COLORS: Record<string, string> = {
   ENROLLED: "bg-green-50 text-green-700",
   DECLINED: "bg-red-50 text-red-600",
 };
-export function RequestsClient({ requests }: { requests: any[] }) {
+type CourseRequestRow = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  courseName: string;
+  status: string;
+  createdAt: Date | string;
+};
+
+export function RequestsClient({
+  requests,
+  basePath = "/admin/requests",
+}: {
+  requests: CourseRequestRow[];
+  basePath?: string;
+}) {
   const [search, setSearch] = useState("");
   const filtered = requests.filter(
     (r) =>
@@ -36,7 +52,7 @@ export function RequestsClient({ requests }: { requests: any[] }) {
       ) : (
         <div className="space-y-3">
           {filtered.map((r) => (
-            <Link key={r.id} href={`/admin/requests/${r.id}`}>
+            <Link key={r.id} href={`${basePath}/${r.id}`}>
               <div className="bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-xl p-5 hover:border-blue-300">
                 <div className="flex items-start justify-between">
                   <div>

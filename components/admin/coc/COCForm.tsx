@@ -16,6 +16,7 @@ export function COCForm({
   defaultValues,
   studentProfileId,
   onSuccess,
+  redirectTo = "/admin/coc",
 }: {
   defaultValues?: Partial<{
     fullName: string;
@@ -25,6 +26,7 @@ export function COCForm({
   }>;
   studentProfileId?: string;
   onSuccess?: () => void;
+  redirectTo?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -39,7 +41,7 @@ export function COCForm({
         : await addCOCStudentManual(formData);
       if (res.success) {
         toast.success("Student added to COC list");
-        onSuccess ? onSuccess() : router.push("/admin/coc");
+        onSuccess ? onSuccess() : router.push(redirectTo);
       } else toast.error(res.error);
     } finally {
       setLoading(false);
