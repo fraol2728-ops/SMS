@@ -6,7 +6,9 @@ export default function UnauthorizedPage({
 }: {
   searchParams?: { reason?: string };
 }) {
-  const isNoRole = searchParams?.reason === "no-role";
+  const reason = searchParams?.reason;
+  const isNoRole = reason === "no-role";
+  const isNoProfile = reason === "no-profile";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gray-50">
@@ -26,6 +28,11 @@ export default function UnauthorizedPage({
               Please sign out and sign back in to activate your access.
             </p>
           </>
+        ) : isNoProfile ? (
+          <p className="text-gray-500 mb-6">
+            Your student account was registered but your profile is not set up
+            yet. Please contact your administrator.
+          </p>
         ) : (
           <>
             <p className="text-gray-500 mb-2">
