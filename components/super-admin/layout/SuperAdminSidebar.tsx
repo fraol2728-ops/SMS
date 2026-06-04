@@ -16,6 +16,7 @@ import {
   FileText,
   GraduationCap,
   History,
+  LayoutDashboard,
   Mail,
   MessageSquarePlus,
   Package,
@@ -30,7 +31,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const CAMPUS_NAV = [
-  { href: "", label: "Dashboard", icon: Building2, exact: true },
+  { href: "", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/students", label: "Students", icon: Users },
   { href: "/withdrawn", label: "Withdrawn", icon: UserX },
   { href: "/dropped", label: "Dropped", icon: UserMinus },
@@ -148,8 +149,16 @@ export function SuperAdminSidebar({
   }
 
   function campusHref(suffix: string) {
-    if (suffix === "") return `/super-admin?campusId=${campusId}`;
-    return `/super-admin${suffix}?campusId=${campusId}`;
+    const base = "/super-admin";
+    const query = campusId ? `?campusId=${campusId}` : "";
+    if (suffix === "") return `${base}${query}`;
+    return `${base}${suffix}${query}`;
+  }
+
+  function isActiveCampusLink(suffix: string, exact?: boolean) {
+    if (suffix === "" || exact)
+      return pathname === "/super-admin" || pathname === "/super-admin/";
+    return pathname.startsWith(`/super-admin${suffix}`);
   }
 
   return (
@@ -185,9 +194,7 @@ export function SuperAdminSidebar({
         <div className="space-y-0.5">
           {CAMPUS_NAV.map(({ href, label, icon: Icon, exact }) => {
             const fullHref = campusHref(href);
-            const active = exact
-              ? pathname === "/super-admin" || pathname === "/super-admin/"
-              : pathname.includes(`/super-admin${href}`);
+            const active = isActiveCampusLink(href, exact);
 
             return (
               <Link

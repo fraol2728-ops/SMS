@@ -9,7 +9,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { addCourseRequest } from "@/lib/actions/requests";
 
-export function RequestForm({ defaultValues }: { defaultValues?: any }) {
+export function RequestForm({
+  defaultValues,
+  redirectTo = "/admin/requests",
+}: {
+  defaultValues?: Partial<{
+    firstName: string;
+    lastName: string;
+    phone: string;
+    courseName: string;
+    notes: string;
+  }>;
+  redirectTo?: string;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -19,7 +31,7 @@ export function RequestForm({ defaultValues }: { defaultValues?: any }) {
       const res = await addCourseRequest(new FormData(e.currentTarget));
       if (res.success) {
         toast.success("Request added");
-        router.push("/admin/requests");
+        router.push(redirectTo);
       } else toast.error(res.error);
     } finally {
       setLoading(false);
