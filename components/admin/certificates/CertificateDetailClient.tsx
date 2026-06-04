@@ -8,7 +8,13 @@ import {
   markCertificateDelivered,
   updateCertificatePayment,
 } from "@/lib/actions/admin";
-export function CertificateDetailClient({ cert }: { cert: any }) {
+export function CertificateDetailClient({
+  cert,
+  redirectTo = "/admin/certificates",
+}: {
+  cert: any;
+  redirectTo?: string;
+}) {
   const router = useRouter();
   const [paymentStatus, setPaymentStatus] = useState(cert.paymentStatus);
   const [paymentMethod, setPaymentMethod] = useState(
@@ -44,14 +50,17 @@ export function CertificateDetailClient({ cert }: { cert: any }) {
       const res = await markCertificateDelivered(cert.id);
       if (res.success) {
         toast.success("Certificate marked as delivered");
-        router.push("/admin/certificates");
+        router.push(redirectTo);
       } else toast.error(res.error);
     } finally {
       setDeliverLoading(false);
     }
   }
   const user = cert.student?.user;
-  const studentName = cert.manualStudentName ?? (`${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || "Manual student");
+  const studentName =
+    cert.manualStudentName ??
+    (`${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ||
+      "Manual student");
   return (
     <div className="space-y-6">
       <div className="bg-white border rounded-xl p-6">
@@ -60,9 +69,7 @@ export function CertificateDetailClient({ cert }: { cert: any }) {
             🎓
           </div>
           <div>
-            <h2 className="text-xl font-bold">
-              {studentName}
-            </h2>
+            <h2 className="text-xl font-bold">{studentName}</h2>
             <p className="text-muted-foreground">{cert.course.title}</p>
             <p className="text-xs text-muted-foreground mt-1">
               Issued: {new Date(cert.issuedAt).toLocaleDateString("en-GB")}
