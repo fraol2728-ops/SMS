@@ -4,40 +4,30 @@ import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { prisma } from "@/lib/prisma";
 
-type ClerkUserCreatedEvent = {
-  type: "user.created";
-  data: {
-    id: string;
-    email_addresses?: Array<{ email_address?: string }>;
-    public_metadata?: {
-      role?: string;
-      campusId?: string;
-    };
-  };
+export const dynamic = "force-dynamic";
+
+type ClerkUserCreatedData = {
+  id: string;
+  email_addresses?: Array<{ email_address?: string }>;
 };
 
 type ClerkWebhookEvent = {
   type: string;
-  data: unknown;
+  data: ClerkUserCreatedData;
 };
-
-function isUserCreatedEvent(
-  evt: ClerkWebhookEvent,
-): evt is ClerkUserCreatedEvent {
-  return evt.type === "user.created";
-}
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
+    console.error("CLERK_WEBHOOK_SECRET not set");
     return NextResponse.json(
       { error: "Webhook secret not configured" },
       { status: 500 },
     );
   }
 
-  // Get headers
+  // Get svix headers
   const headerPayload = await headers();
   const svix_id = headerPayload.get("svix-id");
   const svix_timestamp = headerPayload.get("svix-timestamp");
@@ -63,55 +53,76 @@ export async function POST(req: Request) {
       "svix-timestamp": svix_timestamp,
       "svix-signature": svix_signature,
     }) as ClerkWebhookEvent;
-  } catch {
+  } catch (err) {
+    console.error("Webhook verification failed:", err);
     return NextResponse.json(
       { error: "Invalid webhook signature" },
       { status: 400 },
     );
   }
 
-  if (isUserCreatedEvent(evt)) {
-    const { id: clerkId, email_addresses, public_metadata } = evt.data;
+  const eventType = evt.type;
+  console.log(`Webhook received: ${eventType}`);
+
+  if (eventType === "user.created") {
+    const { id: clerkId, email_addresses } = evt.data;
 
     const email = email_addresses?.[0]?.email_address?.toLowerCase();
-    const role = public_metadata?.role as string | undefined;
-    const campusId = public_metadata?.campusId as string | undefined;
 
     if (!email) {
+      console.log("No email found in webhook payload");
       return NextResponse.json({ received: true });
     }
 
+    console.log(`Processing new user: ${email}`);
+
     try {
-      // Find user in DB by email (was created when admin registered them)
-      const existingUser = await prisma.user.findUnique({
+      // Find user in our DB by email
+      const dbUser = await prisma.user.findUnique({
         where: { email },
+        select: { id: true, role: true, clerkId: true, campusId: true },
       });
 
-      if (existingUser?.clerkId.startsWith("pending_")) {
-        // Update with real Clerk ID
+      if (!dbUser) {
+        console.log(`User not found in DB for email: ${email}`);
+        // User signed up without invitation — no role to assign
+        return NextResponse.json({ received: true });
+      }
+
+      console.log(`Found DB user with role: ${dbUser.role}`);
+
+      // Step 1: Update DB user's clerkId if it was pending
+      if (dbUser.clerkId.startsWith("pending_") || dbUser.clerkId !== clerkId) {
         await prisma.user.update({
           where: { email },
           data: { clerkId },
         });
-      } else if (!existingUser && role) {
-        // User signed up but wasn't pre-registered —
-        // this shouldn't happen in our flow but handle it gracefully
-        console.log(`Unknown user signed up: ${email}`);
+        console.log(`Updated clerkId for ${email}`);
       }
 
-      // Make sure the role is set in Clerk publicMetadata
-      // (invitation metadata should already be there, but ensure it)
-      if (role) {
-        const clerk = await clerkClient();
-        await clerk.users.updateUser(clerkId, {
-          publicMetadata: {
-            role,
-            ...(campusId ? { campusId } : {}),
-          },
-        });
+      // Step 2: Set role on Clerk user publicMetadata from DB
+      const clerk = await clerkClient();
+
+      const metadataToSet: Record<string, unknown> = {
+        role: dbUser.role,
+      };
+
+      // Add campusId for ADMIN role
+      if (dbUser.role === "ADMIN" && dbUser.campusId) {
+        metadataToSet.campusId = dbUser.campusId;
       }
+
+      await clerk.users.updateUser(clerkId, {
+        publicMetadata: metadataToSet,
+      });
+
+      console.log(
+        `✅ Set role '${dbUser.role}' on Clerk user ${clerkId} (${email})`,
+      );
     } catch (error) {
-      console.error("Webhook DB sync error:", error);
+      console.error("Webhook processing error:", error);
+      // Return 200 so Clerk doesn't retry — log the error instead
+      return NextResponse.json({ received: true, error: String(error) });
     }
   }
 

@@ -1,6 +1,9 @@
-// IMPORTANT: Clerk Dashboard must have JWT template set to:
-// { "metadata": "{{user.public_metadata}}" }
+// ============================================================
+// IMPORTANT: Clerk Dashboard Setup Required
 // Configure → Sessions → Customize session token
+// Must be set to: { "metadata": "{{user.public_metadata}}" }
+// Without this, roles will not appear in session claims
+// ============================================================
 
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
@@ -25,16 +28,19 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
-  // Read role from multiple possible locations in sessionClaims
   const claims = sessionClaims as {
     metadata?: { role?: string };
     publicMetadata?: { role?: string };
     public_metadata?: { role?: string };
+    unsafeMetadata?: { role?: string };
   };
+
+  // Try multiple locations where Clerk might put the role
   const role =
     claims?.metadata?.role ||
     claims?.publicMetadata?.role ||
     claims?.public_metadata?.role ||
+    claims?.unsafeMetadata?.role ||
     null;
 
   if (!role) {
