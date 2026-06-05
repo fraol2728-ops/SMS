@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { SyncRolesButton } from "@/components/super-admin/SyncRolesButton";
 import { prisma } from "@/lib/prisma";
 
 export default async function SuperAdminSettingsPage() {
@@ -41,6 +42,16 @@ export default async function SuperAdminSettingsPage() {
             </div>
           ))}
         </div>
+      </div>
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+        <h2 className="mb-2 font-semibold dark:text-white">
+          Role Synchronization
+        </h2>
+        <p className="mb-4 text-gray-400 text-sm">
+          Sync all user roles from the database to Clerk. Run this if users are
+          getting unauthorized errors after signing up.
+        </p>
+        <SyncRolesButton />
       </div>
       <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
         <h2 className="mb-2 font-semibold dark:text-white">Danger Zone</h2>

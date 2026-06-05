@@ -65,14 +65,31 @@ export async function createAdmin(formData: FormData) {
 
     try {
       const clerk = await clerkClient();
-      await clerk.invitations.createInvitation({
-        emailAddress: email,
-        publicMetadata: { role: "ADMIN", campusId },
-        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin`,
-        ignoreExisting: true,
+
+      const existingUsers = await clerk.users.getUserList({
+        emailAddress: [email],
       });
+
+      if (existingUsers.totalCount > 0) {
+        const existingClerkUser = existingUsers.data[0];
+        await clerk.users.updateUser(existingClerkUser.id, {
+          publicMetadata: { role: "ADMIN", campusId },
+        });
+        await prisma.user.update({
+          where: { email },
+          data: { clerkId: existingClerkUser.id },
+        });
+        console.log(`Set ADMIN role directly on existing Clerk user: ${email}`);
+      } else {
+        await clerk.invitations.createInvitation({
+          emailAddress: email,
+          publicMetadata: { role: "ADMIN", campusId },
+          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin`,
+          ignoreExisting: true,
+        });
+      }
     } catch (clerkError) {
-      console.error("Clerk invitation failed:", clerkError);
+      console.error("Clerk error:", clerkError);
     }
 
     revalidatePath("/super-admin/admins");

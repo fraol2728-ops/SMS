@@ -1,5 +1,6 @@
 import { SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
+import { SyncMyRoleButton } from "@/components/SyncMyRoleButton";
 
 export default async function UnauthorizedPage({
   searchParams,
@@ -20,15 +21,14 @@ export default async function UnauthorizedPage({
         </h1>
 
         {isNoRole ? (
-          <>
-            <p className="text-gray-500 mb-4">
+          <div className="space-y-4">
+            <p className="text-gray-500 text-sm">
               Your account was created but your role has not been activated yet.
-              This can happen right after accepting an invitation.
+              Click the button below to fix this automatically, then sign out
+              and sign back in.
             </p>
-            <p className="text-gray-500 mb-6 font-medium">
-              Please sign out and sign back in to activate your access.
-            </p>
-          </>
+            <SyncMyRoleButton />
+          </div>
         ) : isNoProfile ? (
           <p className="text-gray-500 mb-6">
             Your student account was registered but your profile is not set up
