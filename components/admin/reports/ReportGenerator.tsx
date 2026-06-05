@@ -15,7 +15,7 @@ type PreviewData = {
     newStudents: number;
     activeEnrollments: number;
     totalRevenue: number;
-    pendingPayments: number;
+    outstandingBalance: number;
     totalPayments: number;
     totalClasses: number;
   };
@@ -204,12 +204,12 @@ export function ReportGenerator() {
                 {preview.summary.totalRevenue.toLocaleString()}
               </p>
             </div>
-            <div className="rounded-lg bg-red-50 p-4">
-              <p className="mb-1 text-xs font-medium text-red-600">
-                Pending (ETB)
+            <div className="rounded-lg bg-amber-50 p-4">
+              <p className="mb-1 text-xs font-medium text-amber-600">
+                Outstanding (ETB)
               </p>
-              <p className="text-2xl font-bold text-red-700">
-                {preview.summary.pendingPayments.toLocaleString()}
+              <p className="text-2xl font-bold text-amber-700">
+                {preview.summary.outstandingBalance.toLocaleString()}
               </p>
             </div>
             <div className="rounded-lg bg-purple-50 p-4">

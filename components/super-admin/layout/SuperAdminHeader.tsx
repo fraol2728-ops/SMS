@@ -2,6 +2,7 @@
 
 import { UserButton } from "@clerk/nextjs";
 import { Bell, Menu } from "lucide-react";
+import { SuperAdminSearchWrapper } from "./SuperAdminSearchWrapper";
 
 type Campus = { id: string; name: string; color: string };
 type Admin = { firstName: string; lastName: string };
@@ -29,7 +30,7 @@ export function SuperAdminHeader({
   const now = new Date();
 
   return (
-    <header className="sticky top-14 z-20 flex h-16 flex-shrink-0 items-center justify-between border-gray-200 border-b bg-white px-4 dark:border-gray-700 dark:bg-gray-900 sm:px-6 lg:top-0">
+    <header className="sticky top-14 z-20 flex h-16 flex-shrink-0 items-center gap-3 border-gray-200 border-b bg-white px-4 dark:border-gray-700 dark:bg-gray-900 sm:px-6 lg:top-0">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
@@ -61,7 +62,11 @@ export function SuperAdminHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="max-w-sm flex-1">
+        <SuperAdminSearchWrapper />
+      </div>
+
+      <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <button
           className="relative rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
           type="button"

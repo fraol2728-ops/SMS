@@ -30,7 +30,12 @@ export default async function StudentMaterialsPage() {
 
   const student = await prisma.user.findUnique({
     where: { clerkId: userId },
-    select: { id: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      studentProfile: { select: { studentCode: true } },
+    },
   });
   if (!student) redirect("/sign-in");
 
@@ -40,6 +45,18 @@ export default async function StudentMaterialsPage() {
       class: {
         include: {
           course: true,
+          lab: true,
+          teacher: {
+            include: {
+              user: {
+                select: {
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
           materials: {
             include: {
               uploadedBy: { select: { firstName: true, lastName: true } },
@@ -52,6 +69,27 @@ export default async function StudentMaterialsPage() {
   });
 
   const materials = enrollment?.class?.materials ?? [];
+  const teacherEmail = enrollment?.class?.teacher?.user?.email;
+  const courseName = enrollment?.class?.course?.title ?? "Course";
+  const studentName = `${student.firstName} ${student.lastName}`;
+  const studentCode = student.studentProfile?.studentCode ?? "-";
+  const subject = encodeURIComponent(`Assignment Submission — ${courseName}`);
+  const body = encodeURIComponent(
+    `Dear Teacher,
+
+Please find my assignment submission for ${courseName} attached.
+
+Student: ${studentName}
+Student Code: ${studentCode}
+
+Best regards,
+${studentName}`,
+  );
+  const mailtoLink =
+    teacherEmail && !teacherEmail.includes("@exceed.local")
+      ? `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(teacherEmail)}&su=${subject}&body=${body}`
+      : null;
+
   const byType: Record<string, typeof materials> = {};
   materials.forEach((m) => {
     if (!byType[m.type]) byType[m.type] = [];
@@ -68,6 +106,34 @@ export default async function StudentMaterialsPage() {
             : "Course materials and resources"}
         </p>
       </div>
+
+      {mailtoLink ? (
+        <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 sm:flex-row sm:items-center">
+          <div>
+            <h3 className="font-bold text-gray-900">Submit Assignment</h3>
+            <p className="mt-0.5 text-gray-500 text-sm">
+              Send your completed work directly to your teacher
+            </p>
+          </div>
+          <a
+            href={mailtoLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-semibold text-sm text-white shadow-sm transition-colors hover:bg-blue-700"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.908 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />
+            </svg>
+            Submit via Gmail
+          </a>
+        </div>
+      ) : null}
 
       {materials.length === 0 ? (
         <div className="bg-white rounded-3xl border border-dashed border-gray-200 p-16 text-center shadow-sm">

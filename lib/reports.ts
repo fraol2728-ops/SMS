@@ -47,6 +47,17 @@ type ReportPayment = {
   enrollment: { class: { course: { title: string } } | null } | null;
 };
 
+type ReportRemainingPayment = {
+  remainingAmount: number;
+  enrollment: {
+    student: {
+      studentCode: string;
+      user: { firstName: string; lastName: string };
+    };
+    class: { course: { title: string } } | null;
+  };
+};
+
 type ReportClass = {
   lab: { name: string };
   course: { title: string };
@@ -94,97 +105,120 @@ export async function generateReport(
   const campusFilter = campusId ? { campusId } : {};
   const userCampusFilter = campusId ? { campusId } : {};
 
-  const [newStudents, activeEnrollments, payments, classes, campus] =
-    (await Promise.all([
-      prisma.user.findMany({
-        where: {
-          role: "STUDENT",
-          createdAt: { gte: startDate },
-          ...userCampusFilter,
-        },
-        include: {
-          studentProfile: {
-            include: {
-              enrollments: {
-                include: {
-                  class: {
-                    include: { course: true, lab: { select: { name: true } } },
-                  },
+  const [
+    newStudents,
+    activeEnrollments,
+    payments,
+    remainingPayments,
+    classes,
+    campus,
+  ] = (await Promise.all([
+    prisma.user.findMany({
+      where: {
+        role: "STUDENT",
+        createdAt: { gte: startDate },
+        ...userCampusFilter,
+      },
+      include: {
+        studentProfile: {
+          include: {
+            enrollments: {
+              include: {
+                class: {
+                  include: { course: true, lab: { select: { name: true } } },
                 },
-                where: { status: "ACTIVE" },
-                take: 1,
               },
+              where: { status: "ACTIVE" },
+              take: 1,
             },
           },
         },
-        orderBy: { createdAt: "asc" },
-      }),
-      prisma.enrollment.findMany({
-        where: {
-          status: "ACTIVE",
-          class: campusId ? { campusId } : undefined,
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.enrollment.findMany({
+      where: {
+        status: "ACTIVE",
+        class: campusId ? { campusId } : undefined,
+      },
+      include: {
+        student: { include: { user: true } },
+        class: { include: { course: true, lab: { select: { name: true } } } },
+        payments: {
+          orderBy: { paidAt: "desc" },
+          take: 1,
         },
-        include: {
-          student: { include: { user: true } },
-          class: { include: { course: true, lab: { select: { name: true } } } },
-          payments: {
-            orderBy: { paidAt: "desc" },
-            take: 1,
-          },
-        },
-      }),
-      prisma.payment.findMany({
-        where: {
-          status: "PAID",
-          paidAt: { gte: startDate },
-          user: userCampusFilter,
-        },
-        include: {
-          user: true,
-          enrollment: {
-            include: {
-              class: {
-                include: { course: true, lab: { select: { name: true } } },
-              },
+      },
+    }),
+    prisma.payment.findMany({
+      where: {
+        status: "PAID",
+        paidAt: { gte: startDate },
+        user: campusId ? { campusId } : undefined,
+      },
+      include: {
+        user: true,
+        enrollment: {
+          include: {
+            class: {
+              include: { course: true, lab: { select: { name: true } } },
             },
           },
         },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.class.findMany({
-        where: {
-          isActive: true,
-          ...campusFilter,
-        },
-        include: {
-          course: true,
-          lab: { select: { name: true } },
-          teacher: { include: { user: true } },
-          _count: {
-            select: { enrollments: { where: { status: "ACTIVE" } } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.paymentRemaining.findMany({
+      where: {
+        status: { not: "PAID" },
+        enrollment: { class: campusId ? { campusId } : undefined },
+      },
+      include: {
+        enrollment: {
+          include: {
+            student: { include: { user: true } },
+            class: { include: { course: true } },
           },
         },
-        orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
-      }),
-      campusId ? prisma.campus.findUnique({ where: { id: campusId } }) : null,
-    ])) as [
-      ReportStudent[],
-      ReportEnrollment[],
-      ReportPayment[],
-      ReportClass[],
-      { name: string } | null,
-    ];
+      },
+    }),
+    prisma.class.findMany({
+      where: {
+        isActive: true,
+        ...campusFilter,
+      },
+      include: {
+        course: true,
+        lab: { select: { name: true } },
+        teacher: { include: { user: true } },
+        _count: {
+          select: { enrollments: { where: { status: "ACTIVE" } } },
+        },
+      },
+      orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
+    }),
+    campusId ? prisma.campus.findUnique({ where: { id: campusId } }) : null,
+  ])) as [
+    ReportStudent[],
+    ReportEnrollment[],
+    ReportPayment[],
+    ReportRemainingPayment[],
+    ReportClass[],
+    { name: string } | null,
+  ];
 
   const campusName = campus?.name ?? "All Campuses";
   const wb = XLSX.utils.book_new();
 
-  const totalRevenue = payments
-    .filter((p) => p.status === "PAID")
-    .reduce((sum, p) => sum + p.amount, 0);
+  const totalRevenue = payments.reduce(
+    (sum, payment) => sum + payment.amount,
+    0,
+  );
 
-  const pendingPayments = payments
-    .filter((p) => p.status === "PENDING")
-    .reduce((sum, p) => sum + p.amount, 0);
+  const outstandingBalance = remainingPayments.reduce(
+    (sum, remaining) => sum + remaining.remainingAmount,
+    0,
+  );
 
   const summaryData = [
     ["EXCEED TRAINING CENTER"],
@@ -197,7 +231,7 @@ export async function generateReport(
     ["Total Active Enrollments", activeEnrollments.length],
     ["Total Classes", classes.length],
     ["Revenue Collected (ETB)", totalRevenue],
-    ["Pending Payments (ETB)", pendingPayments],
+    ["Outstanding Balance (ETB)", outstandingBalance],
     ["Total Payment Transactions", payments.length],
   ];
   const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
@@ -401,7 +435,7 @@ export async function generateReport(
       newStudents: newStudents.length,
       activeEnrollments: activeEnrollments.length,
       totalRevenue,
-      pendingPayments,
+      outstandingBalance,
       totalPayments: payments.length,
       totalClasses: classes.length,
     },

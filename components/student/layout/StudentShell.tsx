@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Footer } from "@/components/shared/Footer";
 import { StudentHeader } from "./StudentHeader";
 import { StudentSidebar } from "./StudentSidebar";
 
@@ -46,6 +47,7 @@ export function StudentShell({
           onMenuClick={() => setSidebarOpen(true)}
         />
         <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <Footer />
       </div>
     </div>
   );
