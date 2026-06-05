@@ -1,9 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, AlertCircle } from "lucide-react";
 
 type EmailValidationStatus = "idle" | "validating" | "valid" | "invalid";
+
+type ValidationReason =
+  | "invalid_format"
+  | "email_already_exists"
+  | "invalid_domain"
+  | "server_error"
+  | null;
+
+const reasonMessages: Record<ValidationReason, string> = {
+  invalid_format: "Invalid email format",
+  email_already_exists: "Email already in use",
+  invalid_domain: "Email domain is not active",
+  server_error: "Error checking email",
+  null: "Email is not valid or available",
+};
 
 export function EmailValidationInput({
   id,
@@ -19,6 +34,7 @@ export function EmailValidationInput({
   const [email, setEmail] = useState(defaultValue);
   const [status, setStatus] = useState<EmailValidationStatus>("idle");
   const [touched, setTouched] = useState(false);
+  const [reason, setReason] = useState<ValidationReason>(null);
 
   // Validate email format
   const isValidEmailFormat = (email: string) => {
@@ -26,22 +42,24 @@ export function EmailValidationInput({
     return emailRegex.test(email);
   };
 
-  // Check if email is already in use (for registration)
+  // Check if email is valid and active
   useEffect(() => {
     if (!email.trim()) {
       setStatus("idle");
+      setReason(null);
       return;
     }
 
     if (!isValidEmailFormat(email)) {
       setStatus("invalid");
+      setReason("invalid_format");
       return;
     }
 
     // Set to validating
     setStatus("validating");
 
-    // Simulate API call to check if email exists (in reality you'd call a server action)
+    // Validate email with server
     const checkEmail = async () => {
       try {
         const response = await fetch("/api/check-email", {
@@ -54,13 +72,16 @@ export function EmailValidationInput({
 
         if (data.available) {
           setStatus("valid");
+          setReason(null);
         } else {
           setStatus("invalid");
+          setReason(data.reason || null);
         }
       } catch (error) {
         console.error("Error checking email:", error);
         // If API fails, still allow the form to be submitted if format is valid
         setStatus("valid");
+        setReason(null);
       }
     };
 
@@ -68,6 +89,23 @@ export function EmailValidationInput({
     const timer = setTimeout(checkEmail, 500);
     return () => clearTimeout(timer);
   }, [email]);
+
+  const getStatusMessage = () => {
+    if (!email) {
+      return "If no email provided, a system email will be generated automatically.";
+    }
+
+    switch (status) {
+      case "validating":
+        return "Validating email...";
+      case "valid":
+        return "✓ Email is valid and available";
+      case "invalid":
+        return `✗ ${reasonMessages[reason] || "Email is not valid or available"}`;
+      default:
+        return "If no email provided, a system email will be generated automatically.";
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -98,21 +136,29 @@ export function EmailValidationInput({
             )}
             {status === "invalid" && (
               <div className="flex items-center justify-center">
-                <X className="h-5 w-5 text-red-500" />
+                {reason === "invalid_domain" ? (
+                  <AlertCircle className="h-5 w-5 text-orange-500" />
+                ) : (
+                  <X className="h-5 w-5 text-red-500" />
+                )}
               </div>
             )}
           </div>
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        {!email
-          ? "If no email provided, a system email will be generated automatically."
-          : status === "valid"
-            ? "✓ Email is available"
-            : status === "invalid"
-              ? "✗ Email is invalid or already in use"
-              : "Checking email..."}
+      <p
+        className={`text-xs ${
+          status === "valid"
+            ? "text-green-600 dark:text-green-400"
+            : status === "invalid" && reason === "invalid_domain"
+              ? "text-orange-600 dark:text-orange-400"
+              : status === "invalid"
+                ? "text-red-600 dark:text-red-400"
+                : "text-muted-foreground"
+        }`}
+      >
+        {getStatusMessage()}
       </p>
     </div>
   );
