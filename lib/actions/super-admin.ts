@@ -151,3 +151,26 @@ export async function updateCampus(id: string, formData: FormData) {
     return err(e instanceof Error ? e.message : "Failed to update campus");
   }
 }
+
+export async function updateCoursePrice(courseId: string, formData: FormData) {
+  try {
+    const fee = Number(formData.get("fee"));
+    const durationWeeks = Number(formData.get("durationWeeks"));
+    const isActive = formData.get("isActive") === "on";
+
+    if (Number.isNaN(fee) || fee < 0) return err("Invalid price");
+    if (Number.isNaN(durationWeeks) || durationWeeks <= 0) {
+      return err("Invalid duration");
+    }
+
+    await prisma.course.update({
+      where: { id: courseId },
+      data: { fee, durationWeeks, isActive },
+    });
+
+    revalidatePath("/super-admin/courses");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update course");
+  }
+}

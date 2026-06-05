@@ -3,6 +3,7 @@
 import { UserButton } from "@clerk/nextjs";
 import { Bell, Menu } from "lucide-react";
 import Link from "next/link";
+import { GlobalSearch } from "@/components/shared/GlobalSearch";
 
 export function TeacherHeader({ teacher }: { teacher: any }) {
   const now = new Date();
@@ -11,7 +12,7 @@ export function TeacherHeader({ teacher }: { teacher: any }) {
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <header className="h-16 bg-white dark:bg-gray-900 border-b dark:border-gray-700 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 flex-shrink-0">
+    <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center gap-3 border-b bg-white px-4 dark:border-gray-700 dark:bg-gray-900 sm:px-6">
       {/* Left */}
       <div className="flex items-center gap-3">
         <button
@@ -37,8 +38,12 @@ export function TeacherHeader({ teacher }: { teacher: any }) {
         </div>
       </div>
 
+      <div className="hidden max-w-xs flex-1 sm:block">
+        <GlobalSearch portal="teacher" />
+      </div>
+
       {/* Right */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <Link href="/teacher/mail">
           <button
             type="button"

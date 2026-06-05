@@ -53,7 +53,7 @@ export default async function AdminPage() {
   });
   const campusCourseWhere = campusId ? { course: { campusId } } : {};
   const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const chartStart = new Date(now);
   chartStart.setDate(now.getDate() - 29);
   chartStart.setHours(0, 0, 0, 0);
@@ -96,7 +96,7 @@ export default async function AdminPage() {
     prisma.payment.aggregate({
       where: {
         status: "PAID",
-        paidAt: { gte: firstDay },
+        paidAt: { gte: monthStart },
         user: campusId ? { campusId } : undefined,
       },
       _sum: { amount: true },
@@ -246,7 +246,7 @@ export default async function AdminPage() {
             href="/admin/payments"
           />
           <KpiCard
-            title="Monthly Revenue"
+            title="This Month"
             value={`ETB ${totalMonthlyRevenue.toLocaleString()}`}
             icon={CreditCard}
             color="amber"
@@ -256,7 +256,7 @@ export default async function AdminPage() {
             title="Outstanding"
             value={`ETB ${outstandingRemaining.toLocaleString()}`}
             icon={CreditCard}
-            color="rose"
+            color="amber"
             href="/admin/remaining"
             hint="Remaining balances"
           />

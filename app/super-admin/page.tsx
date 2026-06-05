@@ -60,7 +60,7 @@ export default async function SuperAdminDashboard({
     onRegistration,
     activeCourses,
     monthlyRevenue,
-    remainingCount,
+    outstanding,
     certificatesCount,
     todayAttendance,
     recentStudents,
@@ -89,11 +89,12 @@ export default async function SuperAdminDashboard({
       },
       _sum: { amount: true },
     }),
-    prisma.paymentRemaining.count({
+    prisma.paymentRemaining.aggregate({
       where: {
         status: { not: "PAID" },
         enrollment: { class: { campusId: effectiveCampusId } },
       },
+      _sum: { remainingAmount: true },
     }),
     prisma.certificate.count({
       where: {
@@ -158,11 +159,11 @@ export default async function SuperAdminDashboard({
       trend: null,
     },
     {
-      label: "Remaining Payments",
-      value: remainingCount,
+      label: "Outstanding",
+      value: `ETB ${(outstanding._sum.remainingAmount ?? 0).toLocaleString()}`,
       icon: AlertCircle,
-      color: "bg-red-50 dark:bg-red-900/20",
-      iconColor: "text-red-600",
+      color: "bg-amber-50 dark:bg-amber-900/20",
+      iconColor: "text-amber-600",
       href: `/super-admin/remaining?campusId=${effectiveCampusId}`,
       trend: null,
     },

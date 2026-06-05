@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { prisma } from "@/lib/prisma";
@@ -56,6 +57,16 @@ export default async function SuperAdminCoursesPage({
               <p>💰 ETB {course.fee.toLocaleString()}</p>
               <p>📚 {course._count.classes} classes</p>
             </div>
+            <Link
+              href={`/super-admin/courses/${course.id}/edit${campusId ? `?campusId=${campusId}` : ""}`}
+            >
+              <button
+                type="button"
+                className="mt-3 w-full rounded-xl border border-blue-100 py-2 font-medium text-blue-600 text-xs transition-colors hover:bg-blue-50 dark:border-blue-900 dark:hover:bg-blue-900/20"
+              >
+                ✏️ Edit Price & Details
+              </button>
+            </Link>
           </div>
         ))}
         {courses.length === 0 ? (
