@@ -121,17 +121,65 @@ function isUniqueConstraintError(error: unknown): boolean {
   );
 }
 
-export async function createStudent(input: ActionInput) {
+export async function createStudent(
+  input: ActionInput,
+  enrollmentsData?: Array<{
+    id: string;
+    classType: "GROUP" | "PERSONAL" | "ONLINE";
+    selectedClassId: string;
+    startDate: string;
+    endDate: string;
+    courseFee: number;
+    paymentAmount: string;
+    remaining: number;
+    paymentStatus: "PAID" | "PENDING";
+    paymentMethod?: string;
+  }>,
+) {
   try {
     const raw = actionInputToObject(input);
+    
+    // Use the first enrollment for basic validation if enrollmentsData is provided
+    const enrollments = enrollmentsData || [
+      {
+        id: "enrollment-0",
+        classType: "GROUP" as const,
+        selectedClassId: raw.classId as string,
+        startDate: raw.startDate as string,
+        endDate: raw.endDate as string,
+        courseFee: Number(raw.courseFee ?? 0),
+        paymentAmount: String(raw.paymentAmount ?? 0),
+        remaining: Number(raw.remainingAmount ?? 0),
+        paymentStatus: (raw.paymentStatus as "PAID" | "PENDING") ?? "PENDING",
+        paymentMethod: emptyToUndefined(raw.paymentMethod as string),
+      },
+    ];
+
+    if (enrollments.length === 0) {
+      return err("At least one enrollment is required.");
+    }
+
     const v = studentSchema.parse({
-      ...raw,
+      firstName: raw.firstName,
+      lastName: raw.lastName,
+      phone: raw.phone,
       email: raw.email ?? "",
       gender: emptyToUndefined(raw.gender),
       dateOfBirth: emptyToUndefined(raw.dateOfBirth),
-      paymentMethod: emptyToUndefined(raw.paymentMethod),
-      paymentAmount: Number(raw.paymentAmount),
-      remainingAmount: Number(raw.remainingAmount ?? 0),
+      telegram: emptyToUndefined(raw.telegram as string),
+      whatsapp: emptyToUndefined(raw.whatsapp as string),
+      registrationDate: emptyToUndefined(raw.registrationDate as string),
+      guardianName: emptyToUndefined(raw.guardianName as string),
+      guardianPhone: emptyToUndefined(raw.guardianPhone as string),
+      emergencyContact: emptyToUndefined(raw.emergencyContact as string),
+      notes: emptyToUndefined(raw.notes as string),
+      classId: enrollments[0].selectedClassId,
+      startDate: enrollments[0].startDate,
+      endDate: enrollments[0].endDate,
+      paymentStatus: enrollments[0].paymentStatus,
+      paymentAmount: Number(enrollments[0].paymentAmount),
+      remainingAmount: enrollments[0].remaining,
+      paymentMethod: enrollments[0].paymentMethod,
     });
 
     const currentUser = await getCurrentUser();
@@ -149,15 +197,29 @@ export async function createStudent(input: ActionInput) {
       ? v.email.trim().toLowerCase()
       : `${studentCode.toLowerCase().replace(/-/g, ".")}@exceed.local`;
 
-    const classRecord = await prisma.class.findFirst({
-      where: { id: v.classId, campusId: adminCampusId ?? undefined },
-      include: {
-        _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
-      },
-    });
-    if (!classRecord) return err("Selected class not found.");
-    if (classRecord._count.enrollments >= classRecord.capacity) {
-      return err("This class is full. Please select a different class.");
+    // Validate all selected classes
+    const classRecords = await Promise.all(
+      enrollments.map((enr) =>
+        prisma.class.findFirst({
+          where: { id: enr.selectedClassId, campusId: adminCampusId ?? undefined },
+          include: {
+            course: true,
+            _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+          },
+        }),
+      ),
+    );
+
+    for (let i = 0; i < classRecords.length; i++) {
+      const classRecord = classRecords[i];
+      if (!classRecord) {
+        return err(`Selected class ${i + 1} not found.`);
+      }
+      if (classRecord._count.enrollments >= classRecord.capacity) {
+        return err(
+          `Class ${i + 1} (${classRecord.course.title}) is full. Please select a different class.`,
+        );
+      }
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -165,15 +227,34 @@ export async function createStudent(input: ActionInput) {
       return err("A user with this email is already registered.");
     }
 
-    const campusId = classRecord.campusId;
+    const campusId = classRecords[0]!.campusId;
     const startDate = v.startDate
       ? new Date(v.startDate)
-      : (classRecord.startDate ?? new Date());
+      : (classRecords[0]!.startDate ?? new Date());
     const endDate = v.endDate
       ? new Date(v.endDate)
-      : (classRecord.endDate ?? undefined);
+      : (classRecords[0]!.endDate ?? undefined);
 
     await prisma.$transaction(async (tx) => {
+      // Prepare enrollments data
+      const enrollmentsToCreate = enrollments.map((enr, index) => {
+        const classRecord = classRecords[index]!;
+        const enrollmentStartDate = enr.startDate
+          ? new Date(enr.startDate)
+          : (classRecord.startDate ?? new Date());
+        const enrollmentEndDate = enr.endDate
+          ? new Date(enr.endDate)
+          : (classRecord.endDate ?? undefined);
+
+        return {
+          courseId: classRecord.courseId,
+          classId: enr.selectedClassId,
+          startDate: enrollmentStartDate,
+          endDate: enrollmentEndDate,
+          status: "ACTIVE" as const,
+        };
+      });
+
       const newUser = await tx.user.create({
         data: {
           clerkId: `pending_${Date.now()}`,
@@ -199,13 +280,7 @@ export async function createStudent(input: ActionInput) {
               emergencyContact: v.emergencyContact,
               notes: v.notes,
               enrollments: {
-                create: {
-                  courseId: classRecord.courseId,
-                  classId: v.classId,
-                  startDate,
-                  endDate,
-                  status: "ACTIVE",
-                },
+                create: enrollmentsToCreate,
               },
             },
           },
@@ -213,46 +288,54 @@ export async function createStudent(input: ActionInput) {
         include: {
           studentProfile: {
             include: {
-              enrollments: { orderBy: { createdAt: "desc" }, take: 1 },
+              enrollments: { orderBy: { createdAt: "asc" } },
             },
           },
         },
       });
 
-      const enrollmentId = newUser.studentProfile?.enrollments[0]?.id;
-      if (!enrollmentId) throw new Error("Failed to create enrollment");
+      const studentEnrollments = newUser.studentProfile?.enrollments || [];
+      if (studentEnrollments.length !== enrollments.length) {
+        throw new Error("Failed to create all enrollments");
+      }
 
-      await tx.payment.create({
-        data: {
-          userId: newUser.id,
-          enrollmentId,
-          amount: v.paymentAmount,
-          method: v.paymentMethod,
-          status: v.paymentStatus,
-          paidAt: v.paymentStatus === "PAID" ? new Date() : undefined,
-        },
-      });
+      // Create payments for each enrollment
+      for (let i = 0; i < enrollments.length; i++) {
+        const enrollment = enrollments[i]!;
+        const enrollmentRecord = studentEnrollments[i]!;
+        const paymentAmount = Number(enrollment.paymentAmount);
 
-      const remainingAmount = v.remainingAmount ?? 0;
-      if (remainingAmount > 0) {
-        const classWithCourse = await tx.class.findUnique({
-          where: { id: v.classId },
-          include: { course: true },
-        });
-        const durationDays = (classWithCourse?.course.durationWeeks ?? 8) * 7;
-        const dueDate = new Date(startDate);
-        dueDate.setDate(dueDate.getDate() + Math.floor(durationDays / 2));
-
-        await tx.paymentRemaining.create({
+        await tx.payment.create({
           data: {
-            enrollmentId,
-            originalFee: v.paymentAmount + remainingAmount,
-            paidAmount: v.paymentAmount,
-            remainingAmount,
-            dueDate,
-            status: "PENDING",
+            userId: newUser.id,
+            enrollmentId: enrollmentRecord.id,
+            amount: paymentAmount,
+            method: enrollment.paymentMethod,
+            status: enrollment.paymentStatus,
+            paidAt: enrollment.paymentStatus === "PAID" ? new Date() : undefined,
           },
         });
+
+        // Create remaining payment record if applicable
+        const remainingAmount = enrollment.remaining ?? 0;
+        if (remainingAmount > 0) {
+          const classRecord = classRecords[i]!;
+          const durationDays = (classRecord.course.durationWeeks ?? 8) * 7;
+          const startDateObj = enrollmentRecord.startDate ?? new Date();
+          const dueDate = new Date(startDateObj);
+          dueDate.setDate(dueDate.getDate() + Math.floor(durationDays / 2));
+
+          await tx.paymentRemaining.create({
+            data: {
+              enrollmentId: enrollmentRecord.id,
+              originalFee: paymentAmount + remainingAmount,
+              paidAmount: paymentAmount,
+              remainingAmount,
+              dueDate,
+              status: "PENDING",
+            },
+          });
+        }
       }
 
       const hasAssessment =
@@ -338,16 +421,19 @@ export async function createStudent(input: ActionInput) {
             `Set STUDENT role directly on existing Clerk user: ${email}`,
           );
         } else {
-          // Send invitation
+          // Send invitation with role metadata
+          // The webhook will sync the role when the student accepts
           await clerk.invitations.createInvitation({
             emailAddress: email,
             publicMetadata: { role: "STUDENT" },
             redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student`,
-            ignoreExisting: true,
+            ignoreExisting: false, // Set to false to ensure proper metadata transfer
           });
+          console.log(`Invitation sent to ${email}`);
         }
       } catch (clerkError) {
         console.error("Clerk error:", clerkError);
+        // Continue even if Clerk fails — webhook will handle it
       }
     }
 
@@ -373,12 +459,38 @@ export async function updateStudent(id: string, formData: FormData) {
       dateOfBirth: emptyToUndefined(raw.dateOfBirth),
     });
 
+    // Get current user to check if email is being changed
+    const currentUser = await prisma.user.findUnique({
+      where: { id },
+      select: { email: true, clerkId: true },
+    });
+
+    if (!currentUser) {
+      return err("Student not found.");
+    }
+
+    // Normalize new email if provided
+    const newEmail = v.email ? v.email.trim().toLowerCase() : null;
+    const currentEmail = currentUser.email.toLowerCase();
+
+    // If email is changing, check if new email already exists
+    if (newEmail && newEmail !== currentEmail) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: newEmail },
+        select: { id: true },
+      });
+
+      if (existingUser && existingUser.id !== id) {
+        return err("This email is already used by another student.");
+      }
+    }
+
     await prisma.user.update({
       where: { id },
       data: {
         firstName: v.firstName,
         lastName: v.lastName,
-        email: v.email,
+        email: newEmail || currentEmail,
         phone: v.phone,
         telegram: v.telegram?.trim() || v.phone || null,
         whatsapp: v.whatsapp?.trim() || v.phone || null,
@@ -398,10 +510,34 @@ export async function updateStudent(id: string, formData: FormData) {
         },
       },
     });
+
+    // If email changed and student has accepted invitation (has real clerkId), send new invitation to new email
+    if (newEmail && newEmail !== currentEmail && currentUser.clerkId && !currentUser.clerkId.startsWith("pending_")) {
+      try {
+        const clerk = await clerkClient();
+
+        // Send invitation to new email
+        await clerk.invitations.createInvitation({
+          emailAddress: newEmail,
+          publicMetadata: { role: "STUDENT" },
+          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student`,
+          ignoreExisting: false,
+        });
+
+        console.log(`New invitation sent to updated email: ${newEmail}`);
+      } catch (clerkError) {
+        console.error("Clerk invitation error:", clerkError);
+        // Log but don't fail the update — email is already updated in database
+      }
+    }
+
     revalidatePath(`/admin/students/${id}`);
     return ok;
   } catch (e) {
-    return err(e instanceof Error ? e.message : "Failed");
+    if (isUniqueConstraintError(e)) {
+      return err("This email is already in use by another student.");
+    }
+    return err(e instanceof Error ? e.message : "Failed to update student");
   }
 }
 

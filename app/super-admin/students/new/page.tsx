@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import CalculatorWidget from "@/components/ui/CalculatorWidget";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StudentForm } from "@/components/admin/students/StudentForm";
 import { prisma } from "@/lib/prisma";
@@ -55,6 +56,7 @@ export default async function SuperAdminNewStudentPage({
         redirectBasePath={`/super-admin/students?campusId=${campusId ?? ""}`}
         classCreateHref={`/super-admin/classes/new?campusId=${campusId ?? ""}`}
       />
+      <CalculatorWidget />
     </div>
   );
 }

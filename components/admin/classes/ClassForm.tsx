@@ -29,6 +29,7 @@ type DefaultClassValues = {
   startDate?: string;
   endDate?: string;
   capacity?: number;
+  status?: "REGISTRATION" | "STARTED" | "ENDED";
 };
 
 function calculateEndDate(startValue: string, course?: Course) {
@@ -273,6 +274,20 @@ export function ClassForm({
             max={30}
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="status">Class Status</Label>
+          <select
+            id="status"
+            name="status"
+            defaultValue={defaultValues?.status ?? "REGISTRATION"}
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+          >
+            <option value="REGISTRATION">Registration (Not started)</option>
+            <option value="STARTED">Started (In progress)</option>
+            <option value="ENDED">Ended (Completed)</option>
+          </select>
         </div>
       </div>
 
