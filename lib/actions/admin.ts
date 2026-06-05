@@ -310,8 +310,8 @@ export async function createStudent(
             userId: newUser.id,
             enrollmentId: enrollmentRecord.id,
             amount: paymentAmount,
-            method: enrollment.paymentMethod,
-            status: enrollment.paymentStatus,
+            method: (enrollment.paymentMethod as PaymentMethod) || undefined,
+            status: enrollment.paymentStatus as PaymentStatus,
             paidAt: enrollment.paymentStatus === "PAID" ? new Date() : undefined,
           },
         });
