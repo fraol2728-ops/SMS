@@ -4,10 +4,10 @@ import {
   ExternalLink,
   File,
   FileText,
+  FolderOpen,
   Link2,
   Plus,
   Trash2,
-  Video,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -16,20 +16,51 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addMaterial, deleteMaterial } from "@/lib/actions/teacher";
+import type { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
 const MATERIAL_TYPES = [
   { id: "LINK", label: "Link", icon: Link2 },
   { id: "PDF", label: "PDF", icon: FileText },
-  { id: "VIDEO", label: "Video", icon: Video },
   { id: "DOCUMENT", label: "Document", icon: File },
-  { id: "OTHER", label: "Other", icon: File },
+  { id: "OTHER", label: "Other", icon: FolderOpen },
 ];
+
+const timeShort: Record<keyof typeof TIME_SLOTS, string> = {
+  SLOT_8_10: "8-10",
+  SLOT_10_12: "10-12",
+  SLOT_12_2: "12-2",
+  SLOT_3_5: "3-5",
+  SLOT_5_7: "5-7",
+};
+
+const daysShort: Record<keyof typeof CLASS_DAYS, string> = {
+  MWF: "M/W/F",
+  TTS: "T/T/S",
+};
+
+type Material = {
+  id: string;
+  title: string;
+  description?: string | null;
+  type: string;
+  createdAt: string | number | Date;
+  url: string;
+};
+
+type TeacherClass = {
+  id: string;
+  classType: string;
+  timeSlot: string;
+  days: string;
+  course: { title: string };
+  materials?: Material[] | null;
+};
 
 export function MaterialsManager({
   classes,
   teacherId,
 }: {
-  classes: any[];
+  classes: TeacherClass[];
   teacherId: string;
 }) {
   const router = useRouter();
@@ -77,20 +108,30 @@ export function MaterialsManager({
     <div className="space-y-5">
       {classes.length > 1 && (
         <div className="flex gap-2 flex-wrap">
-          {classes.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setSelectedClassId(c.id)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                selectedClassId === c.id
-                  ? "bg-blue-600 text-white"
-                  : "bg-white dark:bg-gray-800 border dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-blue-300"
-              }`}
-            >
-              {c.lab?.name ?? "Online"} — {c.course.title}
-            </button>
-          ))}
+          {classes.map((c) => {
+            const label =
+              c.classType === "ONLINE"
+                ? `${c.course.title} — Online`
+                : `${c.course.title} — ${
+                    timeShort[c.timeSlot as keyof typeof TIME_SLOTS] ??
+                    c.timeSlot
+                  } ${daysShort[c.days as keyof typeof CLASS_DAYS] ?? c.days}`;
+
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setSelectedClassId(c.id)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  selectedClassId === c.id
+                    ? "bg-blue-600 text-white"
+                    : "bg-white dark:bg-gray-800 border dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-blue-300"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -143,13 +184,48 @@ export function MaterialsManager({
                 placeholder="e.g. Week 1 Lecture Notes"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label>URL / Link *</Label>
-              <Input name="url" required placeholder="https://..." type="url" />
-              <p className="text-xs text-gray-400">
-                Paste a Google Drive link, YouTube link, or any URL
-              </p>
-            </div>
+            {type === "LINK" ? (
+              <div className="space-y-1.5">
+                <Label>URL / Link *</Label>
+                <Input
+                  name="url"
+                  required
+                  placeholder="https://..."
+                  type="url"
+                />
+                <p className="text-xs text-gray-400">
+                  Paste any website link or resource URL
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>File Link *</Label>
+                  <Input
+                    name="url"
+                    required
+                    placeholder="Paste Google Drive or Dropbox share link..."
+                    type="url"
+                  />
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
+                    📁 How to share a {type === "PDF" ? "PDF" : "file"}:
+                  </p>
+                  <ol className="text-xs text-blue-700 dark:text-blue-400 space-y-1 list-decimal list-inside">
+                    <li>
+                      Upload your {type === "PDF" ? "PDF" : "file"} to Google
+                      Drive
+                    </li>
+                    <li>
+                      Right-click the file → "Share" → "Anyone with the link can
+                      view"
+                    </li>
+                    <li>Copy the link and paste it above</li>
+                  </ol>
+                </div>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Description (optional)</Label>
               <Input name="description" placeholder="Brief description..." />
@@ -174,12 +250,12 @@ export function MaterialsManager({
         <div className="bg-white dark:bg-gray-900 border dark:border-dashed dark:border-gray-700 border-dashed border-gray-200 rounded-2xl p-12 text-center">
           <p className="text-gray-400 text-sm">No materials added yet</p>
           <p className="text-gray-300 text-xs mt-1">
-            Add links, PDFs, or videos for your students
+            Add links, PDFs, or documents for your students
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {selectedClass?.materials?.map((m: any) => (
+          {selectedClass?.materials?.map((m) => (
             <div
               key={m.id}
               className="bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-2xl p-4 flex items-center gap-4"
