@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
 export async function requireRole(...roles: string[]) {
   const { userId } = await auth();
@@ -11,17 +12,61 @@ export async function requireRole(...roles: string[]) {
 }
 
 export async function requireAdmin() {
-  return requireRole("ADMIN", "SUPER_ADMIN");
+  const result = await requireRole("ADMIN", "SUPER_ADMIN");
+  
+  // Check if admin is blocked
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: result.userId },
+  });
+  
+  if (!dbUser || !dbUser.isActive) {
+    redirect("/unauthorized");
+  }
+  
+  return result;
 }
 
 export async function requireTeacher() {
-  return requireRole("TEACHER");
+  const result = await requireRole("TEACHER");
+  
+  // Check if teacher is blocked
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: result.userId },
+  });
+  
+  if (!dbUser || !dbUser.isActive) {
+    redirect("/unauthorized");
+  }
+  
+  return result;
 }
 
 export async function requireStudent() {
-  return requireRole("STUDENT");
+  const result = await requireRole("STUDENT");
+  
+  // Check if student is blocked
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: result.userId },
+  });
+  
+  if (!dbUser || !dbUser.isActive) {
+    redirect("/unauthorized");
+  }
+  
+  return result;
 }
 
 export async function requireSuperAdmin() {
-  return requireRole("SUPER_ADMIN");
+  const result = await requireRole("SUPER_ADMIN");
+  
+  // Check if super admin is blocked
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: result.userId },
+  });
+  
+  if (!dbUser || !dbUser.isActive) {
+    redirect("/unauthorized");
+  }
+  
+  return result;
 }

@@ -99,6 +99,82 @@ export async function createAdmin(formData: FormData) {
   }
 }
 
+export async function updateAdmin(adminId: string, formData: FormData) {
+  try {
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
+    const phone = formData.get("phone") as string;
+    const campusId = formData.get("campusId") as string;
+
+    if (!firstName || !lastName || !campusId) {
+      return err("First name, last name, and campus are required.");
+    }
+
+    const admin = await prisma.user.findUnique({ where: { id: adminId } });
+    if (!admin) return err("Admin not found.");
+
+    const campus = await prisma.campus.findUnique({ where: { id: campusId } });
+    if (!campus) return err("Selected campus not found.");
+
+    await prisma.user.update({
+      where: { id: adminId },
+      data: {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone?.trim() || null,
+        campusId,
+      },
+    });
+
+    revalidatePath("/super-admin/admins");
+    revalidatePath(`/super-admin/admins/${adminId}`);
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update admin");
+  }
+}
+
+export async function deleteAdmin(adminId: string) {
+  try {
+    const admin = await prisma.user.findUnique({ where: { id: adminId } });
+    if (!admin) return err("Admin not found.");
+
+    await prisma.user.delete({ where: { id: adminId } });
+
+    try {
+      const clerk = await clerkClient();
+      if (admin.clerkId && !admin.clerkId.startsWith("pending_")) {
+        await clerk.users.deleteUser(admin.clerkId);
+      }
+    } catch (clerkError) {
+      console.error("Clerk error:", clerkError);
+    }
+
+    revalidatePath("/super-admin/admins");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to delete admin");
+  }
+}
+
+export async function toggleBlockAdmin(adminId: string) {
+  try {
+    const admin = await prisma.user.findUnique({ where: { id: adminId } });
+    if (!admin) return err("Admin not found.");
+
+    await prisma.user.update({
+      where: { id: adminId },
+      data: { isActive: !admin.isActive },
+    });
+
+    revalidatePath("/super-admin/admins");
+    revalidatePath(`/super-admin/admins/${adminId}`);
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update admin status");
+  }
+}
+
 export async function moveCampus(studentId: string, newCampusId: string) {
   try {
     await prisma.user.update({
