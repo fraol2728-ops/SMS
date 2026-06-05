@@ -543,14 +543,73 @@ export async function updateStudent(id: string, formData: FormData) {
 
 export async function deleteStudent(id: string) {
   try {
-    await prisma.enrollment.updateMany({
-      where: { student: { userId: id } },
-      data: { status: "DROPPED" },
+    // Delete all related data in transaction for atomicity
+    await prisma.$transaction(async (tx) => {
+      // Get student profile ID first
+      const user = await tx.user.findUnique({
+        where: { id },
+        select: { studentProfile: { select: { id: true } } },
+      });
+
+      if (user?.studentProfile?.id) {
+        const studentProfileId = user.studentProfile.id;
+
+        // Delete all enrollments and related records
+        const enrollments = await tx.enrollment.findMany({
+          where: { studentId: studentProfileId },
+          select: { id: true },
+        });
+
+        for (const enrollment of enrollments) {
+          // Delete attendance records
+          await tx.attendance.deleteMany({
+            where: { enrollmentId: enrollment.id },
+          });
+
+          // Delete payments
+          await tx.payment.deleteMany({
+            where: { enrollmentId: enrollment.id },
+          });
+
+          // Delete payment remaining
+          await tx.paymentRemaining.deleteMany({
+            where: { enrollmentId: enrollment.id },
+          });
+        }
+
+        // Delete enrollments
+        await tx.enrollment.deleteMany({
+          where: { studentId: studentProfileId },
+        });
+
+        // Delete assessment
+        await tx.studentAssessment.deleteMany({
+          where: { studentId: studentProfileId },
+        });
+
+        // Delete student notifications
+        await tx.studentNotification.deleteMany({
+          where: { studentId: id },
+        });
+
+        // Delete student profile
+        await tx.studentProfile.delete({
+          where: { id: studentProfileId },
+        });
+      }
+
+      // Delete user
+      await tx.user.delete({
+        where: { id },
+      });
     });
+
     revalidatePath("/admin/students");
+    revalidatePath("/super-admin/students");
     return ok;
-  } catch (_e) {
-    return err("Failed");
+  } catch (e) {
+    console.error("Delete student error:", e);
+    return err("Failed to delete student and associated data.");
   }
 }
 

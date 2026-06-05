@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { AddCOCModal } from "@/components/admin/students/AddCOCModal";
 import { ChangeClassModal } from "@/components/admin/students/ChangeClassModal";
 import { ClaimCertificateModal } from "@/components/admin/students/ClaimCertificateModal";
+import { DeleteButton } from "@/components/admin/students/DeleteButton";
 import { DropButton } from "@/components/admin/students/DropButton";
 import { WithdrawModal } from "@/components/admin/students/WithdrawModal";
 import { ContactButtons } from "@/components/shared/ContactButtons";
@@ -291,6 +292,10 @@ export default async function StudentDetailPage({
                       />
                     </div>
                   ) : null}
+                  <DeleteButton
+                    studentId={student.id}
+                    studentName={`${student.firstName} ${student.lastName}`}
+                  />
                 </div>
               </div>
             </div>
