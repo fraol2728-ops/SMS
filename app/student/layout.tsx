@@ -1,7 +1,9 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { StudentShell } from "@/components/student/layout/StudentShell";
+import { getAuthRole } from "@/lib/clerk-role";
 import { prisma } from "@/lib/prisma";
+import { resolveStudentUser } from "@/lib/resolve-student-user";
 
 const studentUserInclude = {
   studentProfile: {
@@ -32,43 +34,27 @@ export default async function StudentLayout({
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  // Read role directly from Clerk publicMetadata — most reliable.
   const clerkUser = await currentUser();
-  const role = clerkUser?.publicMetadata?.role as string | undefined;
+  const email = clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase();
 
-  if (role !== "STUDENT") {
+  const dbUser = await resolveStudentUser(
+    userId,
+    email,
+    studentUserInclude,
+  );
+
+  const clerkRole = await getAuthRole();
+  const effectiveRole = clerkRole ?? dbUser?.role;
+
+  if (effectiveRole !== "STUDENT") {
     redirect("/unauthorized?reason=not-student");
   }
 
-  // Find or sync DB user.
-  let dbUser = await prisma.user.findUnique({
-    where: { clerkId: userId },
-    include: studentUserInclude,
-  });
-
-  // If DB user not found, try by email and sync clerkId.
   if (!dbUser) {
-    const email = clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase();
-
-    if (email) {
-      const byEmail = await prisma.user.findUnique({
-        where: { email },
-        include: studentUserInclude,
-      });
-
-      if (byEmail) {
-        dbUser = await prisma.user.update({
-          where: { email },
-          data: { clerkId: userId },
-          include: studentUserInclude,
-        });
-      }
-    }
+    redirect("/unauthorized?reason=no-profile");
   }
 
-  if (!dbUser) {
-    // Student exists in Clerk but not in DB.
-    // Show a helpful page instead of a generic unauthorized message.
+  if (!dbUser.studentProfile) {
     redirect("/unauthorized?reason=no-profile");
   }
 
