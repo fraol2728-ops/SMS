@@ -315,14 +315,39 @@ export async function createStudent(input: ActionInput) {
     if (isRealEmail) {
       try {
         const clerk = await clerkClient();
-        await clerk.invitations.createInvitation({
-          emailAddress: email,
-          publicMetadata: { role: "STUDENT", campusId },
-          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student`,
-          ignoreExisting: true,
+
+        // Check if user already exists in Clerk
+        const existingUsers = await clerk.users.getUserList({
+          emailAddress: [email],
         });
+
+        if (existingUsers.totalCount > 0) {
+          // User already exists — set role directly
+          const existingClerkUser = existingUsers.data[0];
+          await clerk.users.updateUser(existingClerkUser.id, {
+            publicMetadata: { role: "STUDENT" },
+          });
+
+          // Update DB with real clerkId
+          await prisma.user.update({
+            where: { email },
+            data: { clerkId: existingClerkUser.id },
+          });
+
+          console.log(
+            `Set STUDENT role directly on existing Clerk user: ${email}`,
+          );
+        } else {
+          // Send invitation
+          await clerk.invitations.createInvitation({
+            emailAddress: email,
+            publicMetadata: { role: "STUDENT" },
+            redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student`,
+            ignoreExisting: true,
+          });
+        }
       } catch (clerkError) {
-        console.error("Clerk invitation failed:", clerkError);
+        console.error("Clerk error:", clerkError);
       }
     }
 
@@ -671,14 +696,33 @@ export async function createTeacher(formData: FormData) {
 
     try {
       const clerk = await clerkClient();
-      await clerk.invitations.createInvitation({
-        emailAddress: email,
-        publicMetadata: { role: "TEACHER", campusId },
-        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/teacher`,
-        ignoreExisting: true,
+
+      const existingUsers = await clerk.users.getUserList({
+        emailAddress: [email],
       });
+
+      if (existingUsers.totalCount > 0) {
+        const existingClerkUser = existingUsers.data[0];
+        await clerk.users.updateUser(existingClerkUser.id, {
+          publicMetadata: { role: "TEACHER" },
+        });
+        await prisma.user.update({
+          where: { email },
+          data: { clerkId: existingClerkUser.id },
+        });
+        console.log(
+          `Set TEACHER role directly on existing Clerk user: ${email}`,
+        );
+      } else {
+        await clerk.invitations.createInvitation({
+          emailAddress: email,
+          publicMetadata: { role: "TEACHER" },
+          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/teacher`,
+          ignoreExisting: true,
+        });
+      }
     } catch (clerkError) {
-      console.error("Clerk invitation failed:", clerkError);
+      console.error("Clerk error:", clerkError);
     }
 
     revalidatePath("/admin/teachers");

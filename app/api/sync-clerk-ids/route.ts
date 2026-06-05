@@ -1,4 +1,4 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -11,56 +11,66 @@ export async function GET() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Get Clerk user email.
-    const clerk = await clerkClient();
-    const clerkUser = await clerk.users.getUser(clerkId);
-    const email = clerkUser.emailAddresses[0]?.emailAddress;
+    // Get Clerk user
+    const clerkUser = await currentUser();
+    const email = clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase();
 
     if (!email) {
       return NextResponse.json({ error: "No email found" }, { status: 400 });
     }
 
-    // Find DB user by email.
+    // Find in DB by email
     const dbUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email },
+      select: { id: true, role: true, clerkId: true, campusId: true },
     });
 
     if (!dbUser) {
       return NextResponse.json(
         {
-          error: "User not found in DB",
+          error: "User not found in database",
           email,
-          clerkId,
+          suggestion: "Ask your administrator to register you first",
         },
         { status: 404 },
       );
     }
 
-    if (dbUser.clerkId === clerkId) {
-      return NextResponse.json({
-        message: "Already in sync",
-        clerkId,
-        email,
+    // Update clerkId in DB
+    if (dbUser.clerkId !== clerkId) {
+      await prisma.user.update({
+        where: { email },
+        data: { clerkId },
       });
     }
 
-    // Update the clerkId.
-    await prisma.user.update({
-      where: { email: email.toLowerCase() },
-      data: { clerkId },
+    // Set role on Clerk
+    const metadataToSet: Record<string, unknown> = {
+      role: dbUser.role,
+    };
+    if (dbUser.role === "ADMIN" && dbUser.campusId) {
+      metadataToSet.campusId = dbUser.campusId;
+    }
+
+    const clerk = await clerkClient();
+    await clerk.users.updateUser(clerkId, {
+      publicMetadata: metadataToSet,
     });
 
     return NextResponse.json({
-      message: "ClerkId synced successfully",
+      success: true,
+      message: `Role '${dbUser.role}' has been set on your account.`,
       email,
-      oldClerkId: dbUser.clerkId,
-      newClerkId: clerkId,
+      role: dbUser.role,
+      instruction:
+        "Please sign out and sign back in for the changes to take effect.",
     });
   } catch (error) {
+    console.error("Sync error:", error);
     return NextResponse.json(
       {
-        error: "Failed",
-        details: error instanceof Error ? error.message : "Unknown",
+        error: "Failed to sync",
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 },
     );
