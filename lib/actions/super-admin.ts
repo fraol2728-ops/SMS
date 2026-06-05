@@ -157,24 +157,6 @@ export async function deleteAdmin(adminId: string) {
   }
 }
 
-export async function toggleBlockAdmin(adminId: string) {
-  try {
-    const admin = await prisma.user.findUnique({ where: { id: adminId } });
-    if (!admin) return err("Admin not found.");
-
-    await prisma.user.update({
-      where: { id: adminId },
-      data: { isActive: !admin.isActive },
-    });
-
-    revalidatePath("/super-admin/admins");
-    revalidatePath(`/super-admin/admins/${adminId}`);
-    return ok;
-  } catch (e) {
-    return err(e instanceof Error ? e.message : "Failed to update admin status");
-  }
-}
-
 export async function moveCampus(studentId: string, newCampusId: string) {
   try {
     await prisma.user.update({

@@ -37,16 +37,9 @@ export default async function SuperAdminAdminsPage() {
                   {admin.lastName[0]}
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold dark:text-white">
-                      {admin.firstName} {admin.lastName}
-                    </p>
-                    {!admin.isActive && (
-                      <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                        Blocked
-                      </span>
-                    )}
-                  </div>
+                  <p className="font-semibold dark:text-white">
+                    {admin.firstName} {admin.lastName}
+                  </p>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${admin.role === "SUPER_ADMIN" ? "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" : "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"}`}
                   >
