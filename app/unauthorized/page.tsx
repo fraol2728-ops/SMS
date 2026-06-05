@@ -1,14 +1,15 @@
 import { SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
 
-export default function UnauthorizedPage({
+export default async function UnauthorizedPage({
   searchParams,
 }: {
-  searchParams?: { reason?: string };
+  searchParams?: Promise<{ reason?: string }>;
 }) {
-  const reason = searchParams?.reason;
+  const { reason } = (await searchParams) ?? {};
   const isNoRole = reason === "no-role";
   const isNoProfile = reason === "no-profile";
+  const isNotStudent = reason === "not-student";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gray-50">
@@ -32,6 +33,12 @@ export default function UnauthorizedPage({
           <p className="text-gray-500 mb-6">
             Your student account was registered but your profile is not set up
             yet. Please contact your administrator.
+          </p>
+        ) : isNotStudent ? (
+          <p className="text-gray-500 mb-6">
+            This area is for student accounts only. Sign in with the student
+            email your administrator registered, or contact them if you believe
+            this is a mistake.
           </p>
         ) : (
           <>

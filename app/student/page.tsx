@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import {
   Award,
   Bell,
@@ -14,14 +14,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { resolveStudentUser } from "@/lib/resolve-student-user";
 
 export default async function StudentDashboard() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const student = await prisma.user.findUnique({
-    where: { clerkId: userId },
-    include: {
+  const clerkUser = await currentUser();
+  const email = clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase();
+
+  const student = await resolveStudentUser(userId, email, {
       campus: true,
       studentProfile: {
         include: {
@@ -45,10 +47,11 @@ export default async function StudentDashboard() {
           certificates: { orderBy: { issuedAt: "desc" }, take: 1 },
         },
       },
-    },
   });
 
-  if (!student?.studentProfile) redirect("/unauthorized");
+  if (!student?.studentProfile) {
+    redirect("/unauthorized?reason=no-profile");
+  }
 
   const enrollment = student.studentProfile.enrollments[0];
   const classRecord = enrollment?.class;

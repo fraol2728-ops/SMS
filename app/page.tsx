@@ -1,13 +1,13 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { HomeClient } from "@/components/home/HomeClient";
+import { getAuthRole } from "@/lib/clerk-role";
 
 export default async function HomePage() {
   const { userId } = await auth();
 
   if (userId) {
-    const user = await currentUser();
-    const role = user?.publicMetadata?.role as string | undefined;
+    const role = await getAuthRole();
     if (role === "SUPER_ADMIN") redirect("/super-admin");
     if (role === "ADMIN") redirect("/admin");
     if (role === "TEACHER") redirect("/teacher");
