@@ -4,30 +4,41 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { Pagination } from "@/components/shared/Pagination";
 import { prisma } from "@/lib/prisma";
 
 export default async function SuperAdminStudentsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ campusId?: string }>;
+  searchParams?: Promise<{ campusId?: string; page?: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const { campusId } = (await searchParams) ?? {};
+  const { campusId, page } = (await searchParams) ?? {};
+  const PAGE_SIZE = 20;
+  const currentPage = Math.max(1, Number(page ?? 1) || 1);
+  const where = campusId ? { user: { campusId } } : {};
 
-  const students = await prisma.studentProfile.findMany({
-    where: campusId ? { user: { campusId } } : {},
-    include: {
-      user: true,
-      enrollments: {
-        where: { status: "ACTIVE" },
-        include: { class: { include: { course: true, lab: true } } },
-        take: 1,
+  const [students, totalCount] = await Promise.all([
+    prisma.studentProfile.findMany({
+      where,
+      include: {
+        user: true,
+        enrollments: {
+          where: { status: "ACTIVE" },
+          include: { class: { include: { course: true, lab: true } } },
+          take: 1,
+        },
       },
-    },
-    orderBy: { registrationDate: "desc" },
-  });
+      orderBy: { registrationDate: "desc" },
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.studentProfile.count({ where }),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -132,6 +143,12 @@ export default async function SuperAdminStudentsPage({
           <div className="py-12 text-center text-gray-400">No students yet</div>
         ) : null}
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalCount}
+        itemsPerPage={PAGE_SIZE}
+      />
     </div>
   );
 }

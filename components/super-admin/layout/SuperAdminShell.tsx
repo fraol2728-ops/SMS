@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Footer } from "@/components/shared/Footer";
 import { CampusRail } from "./CampusRail";
 import { SuperAdminHeader } from "./SuperAdminHeader";
 import { SuperAdminSidebar } from "./SuperAdminSidebar";
@@ -98,6 +99,7 @@ export function SuperAdminShell({
           onMenuClick={() => setSidebarOpen(true)}
         />
         <main className="flex-1 overflow-x-hidden p-4 sm:p-6">{children}</main>
+        <Footer />
       </div>
     </div>
   );

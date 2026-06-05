@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AdminHeader } from "@/components/admin/layout/AdminHeader";
 import { AdminSidebar } from "@/components/admin/layout/AdminSidebar";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { Footer } from "@/components/shared/Footer";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminLayout({
@@ -40,6 +41,7 @@ export default async function AdminLayout({
           <main className="flex-1 overflow-x-hidden p-4 sm:p-6">
             {children}
           </main>
+          <Footer />
         </div>
       </div>
     </ThemeProvider>
