@@ -42,7 +42,6 @@ export default async function StudentDashboard() {
               payments: { orderBy: { createdAt: "desc" }, take: 1 },
               paymentRemaining: true,
             },
-            take: 1,
           },
           certificates: { orderBy: { issuedAt: "desc" }, take: 1 },
         },
@@ -78,6 +77,7 @@ export default async function StudentDashboard() {
   const isTTS = [2, 4, 6].includes(dayOfWeek);
   const hasClassToday =
     classRecord &&
+    classRecord.status !== "REGISTRATION" &&
     ((classRecord.days === "MWF" && isMWF) ||
       (classRecord.days === "TTS" && isTTS) ||
       classRecord.classType === "ONLINE");
@@ -257,7 +257,7 @@ export default async function StudentDashboard() {
               <div className="mb-4 flex items-start justify-between">
                 <div>
                   <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                    My Class
+                    Primary Class
                   </p>
                   <h2 className="text-xl font-bold text-gray-900">
                     {classRecord.course.title}
@@ -277,7 +277,16 @@ export default async function StudentDashboard() {
                   {CLASS_DAYS[classRecord.days as keyof typeof CLASS_DAYS]}
                 </div>
               </div>
-              {progressPercent > 0 && (
+              {classRecord.status === "REGISTRATION" ? (
+                <div className="rounded-2xl bg-amber-50 p-3">
+                  <p className="text-sm font-semibold text-amber-900">
+                    ⏳ The class is on registration
+                  </p>
+                  <p className="mt-1 text-xs text-amber-700">
+                    Starts on {classRecord.startDate ? new Date(classRecord.startDate).toLocaleDateString("en-GB") : "TBD"}
+                  </p>
+                </div>
+              ) : progressPercent > 0 && (
                 <div>
                   <div className="mb-1.5 flex justify-between text-xs text-gray-400">
                     <span>Course Progress</span>
@@ -346,6 +355,101 @@ export default async function StudentDashboard() {
           )}
         </div>
       </div>
+
+      {student.studentProfile.enrollments.length > 1 && (
+        <div>
+          <h2 className="mb-4 text-lg font-bold text-gray-900">All Enrolled Courses</h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {student.studentProfile.enrollments.map((enrollmentItem) => {
+              const classData = enrollmentItem.class;
+              const attendanceData = enrollmentItem.attendance ?? [];
+              const presentCount = attendanceData.filter((a) => a.status === "PRESENT").length;
+              const totalCount = attendanceData.length;
+              const attendanceRate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+
+              const totalDaysClass =
+                classData?.startDate && classData?.endDate
+                  ? Math.ceil(
+                      (classData.endDate.getTime() - classData.startDate.getTime()) /
+                        (1000 * 60 * 60 * 24),
+                    )
+                  : 0;
+              const elapsedDaysClass = classData?.startDate
+                ? Math.max(
+                    0,
+                    Math.ceil(
+                      (today.getTime() - classData.startDate.getTime()) /
+                        (1000 * 60 * 60 * 24),
+                    ),
+                  )
+                : 0;
+              const progressPercentClass = totalDaysClass > 0
+                ? Math.min(100, Math.round((elapsedDaysClass / totalDaysClass) * 100))
+                : 0;
+
+              return (
+                <div key={enrollmentItem.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+                  <div className="mb-3 flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        {classData?.course.title}
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {classData?.course.code}
+                      </p>
+                    </div>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100">
+                      <BookOpen size={18} className="text-blue-600" />
+                    </div>
+                  </div>
+                  
+                  <div className="mb-3 space-y-1.5 text-xs text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <Clock size={12} />
+                      {TIME_SLOTS[classData?.timeSlot as keyof typeof TIME_SLOTS] || "Online"}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar size={12} />
+                      {CLASS_DAYS[classData?.days as keyof typeof CLASS_DAYS] || "Online"}
+                    </div>
+                  </div>
+
+                  {classData?.status === "REGISTRATION" ? (
+                    <div className="rounded-lg bg-amber-50 px-2 py-1.5">
+                      <p className="text-xs font-semibold text-amber-900">⏳ On registration</p>
+                      <p className="mt-0.5 text-xs text-amber-700">
+                        Starts {classData?.startDate ? new Date(classData.startDate).toLocaleDateString("en-GB") : "TBD"}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-3 flex gap-2 text-xs">
+                        <div className="flex-1 rounded-lg bg-blue-50 px-2 py-1.5">
+                          <p className="font-semibold text-blue-900">{attendanceRate}%</p>
+                          <p className="text-blue-600">Attendance</p>
+                        </div>
+                        <div className="flex-1 rounded-lg bg-green-50 px-2 py-1.5">
+                          <p className="font-semibold text-green-900">{progressPercentClass}%</p>
+                          <p className="text-green-600">Progress</p>
+                        </div>
+                      </div>
+
+                      {progressPercentClass > 0 && (
+                        <div className="h-1.5 w-full rounded-full bg-gray-100">
+                          <div
+                            className="h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600"
+                            style={{ width: `${progressPercentClass}%` }}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

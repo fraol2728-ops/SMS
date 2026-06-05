@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CalculatorWidget from "@/components/ui/CalculatorWidget";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StudentForm } from "@/components/admin/students/StudentForm";
 import { requireAdmin } from "@/lib/auth-check";
@@ -67,6 +68,7 @@ export default async function NewStudentPage({
           phone: params.phone,
         }}
       />
+      <CalculatorWidget />
     </div>
   );
 }

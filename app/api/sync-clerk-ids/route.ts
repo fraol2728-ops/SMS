@@ -48,7 +48,7 @@ export async function GET() {
     const metadataToSet: Record<string, unknown> = {
       role: dbUser.role,
     };
-    if (dbUser.role === "ADMIN" && dbUser.campusId) {
+    if ((dbUser.role === "ADMIN" || dbUser.role === "STUDENT") && dbUser.campusId) {
       metadataToSet.campusId = dbUser.campusId;
     }
 

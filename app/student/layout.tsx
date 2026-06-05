@@ -47,6 +47,20 @@ export default async function StudentLayout({
   const effectiveRole = clerkRole ?? dbUser?.role;
 
   if (effectiveRole !== "STUDENT") {
+    // If we found a STUDENT in DB but Clerk role isn't set, update it now
+    if (dbUser?.role === "STUDENT" && !clerkRole && userId) {
+      try {
+        const { clerkClient } = await import("@clerk/nextjs/server");
+        const clerk = await clerkClient();
+        await clerk.users.updateUser(userId, {
+          publicMetadata: { role: "STUDENT" },
+        });
+        console.log(`✅ Updated Clerk role for student ${userId}`);
+      } catch (err) {
+        console.error("Failed to update Clerk role:", err);
+      }
+    }
+
     redirect("/unauthorized?reason=not-student");
   }
 

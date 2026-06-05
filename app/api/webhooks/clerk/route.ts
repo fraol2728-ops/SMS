@@ -107,8 +107,8 @@ export async function POST(req: Request) {
         role: dbUser.role,
       };
 
-      // Add campusId for ADMIN role
-      if (dbUser.role === "ADMIN" && dbUser.campusId) {
+      // Add campusId for ADMIN/STUDENT roles if applicable
+      if ((dbUser.role === "ADMIN" || dbUser.role === "STUDENT") && dbUser.campusId) {
         metadataToSet.campusId = dbUser.campusId;
       }
 
