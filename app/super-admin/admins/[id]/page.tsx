@@ -1,11 +1,10 @@
 export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
-import { Phone, Trash2, Lock, Unlock } from "lucide-react";
+import { Phone } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DeleteAdminButton } from "@/components/super-admin/DeleteAdminButton";
-import { BlockAdminButton } from "@/components/super-admin/BlockAdminButton";
 import { prisma } from "@/lib/prisma";
 
 export default async function SuperAdminAdminDetailPage({
@@ -45,16 +44,9 @@ export default async function SuperAdminAdminDetailPage({
               {admin.lastName[0]}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-bold text-2xl dark:text-white">
-                  {admin.firstName} {admin.lastName}
-                </h1>
-                {!admin.isActive && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                    <Lock size={12} /> Blocked
-                  </span>
-                )}
-              </div>
+              <h1 className="font-bold text-2xl dark:text-white">
+                {admin.firstName} {admin.lastName}
+              </h1>
               <span
                 className={`rounded-full px-2 py-1 font-medium text-xs ${admin.role === "SUPER_ADMIN" ? "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" : "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"}`}
               >
@@ -104,7 +96,6 @@ export default async function SuperAdminAdminDetailPage({
               ✏️ Edit
             </button>
           </Link>
-          <BlockAdminButton adminId={admin.id} isActive={admin.isActive} />
           <DeleteAdminButton adminId={admin.id} />
         </div>
       </div>
