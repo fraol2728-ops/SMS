@@ -395,7 +395,7 @@ export default async function StudentDashboard() {
                         {classData?.course.title}
                       </h3>
                       <p className="text-xs text-gray-500">
-                        {classData?.course.code}
+                        {classData?.course.slug}
                       </p>
                     </div>
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100">
