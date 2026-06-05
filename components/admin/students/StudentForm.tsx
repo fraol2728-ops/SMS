@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AssessmentSection } from "@/components/admin/students/AssessmentSection";
 import { EnrollmentSection } from "@/components/admin/students/EnrollmentSection";
+import { EmailValidationInput } from "@/components/admin/students/EmailValidationInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -281,17 +282,12 @@ export function StudentForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email (optional)</Label>
-            <Input
+            <EmailValidationInput
               id="email"
               name="email"
-              type="email"
               placeholder="Student email address"
               defaultValue={defaultValues?.email ?? ""}
             />
-            <p className="text-xs text-muted-foreground">
-              If no email provided, a system email will be generated
-              automatically.
-            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>
