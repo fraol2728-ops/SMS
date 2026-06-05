@@ -69,9 +69,6 @@ export default async function CoursesPage() {
                 <Button asChild size="sm" variant="outline">
                   <Link href={`/admin/courses/${r.id}`}>View</Link>
                 </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link href={`/admin/courses/${r.id}/edit`}>Edit</Link>
-                </Button>
               </div>
             ),
           },

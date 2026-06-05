@@ -3,11 +3,13 @@
 import { UserButton } from "@clerk/nextjs";
 import { Bell, Menu } from "lucide-react";
 import Link from "next/link";
+import { GlobalSearch } from "@/components/shared/GlobalSearch";
 
 type AdminLayoutUser = {
   firstName: string;
   lastName: string;
   role: string;
+  campusId?: string | null;
   campus?: { name: string } | null;
 };
 
@@ -19,7 +21,7 @@ export function AdminHeader({ user }: { user: AdminLayoutUser }) {
   const now = new Date();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center justify-between border-b bg-white dark:border-gray-700 dark:bg-gray-900 px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center gap-3 border-b bg-white px-4 dark:border-gray-700 dark:bg-gray-900 sm:px-6">
       <div className="flex items-center gap-3">
         <button
           aria-label="Open navigation"
@@ -41,7 +43,11 @@ export function AdminHeader({ user }: { user: AdminLayoutUser }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="max-w-sm flex-1">
+        <GlobalSearch portal="admin" campusId={user.campusId ?? undefined} />
+      </div>
+
+      <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <Link href="/admin/notifications">
           <button
             className="relative rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
