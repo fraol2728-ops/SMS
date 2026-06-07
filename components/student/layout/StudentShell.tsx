@@ -1,8 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Footer } from "@/components/shared/Footer";
+import type { ExistingFeedback } from "../FeedbackForm";
 import { StudentHeader } from "./StudentHeader";
 import { StudentSidebar } from "./StudentSidebar";
 
@@ -10,10 +12,27 @@ export function StudentShell({
   user,
   unreadCount,
   children,
+  enrollmentId,
+  classId,
+  showFeedbackModal,
+  existingFeedback,
 }: {
-  user: { firstName?: string | null };
+  user: {
+    firstName?: string | null;
+    lastName?: string | null;
+    studentProfile?: {
+      studentCode?: string | null;
+      enrollments?: Array<{
+        class?: { course?: { title?: string | null } | null } | null;
+      }>;
+    } | null;
+  };
   unreadCount: number;
-  children: React.ReactNode;
+  children: ReactNode;
+  enrollmentId?: string;
+  classId?: string | null;
+  showFeedbackModal?: boolean;
+  existingFeedback?: ExistingFeedback | null;
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,6 +58,10 @@ export function StudentShell({
         unreadCount={unreadCount}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        enrollmentId={enrollmentId}
+        classId={classId}
+        showFeedbackModal={showFeedbackModal}
+        existingFeedback={existingFeedback}
       />
       <div className="flex min-h-screen flex-col lg:ml-72">
         <StudentHeader
