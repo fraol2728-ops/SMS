@@ -3,6 +3,7 @@
 import { SignOutButton } from "@clerk/nextjs";
 import {
   BookOpen,
+  CalendarDays,
   CheckSquare,
   ChevronRight,
   ClipboardCheck,
@@ -28,6 +29,7 @@ const NAV_LINKS = [
   { href: "/teacher/students", label: "My Students", icon: Users },
   { href: "/teacher/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/teacher/mail", label: "Mail", icon: Mail },
+  { href: "/teacher/events", label: "Events", icon: CalendarDays },
   { href: "/teacher/reports", label: "Reports", icon: FileText },
   { href: "/teacher/materials", label: "Materials", icon: FolderOpen },
   { href: "/teacher/inventory", label: "Inventory", icon: Package },
