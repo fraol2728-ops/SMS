@@ -219,14 +219,6 @@ export default async function StudentClassPage() {
                     <p className="truncate text-sm font-semibold text-gray-900">
                       {classmate.firstName} {classmate.lastName}
                     </p>
-                    {classmate.phone && (
-                      <a
-                        href={`tel:${classmate.phone}`}
-                        className="mt-0.5 flex items-center gap-1 text-xs text-green-600 hover:text-green-800"
-                      >
-                        <Phone size={10} /> {classmate.phone}
-                      </a>
-                    )}
                   </div>
                 </div>
               );
