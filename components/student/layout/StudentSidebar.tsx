@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   Award,
   Bell,
@@ -136,17 +137,14 @@ function SidebarContent({
     <div className="flex h-full flex-col border-r border-gray-100 bg-white shadow-xl">
       <div className="border-b border-gray-100 p-6">
         <div className="mb-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm">
-              <span className="text-sm font-black text-white">E</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-black leading-none text-gray-900">
-                Exceed
-              </h1>
-              <p className="mt-0.5 text-xs text-gray-400">Student Portal</p>
-            </div>
-          </div>
+          <Image
+            src="/Exceed Logo  with Mottto.png"
+            alt="Exceed Logo"
+            width={120}
+            height={40}
+            className="h-auto"
+            priority
+          />
           <button
             type="button"
             onClick={onClose}
