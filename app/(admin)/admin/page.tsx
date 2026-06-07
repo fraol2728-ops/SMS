@@ -1,5 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { BookOpen, CreditCard, GraduationCap, Users } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 import { ActivityTableCard } from "@/components/admin/dashboard/ActivityTableCard";
 import { DashboardHero } from "@/components/admin/dashboard/DashboardHero";
 import { PaymentAlerts } from "@/components/admin/dashboard/PaymentAlerts";
@@ -76,6 +78,7 @@ export default async function AdminPage() {
     recentPayments,
     overduePayments,
     dueSoonPayments,
+    nextEvent,
   ] = await Promise.all([
     prisma.user.count({
       where: { role: "STUDENT", ...(campusId ? { campusId } : {}) },
@@ -164,6 +167,14 @@ export default async function AdminPage() {
           class: campusId ? { campusId } : undefined,
         },
       },
+    }),
+    prisma.event.findFirst({
+      where: {
+        campusId: campusId ?? undefined,
+        isActive: true,
+        date: { gte: new Date() },
+      },
+      orderBy: { date: "asc" },
     }),
   ]);
 
@@ -262,6 +273,44 @@ export default async function AdminPage() {
           />
         </div>
       </section>
+
+      {nextEvent && (
+        <Link href="/admin/events">
+          <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 p-4 transition-opacity hover:opacity-90">
+            <div className="flex items-center gap-3">
+              {nextEvent.thumbnailUrl ? (
+                <Image
+                  src={nextEvent.thumbnailUrl}
+                  alt=""
+                  width={48}
+                  height={48}
+                  unoptimized
+                  className="h-12 w-12 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 text-2xl">
+                  🎉
+                </div>
+              )}
+              <div>
+                <p className="font-medium text-purple-200 text-xs">
+                  Upcoming Event
+                </p>
+                <p className="font-bold text-white">{nextEvent.title}</p>
+                <p className="text-purple-200 text-xs">
+                  {new Date(nextEvent.date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}{" "}
+                  • {nextEvent.time}
+                </p>
+              </div>
+            </div>
+            <span className="text-white text-xl">→</span>
+          </div>
+        </Link>
+      )}
 
       <section>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

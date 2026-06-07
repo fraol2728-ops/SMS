@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireTeacher } from "@/lib/auth-check";
@@ -73,6 +74,15 @@ export default async function TeacherDashboard() {
     _count: true,
   });
 
+  const nextEvent = await prisma.event.findFirst({
+    where: {
+      campusId: teacher.campusId ?? undefined,
+      isActive: true,
+      date: { gte: new Date() },
+    },
+    orderBy: { date: "asc" },
+  });
+
   const presentCount =
     attendanceStats.find((a: any) => a.status === "PRESENT")?._count ?? 0;
   const absentCount =
@@ -85,6 +95,44 @@ export default async function TeacherDashboard() {
 
   return (
     <div className="space-y-6">
+      {nextEvent && (
+        <Link href="/teacher/events">
+          <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 p-4 transition-opacity hover:opacity-90">
+            <div className="flex items-center gap-3">
+              {nextEvent.thumbnailUrl ? (
+                <Image
+                  src={nextEvent.thumbnailUrl}
+                  alt=""
+                  width={48}
+                  height={48}
+                  unoptimized
+                  className="h-12 w-12 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 text-2xl">
+                  🎉
+                </div>
+              )}
+              <div>
+                <p className="font-medium text-purple-200 text-xs">
+                  Upcoming Event
+                </p>
+                <p className="font-bold text-white">{nextEvent.title}</p>
+                <p className="text-purple-200 text-xs">
+                  {new Date(nextEvent.date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}{" "}
+                  • {nextEvent.time}
+                </p>
+              </div>
+            </div>
+            <span className="text-white text-xl">→</span>
+          </div>
+        </Link>
+      )}
+
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           {

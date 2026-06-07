@@ -5,6 +5,7 @@ import {
   Award,
   Bell,
   BookOpen,
+  CalendarDays,
   ChevronRight,
   ClipboardCheck,
   CreditCard,
@@ -44,6 +45,7 @@ const NAV_LINKS = [
   { href: "/student/materials", label: "Materials", icon: FolderOpen },
   { href: "/student/certificate", label: "Certificate", icon: Award },
   { href: "/student/notifications", label: "Notifications", icon: Bell },
+  { href: "/student/events", label: "Events", icon: CalendarDays },
   { href: "/student/profile", label: "My Profile", icon: User },
 ];
 

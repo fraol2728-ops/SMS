@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Check, X, AlertCircle } from "lucide-react";
+import { AlertCircle, Check, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type EmailValidationStatus = "idle" | "validating" | "valid" | "invalid";
 
@@ -9,15 +9,13 @@ type ValidationReason =
   | "invalid_format"
   | "email_already_exists"
   | "invalid_domain"
-  | "server_error"
-  | null;
+  | "server_error";
 
 const reasonMessages: Record<ValidationReason, string> = {
   invalid_format: "Invalid email format",
   email_already_exists: "Email already in use",
   invalid_domain: "Email domain is not active",
   server_error: "Error checking email",
-  null: "Email is not valid or available",
 };
 
 export function EmailValidationInput({
@@ -34,13 +32,7 @@ export function EmailValidationInput({
   const [email, setEmail] = useState(defaultValue);
   const [status, setStatus] = useState<EmailValidationStatus>("idle");
   const [touched, setTouched] = useState(false);
-  const [reason, setReason] = useState<ValidationReason>(null);
-
-  // Validate email format
-  const isValidEmailFormat = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const [reason, setReason] = useState<ValidationReason | null>(null);
 
   // Check if email is valid and active
   useEffect(() => {
@@ -50,7 +42,7 @@ export function EmailValidationInput({
       return;
     }
 
-    if (!isValidEmailFormat(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setStatus("invalid");
       setReason("invalid_format");
       return;
@@ -101,7 +93,7 @@ export function EmailValidationInput({
       case "valid":
         return "✓ Email is valid and available";
       case "invalid":
-        return `✗ ${reasonMessages[reason] || "Email is not valid or available"}`;
+        return `✗ ${reason ? reasonMessages[reason] : "Email is not valid or available"}`;
       default:
         return "If no email provided, a system email will be generated automatically.";
     }

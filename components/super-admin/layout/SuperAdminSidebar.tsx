@@ -7,6 +7,7 @@ import {
   BookOpen,
   Building2,
   Calendar,
+  CalendarDays,
   CheckSquare,
   ChevronRight,
   ClipboardCheck,
@@ -51,6 +52,7 @@ const CAMPUS_NAV = [
   { href: "/history", label: "History", icon: History },
   { href: "/inventory", label: "Inventory", icon: Package },
   { href: "/notifications", label: "Notifications", icon: Bell },
+  { href: "/events", label: "Events", icon: CalendarDays },
 ];
 
 const SUPER_ADMIN_NAV = [

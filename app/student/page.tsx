@@ -10,6 +10,7 @@ import {
   Clock,
   CreditCard,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
@@ -24,28 +25,28 @@ export default async function StudentDashboard() {
   const email = clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase();
 
   const student = await resolveStudentUser(userId, email, {
-      campus: true,
-      studentProfile: {
-        include: {
-          enrollments: {
-            where: { status: "ACTIVE" },
-            include: {
-              class: {
-                include: {
-                  course: true,
-                  lab: true,
-                  teacher: { include: { user: true } },
-                  materials: { orderBy: { createdAt: "desc" }, take: 3 },
-                },
+    campus: true,
+    studentProfile: {
+      include: {
+        enrollments: {
+          where: { status: "ACTIVE" },
+          include: {
+            class: {
+              include: {
+                course: true,
+                lab: true,
+                teacher: { include: { user: true } },
+                materials: { orderBy: { createdAt: "desc" }, take: 3 },
               },
-              attendance: { orderBy: { date: "desc" }, take: 30 },
-              payments: { orderBy: { createdAt: "desc" }, take: 1 },
-              paymentRemaining: true,
             },
+            attendance: { orderBy: { date: "desc" }, take: 30 },
+            payments: { orderBy: { createdAt: "desc" }, take: 1 },
+            paymentRemaining: true,
           },
-          certificates: { orderBy: { issuedAt: "desc" }, take: 1 },
         },
+        certificates: { orderBy: { issuedAt: "desc" }, take: 1 },
       },
+    },
   });
 
   if (!student?.studentProfile) {
@@ -86,6 +87,15 @@ export default async function StudentDashboard() {
     where: { studentId: student.id, isRead: false },
     orderBy: { createdAt: "desc" },
     take: 3,
+  });
+
+  const nextEvent = await prisma.event.findFirst({
+    where: {
+      campusId: student.campusId ?? undefined,
+      isActive: true,
+      date: { gte: new Date() },
+    },
+    orderBy: { date: "asc" },
   });
 
   const totalDays =
@@ -138,6 +148,44 @@ export default async function StudentDashboard() {
           )}
         </div>
       </div>
+
+      {nextEvent && (
+        <Link href="/student/events">
+          <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 p-4 transition-opacity hover:opacity-90">
+            <div className="flex items-center gap-3">
+              {nextEvent.thumbnailUrl ? (
+                <Image
+                  src={nextEvent.thumbnailUrl}
+                  alt=""
+                  width={48}
+                  height={48}
+                  unoptimized
+                  className="h-12 w-12 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 text-2xl">
+                  🎉
+                </div>
+              )}
+              <div>
+                <p className="font-medium text-purple-200 text-xs">
+                  Upcoming Event
+                </p>
+                <p className="font-bold text-white">{nextEvent.title}</p>
+                <p className="text-purple-200 text-xs">
+                  {new Date(nextEvent.date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}{" "}
+                  • {nextEvent.time}
+                </p>
+              </div>
+            </div>
+            <span className="text-white text-xl">→</span>
+          </div>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Link href="/student/attendance">
@@ -283,25 +331,32 @@ export default async function StudentDashboard() {
                     ⏳ The class is on registration
                   </p>
                   <p className="mt-1 text-xs text-amber-700">
-                    Starts on {classRecord.startDate ? new Date(classRecord.startDate).toLocaleDateString("en-GB") : "TBD"}
+                    Starts on{" "}
+                    {classRecord.startDate
+                      ? new Date(classRecord.startDate).toLocaleDateString(
+                          "en-GB",
+                        )
+                      : "TBD"}
                   </p>
                 </div>
-              ) : progressPercent > 0 && (
-                <div>
-                  <div className="mb-1.5 flex justify-between text-xs text-gray-400">
-                    <span>Course Progress</span>
-                    <span className="font-semibold">{progressPercent}%</span>
+              ) : (
+                progressPercent > 0 && (
+                  <div>
+                    <div className="mb-1.5 flex justify-between text-xs text-gray-400">
+                      <span>Course Progress</span>
+                      <span className="font-semibold">{progressPercent}%</span>
+                    </div>
+                    <div className="h-2.5 w-full rounded-full bg-gray-100">
+                      <div
+                        className="h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-400">
+                      Day {elapsedDays} of {totalDays}
+                    </p>
                   </div>
-                  <div className="h-2.5 w-full rounded-full bg-gray-100">
-                    <div
-                      className="h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-gray-400">
-                    Day {elapsedDays} of {totalDays}
-                  </p>
-                </div>
+                )
               )}
             </div>
           </Link>
@@ -358,19 +413,27 @@ export default async function StudentDashboard() {
 
       {student.studentProfile.enrollments.length > 1 && (
         <div>
-          <h2 className="mb-4 text-lg font-bold text-gray-900">All Enrolled Courses</h2>
+          <h2 className="mb-4 text-lg font-bold text-gray-900">
+            All Enrolled Courses
+          </h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {student.studentProfile.enrollments.map((enrollmentItem) => {
               const classData = enrollmentItem.class;
               const attendanceData = enrollmentItem.attendance ?? [];
-              const presentCount = attendanceData.filter((a) => a.status === "PRESENT").length;
+              const presentCount = attendanceData.filter(
+                (a) => a.status === "PRESENT",
+              ).length;
               const totalCount = attendanceData.length;
-              const attendanceRate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+              const attendanceRate =
+                totalCount > 0
+                  ? Math.round((presentCount / totalCount) * 100)
+                  : 0;
 
               const totalDaysClass =
                 classData?.startDate && classData?.endDate
                   ? Math.ceil(
-                      (classData.endDate.getTime() - classData.startDate.getTime()) /
+                      (classData.endDate.getTime() -
+                        classData.startDate.getTime()) /
                         (1000 * 60 * 60 * 24),
                     )
                   : 0;
@@ -383,12 +446,19 @@ export default async function StudentDashboard() {
                     ),
                   )
                 : 0;
-              const progressPercentClass = totalDaysClass > 0
-                ? Math.min(100, Math.round((elapsedDaysClass / totalDaysClass) * 100))
-                : 0;
+              const progressPercentClass =
+                totalDaysClass > 0
+                  ? Math.min(
+                      100,
+                      Math.round((elapsedDaysClass / totalDaysClass) * 100),
+                    )
+                  : 0;
 
               return (
-                <div key={enrollmentItem.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+                <div
+                  key={enrollmentItem.id}
+                  className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md"
+                >
                   <div className="mb-3 flex items-start justify-between">
                     <div>
                       <h3 className="font-semibold text-gray-900">
@@ -402,34 +472,48 @@ export default async function StudentDashboard() {
                       <BookOpen size={18} className="text-blue-600" />
                     </div>
                   </div>
-                  
+
                   <div className="mb-3 space-y-1.5 text-xs text-gray-500">
                     <div className="flex items-center gap-2">
                       <Clock size={12} />
-                      {TIME_SLOTS[classData?.timeSlot as keyof typeof TIME_SLOTS] || "Online"}
+                      {TIME_SLOTS[
+                        classData?.timeSlot as keyof typeof TIME_SLOTS
+                      ] || "Online"}
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar size={12} />
-                      {CLASS_DAYS[classData?.days as keyof typeof CLASS_DAYS] || "Online"}
+                      {CLASS_DAYS[classData?.days as keyof typeof CLASS_DAYS] ||
+                        "Online"}
                     </div>
                   </div>
 
                   {classData?.status === "REGISTRATION" ? (
                     <div className="rounded-lg bg-amber-50 px-2 py-1.5">
-                      <p className="text-xs font-semibold text-amber-900">⏳ On registration</p>
+                      <p className="text-xs font-semibold text-amber-900">
+                        ⏳ On registration
+                      </p>
                       <p className="mt-0.5 text-xs text-amber-700">
-                        Starts {classData?.startDate ? new Date(classData.startDate).toLocaleDateString("en-GB") : "TBD"}
+                        Starts{" "}
+                        {classData?.startDate
+                          ? new Date(classData.startDate).toLocaleDateString(
+                              "en-GB",
+                            )
+                          : "TBD"}
                       </p>
                     </div>
                   ) : (
                     <>
                       <div className="mb-3 flex gap-2 text-xs">
                         <div className="flex-1 rounded-lg bg-blue-50 px-2 py-1.5">
-                          <p className="font-semibold text-blue-900">{attendanceRate}%</p>
+                          <p className="font-semibold text-blue-900">
+                            {attendanceRate}%
+                          </p>
                           <p className="text-blue-600">Attendance</p>
                         </div>
                         <div className="flex-1 rounded-lg bg-green-50 px-2 py-1.5">
-                          <p className="font-semibold text-green-900">{progressPercentClass}%</p>
+                          <p className="font-semibold text-green-900">
+                            {progressPercentClass}%
+                          </p>
                           <p className="text-green-600">Progress</p>
                         </div>
                       </div>
