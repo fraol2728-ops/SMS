@@ -7,6 +7,7 @@ import {
   Bell,
   BookOpen,
   Calendar,
+  CalendarDays,
   CheckSquare,
   ChevronRight,
   ClipboardCheck,
@@ -53,6 +54,7 @@ const NAV_LINKS = [
   { href: "/admin/requests", label: "Requests", icon: MessageSquarePlus },
   { href: "/admin/inventory", label: "Inventory", icon: Package },
   { href: "/admin/notifications", label: "Notifications", icon: Bell },
+  { href: "/admin/events", label: "Events", icon: CalendarDays },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
