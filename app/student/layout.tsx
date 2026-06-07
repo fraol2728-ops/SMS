@@ -1,6 +1,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { StudentShell } from "@/components/student/layout/StudentShell";
+import {
+  getFeedbackForEnrollment,
+  shouldShowFeedbackModal,
+} from "@/lib/actions/feedback";
 import { getAuthRole } from "@/lib/clerk-role";
 import { prisma } from "@/lib/prisma";
 import { resolveStudentUser } from "@/lib/resolve-student-user";
@@ -37,11 +41,7 @@ export default async function StudentLayout({
   const clerkUser = await currentUser();
   const email = clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase();
 
-  const dbUser = await resolveStudentUser(
-    userId,
-    email,
-    studentUserInclude,
-  );
+  const dbUser = await resolveStudentUser(userId, email, studentUserInclude);
 
   const clerkRole = await getAuthRole();
   const effectiveRole = clerkRole ?? dbUser?.role;
@@ -78,8 +78,26 @@ export default async function StudentLayout({
     })
     .catch(() => 0);
 
+  const activeEnrollment = dbUser.studentProfile.enrollments?.[0];
+  const enrollmentId = activeEnrollment?.id;
+  const classId = activeEnrollment?.class?.id ?? null;
+
+  const showFeedbackModal = enrollmentId
+    ? await shouldShowFeedbackModal(enrollmentId)
+    : false;
+  const existingFeedback = enrollmentId
+    ? await getFeedbackForEnrollment(enrollmentId)
+    : null;
+
   return (
-    <StudentShell user={dbUser} unreadCount={unreadCount}>
+    <StudentShell
+      user={dbUser}
+      unreadCount={unreadCount}
+      enrollmentId={enrollmentId}
+      classId={classId}
+      showFeedbackModal={showFeedbackModal}
+      existingFeedback={existingFeedback}
+    >
       {children}
     </StudentShell>
   );

@@ -1,6 +1,5 @@
 "use client";
 
-import { SignOutButton } from "@clerk/nextjs";
 import {
   Award,
   Bell,
@@ -11,12 +10,14 @@ import {
   CreditCard,
   FolderOpen,
   LayoutDashboard,
-  LogOut,
+  MessageSquare,
   User,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ExistingFeedback } from "../FeedbackForm";
+import { FeedbackModal } from "../FeedbackModal";
 
 type StudentPortalUser = {
   firstName?: string | null;
@@ -29,12 +30,27 @@ type StudentPortalUser = {
   } | null;
 };
 
+interface StudentSidebarProps {
+  user: StudentPortalUser;
+  unreadCount: number;
+  open: boolean;
+  onClose: () => void;
+  enrollmentId?: string;
+  classId?: string | null;
+  showFeedbackModal?: boolean;
+  existingFeedback?: ExistingFeedback | null;
+}
+
 type SidebarContentProps = {
   user: StudentPortalUser;
   courseName?: string | null;
   unreadCount: number;
   isActive: (href: string, exact?: boolean) => boolean;
   onClose: () => void;
+  enrollmentId?: string;
+  classId?: string | null;
+  showFeedbackModal?: boolean;
+  existingFeedback?: ExistingFeedback | null;
 };
 
 const NAV_LINKS = [
@@ -43,6 +59,7 @@ const NAV_LINKS = [
   { href: "/student/attendance", label: "Attendance", icon: ClipboardCheck },
   { href: "/student/payments", label: "Payments", icon: CreditCard },
   { href: "/student/materials", label: "Materials", icon: FolderOpen },
+  { href: "/student/feedback", label: "Feedback", icon: MessageSquare },
   { href: "/student/certificate", label: "Certificate", icon: Award },
   { href: "/student/notifications", label: "Notifications", icon: Bell },
   { href: "/student/events", label: "Events", icon: CalendarDays },
@@ -54,12 +71,11 @@ export function StudentSidebar({
   unreadCount,
   open,
   onClose,
-}: {
-  user: StudentPortalUser;
-  unreadCount: number;
-  open: boolean;
-  onClose: () => void;
-}) {
+  enrollmentId,
+  classId,
+  showFeedbackModal,
+  existingFeedback,
+}: StudentSidebarProps) {
   const pathname = usePathname();
   const enrollment = user.studentProfile?.enrollments?.[0];
   const courseName = enrollment?.class?.course?.title;
@@ -78,6 +94,10 @@ export function StudentSidebar({
           unreadCount={unreadCount}
           isActive={isActive}
           onClose={onClose}
+          enrollmentId={enrollmentId}
+          classId={classId}
+          showFeedbackModal={showFeedbackModal}
+          existingFeedback={existingFeedback}
         />
       </aside>
       <aside
@@ -91,6 +111,10 @@ export function StudentSidebar({
           unreadCount={unreadCount}
           isActive={isActive}
           onClose={onClose}
+          enrollmentId={enrollmentId}
+          classId={classId}
+          showFeedbackModal={showFeedbackModal}
+          existingFeedback={existingFeedback}
         />
       </aside>
     </>
@@ -103,6 +127,10 @@ function SidebarContent({
   unreadCount,
   isActive,
   onClose,
+  enrollmentId,
+  classId,
+  showFeedbackModal,
+  existingFeedback,
 }: SidebarContentProps) {
   return (
     <div className="flex h-full flex-col border-r border-gray-100 bg-white shadow-xl">
@@ -184,15 +212,12 @@ function SidebarContent({
       </nav>
 
       <div className="border-t border-gray-100 p-4">
-        <SignOutButton redirectUrl="/sign-in">
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-gray-500 transition-all hover:bg-red-50 hover:text-red-600"
-          >
-            <LogOut size={17} />
-            Sign Out
-          </button>
-        </SignOutButton>
+        <FeedbackModal
+          enrollmentId={enrollmentId}
+          classId={classId}
+          existingFeedback={existingFeedback}
+          shouldShowModal={showFeedbackModal}
+        />
       </div>
     </div>
   );
