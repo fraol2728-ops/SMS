@@ -53,7 +53,8 @@
     "svix": "^1.24.0",
     "tailwind-merge": "^3.4.0",
     "xlsx": "^0.18.5",
-    "zod": "^4.1.13"
+    "zod": "^4.1.13",
+    "next-cloudinary": "^6.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",
