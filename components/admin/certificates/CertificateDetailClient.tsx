@@ -10,9 +10,11 @@ import {
 } from "@/lib/actions/admin";
 export function CertificateDetailClient({
   cert,
+  studentRemaining,
   redirectTo = "/admin/certificates",
 }: {
   cert: any;
+  studentRemaining?: { remainingAmount: number; dueDate: Date } | null;
   redirectTo?: string;
 }) {
   const router = useRouter();
@@ -76,7 +78,34 @@ export function CertificateDetailClient({
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        {studentRemaining && studentRemaining.remainingAmount > 0 && (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+            <p className="font-bold text-amber-800 text-sm dark:text-amber-300">
+              ⚠️ Outstanding Balance
+            </p>
+            <p className="mt-1 text-amber-700 text-sm dark:text-amber-400">
+              This student has an outstanding balance of{" "}
+              <span className="font-black">
+                ETB {studentRemaining.remainingAmount.toLocaleString()}
+              </span>
+            </p>
+            {studentRemaining.dueDate && (
+              <p className="mt-1 text-amber-600 text-xs">
+                Due:{" "}
+                {new Date(studentRemaining.dueDate).toLocaleDateString("en-GB")}
+              </p>
+            )}
+          </div>
+        )}
+        {cert.fullNameAmharic && (
+          <div className="mt-4 rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
+            <p className="mb-1 text-gray-400 text-xs">Full Name in Amharic</p>
+            <p className="font-semibold text-gray-900 dark:text-white">
+              {cert.fullNameAmharic}
+            </p>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-4 mt-4">
           <div>
             <Label>Payment Status</Label>
             <select

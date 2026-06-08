@@ -17,10 +17,24 @@ export default async function CertificateDetailPage({
     include: { student: { include: { user: true } }, course: true },
   });
   if (!cert) notFound();
+
+  const studentRemaining = cert.studentId
+    ? await prisma.paymentRemaining.findFirst({
+        where: {
+          enrollment: { studentId: cert.studentId },
+          status: { not: "PAID" },
+        },
+        select: { remainingAmount: true, dueDate: true },
+      })
+    : null;
+
   return (
     <div className="space-y-6 max-w-2xl">
       <PageHeader title="Certificate Details" />
-      <CertificateDetailClient cert={cert} />
+      <CertificateDetailClient
+        cert={cert}
+        studentRemaining={studentRemaining}
+      />
     </div>
   );
 }
