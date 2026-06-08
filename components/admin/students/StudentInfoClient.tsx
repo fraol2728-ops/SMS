@@ -483,6 +483,10 @@ export function StudentInfoClient({
                   { label: "Telegram", value: student.telegram ?? "—" },
                   { label: "WhatsApp", value: student.whatsapp ?? "—" },
                   {
+                    label: "Receipt Number",
+                    value: profile.receiptNumber ?? "—",
+                  },
+                  {
                     label: "Registration Date",
                     value: profile.registrationDate
                       ? new Date(profile.registrationDate).toLocaleDateString(
@@ -561,6 +565,8 @@ export function StudentInfoClient({
                             {new Date(payment.createdAt).toLocaleDateString(
                               "en-GB",
                             )}
+                            {payment.receiptNumber &&
+                              ` • Receipt: ${payment.receiptNumber}`}
                           </p>
                         </div>
                         <span

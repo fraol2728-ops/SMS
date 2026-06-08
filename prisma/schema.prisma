@@ -275,25 +275,26 @@ model User {
   teacherProfile TeacherProfile?
   adminSettings  AdminSettings?
 
-  sentReports          Report[]              @relation("ReportSender")
-  receivedReports      Report[]              @relation("ReportReceiver")
-  notifications        Notification[]
-  payments             Payment[]
-  partialPayments      PartialPayment[]
-  assetLogs            AssetLog[]
-  approvedWithdrawals  Withdrawal[]
-  claimedCertificates  Certificate[]         @relation("CertificateClaimedBy")
-  addedCOCStudents     COCStudent[]
-  createdTasks         Task[]                @relation("TaskCreator")
-  assignedTasks        Task[]                @relation("TaskAssignee")
-  sentMessages         Message[]             @relation("MessageSender")
-  receivedMessages     Message[]             @relation("MessageReceiver")
-  courseRequests       CourseRequest[]
-  uploadedMaterials    Material[]            @relation("MaterialUploader")
-  studentNotifications StudentNotification[] @relation("StudentNotifications")
-  createdNotifications StudentNotification[] @relation("NotificationCreator")
-  createdEvents        Event[]               @relation("EventCreator")
-  studentFeedbacks     StudentFeedback[]     @relation("StudentFeedbacks")
+  sentReports            Report[]              @relation("ReportSender")
+  receivedReports        Report[]              @relation("ReportReceiver")
+  notifications          Notification[]
+  payments               Payment[]
+  partialPayments        PartialPayment[]
+  assetLogs              AssetLog[]
+  approvedWithdrawals    Withdrawal[]
+  claimedCertificates    Certificate[]         @relation("CertificateClaimedBy")
+  markedDoneCertificates Certificate[]         @relation("CertificateDoneBy")
+  addedCOCStudents       COCStudent[]
+  createdTasks           Task[]                @relation("TaskCreator")
+  assignedTasks          Task[]                @relation("TaskAssignee")
+  sentMessages           Message[]             @relation("MessageSender")
+  receivedMessages       Message[]             @relation("MessageReceiver")
+  courseRequests         CourseRequest[]
+  uploadedMaterials      Material[]            @relation("MaterialUploader")
+  studentNotifications   StudentNotification[] @relation("StudentNotifications")
+  createdNotifications   StudentNotification[] @relation("NotificationCreator")
+  createdEvents          Event[]               @relation("EventCreator")
+  studentFeedbacks       StudentFeedback[]     @relation("StudentFeedbacks")
 }
 
 model Event {
@@ -369,6 +370,7 @@ model StudentProfile {
   guardianPhone    String?
   emergencyContact String?
   notes            String?
+  receiptNumber    String?
   registrationDate DateTime @default(now())
 
   enrollments  Enrollment[]
@@ -473,19 +475,20 @@ model Attendance {
 }
 
 model Payment {
-  id           String         @id @default(cuid())
-  userId       String
-  user         User           @relation(fields: [userId], references: [id])
-  enrollmentId String
-  enrollment   Enrollment     @relation(fields: [enrollmentId], references: [id])
-  amount       Float
-  method       PaymentMethod?
-  status       PaymentStatus  @default(PENDING)
-  dueDate      DateTime?
-  paidAt       DateTime?
-  receiptUrl   String?
-  note         String?
-  createdAt    DateTime       @default(now())
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  enrollmentId  String
+  enrollment    Enrollment     @relation(fields: [enrollmentId], references: [id])
+  amount        Float
+  method        PaymentMethod?
+  status        PaymentStatus  @default(PENDING)
+  dueDate       DateTime?
+  paidAt        DateTime?
+  receiptUrl    String?
+  receiptNumber String?
+  note          String?
+  createdAt     DateTime       @default(now())
 }
 
 model PaymentRemaining {
@@ -640,6 +643,10 @@ model Certificate {
   claimedBy         User?           @relation("CertificateClaimedBy", fields: [claimedById], references: [id])
   paymentStatus     PaymentStatus   @default(PENDING)
   paymentMethod     PaymentMethod?
+  isDone            Boolean         @default(false)
+  doneAt            DateTime?
+  doneById          String?
+  doneBy            User?           @relation("CertificateDoneBy", fields: [doneById], references: [id])
   isDelivered       Boolean         @default(false)
   deliveredAt       DateTime?
   notes             String?

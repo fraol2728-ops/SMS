@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
+import { CheckCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
@@ -74,15 +75,27 @@ export default async function SuperAdminCertificatesPage({
                         </p>
                       </div>
                     </div>
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs ${
-                        (certificate.paymentStatus === "PAID" || certificate.paymentStatus === "PARTIAL")
-                          ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}
-                    >
-                      {certificate.paymentStatus}
-                    </span>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {certificate.isDone ? (
+                        <span className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 font-medium text-green-700 text-xs dark:bg-green-900/30 dark:text-green-400">
+                          <CheckCircle size={11} /> Done
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 font-medium text-gray-500 text-xs dark:bg-gray-700 dark:text-gray-400">
+                          <Clock size={11} /> Pending
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs ${
+                          certificate.paymentStatus === "PAID" ||
+                          certificate.paymentStatus === "PARTIAL"
+                            ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                        }`}
+                      >
+                        {certificate.paymentStatus}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Link>
