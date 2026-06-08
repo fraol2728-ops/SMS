@@ -27,10 +27,11 @@ type StudentRegistrationTransaction = {
   user: {
     create: (args: unknown) => Promise<{
       id: string;
-      studentProfile: { enrollments: Array<{ id: string }> } | null;
+      studentProfile: { id: string; enrollments: Array<{ id: string }> } | null;
     }>;
   };
   payment: { create: (args: unknown) => Promise<unknown> };
+  studentProfile: { update: (args: unknown) => Promise<unknown> };
   class: {
     findUnique: (args: unknown) => Promise<{
       course: { durationWeeks: number };
@@ -134,10 +135,12 @@ export async function createStudent(
     remaining: number;
     paymentStatus: "PAID" | "PARTIAL" | "PENDING";
     paymentMethod?: string;
+    receiptNumber?: string;
   }>,
 ) {
   try {
     const raw = actionInputToObject(input);
+    const receiptNumber = String(raw.receiptNumber ?? "").trim() || null;
 
     // Use the first enrollment for basic validation if enrollmentsData is provided
     const enrollments = enrollmentsData || [
@@ -150,8 +153,10 @@ export async function createStudent(
         courseFee: Number(raw.courseFee ?? 0),
         paymentAmount: String(raw.paymentAmount ?? 0),
         remaining: Number(raw.remainingAmount ?? 0),
-        paymentStatus: (raw.paymentStatus as "PAID" | "PARTIAL" | "PENDING") ?? "PENDING",
+        paymentStatus:
+          (raw.paymentStatus as "PAID" | "PARTIAL" | "PENDING") ?? "PENDING",
         paymentMethod: emptyToUndefined(raw.paymentMethod as string),
+        receiptNumber,
       },
     ];
 
@@ -303,6 +308,7 @@ export async function createStudent(
               guardianPhone: v.guardianPhone,
               emergencyContact: v.emergencyContact,
               notes: v.notes,
+              receiptNumber,
               enrollments: {
                 create: enrollmentsToCreate,
               },
@@ -329,6 +335,11 @@ export async function createStudent(
         const enrollmentRecord = studentEnrollments[i]!;
         const paymentAmount = Number(enrollment.paymentAmount);
 
+        const enrollmentReceiptNumber =
+          String(raw[`receiptNumber-${enrollment.id}`] ?? "").trim() ||
+          enrollment.receiptNumber?.trim() ||
+          receiptNumber;
+
         await tx.payment.create({
           data: {
             userId: newUser.id,
@@ -338,6 +349,7 @@ export async function createStudent(
             status: enrollment.paymentStatus as PaymentStatus,
             paidAt:
               enrollment.paymentStatus === "PAID" ? new Date() : undefined,
+            receiptNumber: enrollmentReceiptNumber || null,
           },
         });
 
@@ -362,6 +374,13 @@ export async function createStudent(
             },
           });
         }
+      }
+
+      if (newUser.studentProfile?.id) {
+        await tx.studentProfile.update({
+          where: { id: newUser.studentProfile.id },
+          data: { receiptNumber },
+        });
       }
 
       const hasAssessment =
@@ -1565,6 +1584,57 @@ export async function createManualCertificate(formData: FormData) {
     return err(e instanceof Error ? e.message : "Failed");
   }
 }
+export async function markCertificateAsDone(certificateId: string) {
+  try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return err("Not authenticated");
+
+    const admin = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+    if (!admin) return err("Admin not found");
+
+    await prisma.certificate.update({
+      where: { id: certificateId },
+      data: {
+        isDone: true,
+        doneAt: new Date(),
+        doneById: admin.id,
+      },
+    });
+
+    revalidatePath("/admin/certificates");
+    revalidatePath("/super-admin/certificates");
+    revalidatePath("/student/certificate");
+    return ok;
+  } catch (e) {
+    return err(
+      e instanceof Error ? e.message : "Failed to mark certificate as done",
+    );
+  }
+}
+
+export async function unmarkCertificateAsDone(certificateId: string) {
+  try {
+    await prisma.certificate.update({
+      where: { id: certificateId },
+      data: {
+        isDone: false,
+        doneAt: null,
+        doneById: null,
+      },
+    });
+
+    revalidatePath("/admin/certificates");
+    revalidatePath("/super-admin/certificates");
+    revalidatePath("/student/certificate");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to unmark certificate");
+  }
+}
+
 export async function markCertificateDelivered(certificateId: string) {
   try {
     await prisma.certificate.update({
@@ -1573,6 +1643,7 @@ export async function markCertificateDelivered(certificateId: string) {
     });
     revalidatePath("/admin/certificates");
     revalidatePath("/super-admin/certificates");
+    revalidatePath("/student/certificate");
     return ok;
   } catch {
     return err("Failed");

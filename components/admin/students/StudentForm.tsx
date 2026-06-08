@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { createStudent, updateStudent } from "@/lib/actions/admin";
-import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
 type EnrollmentData = {
   id: string;
@@ -25,6 +24,7 @@ type EnrollmentData = {
   remaining: number;
   paymentStatus: "PAID" | "PARTIAL" | "PENDING";
   paymentMethod?: string;
+  receiptNumber?: string;
 };
 
 type ClassOption = {
@@ -116,10 +116,7 @@ export function StudentForm({
     setEnrollments(enrollments.filter((e) => e.id !== id));
   };
 
-  const updateEnrollment = (
-    id: string,
-    updates: Partial<EnrollmentData>,
-  ) => {
+  const updateEnrollment = (id: string, updates: Partial<EnrollmentData>) => {
     setEnrollments(
       enrollments.map((e) => (e.id === id ? { ...e, ...updates } : e)),
     );
@@ -133,7 +130,10 @@ export function StudentForm({
         // Update the first enrollment with the calculated total
         const firstEnrollment = enrollments[0];
         if (firstEnrollment) {
-          handlePaymentAmountChange(firstEnrollment.id, String(ce.detail.total));
+          handlePaymentAmountChange(
+            firstEnrollment.id,
+            String(ce.detail.total),
+          );
         }
       }
     }
@@ -152,7 +152,7 @@ export function StudentForm({
 
     const paid = parseFloat(value) || 0;
     const rem = Math.max(0, enrollment.courseFee - paid);
-    
+
     // Auto-determine payment status based on amount paid
     let newStatus: "PAID" | "PARTIAL" | "PENDING";
     if (paid === 0) {
