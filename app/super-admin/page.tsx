@@ -59,7 +59,8 @@ export default async function SuperAdminDashboard({
     totalTeachers,
     onRegistration,
     activeCourses,
-    monthlyRevenue,
+    monthlyPayments,
+    monthlyPartialPayments,
     outstanding,
     certificatesCount,
     todayAttendance,
@@ -83,9 +84,19 @@ export default async function SuperAdminDashboard({
     }),
     prisma.payment.aggregate({
       where: {
-        status: "PAID",
         paidAt: { gte: monthStart },
         user: { campusId: effectiveCampusId },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.partialPayment.aggregate({
+      where: {
+        createdAt: { gte: monthStart },
+        paymentRemaining: {
+          enrollment: {
+            class: { campusId: effectiveCampusId },
+          },
+        },
       },
       _sum: { amount: true },
     }),
@@ -152,7 +163,7 @@ export default async function SuperAdminDashboard({
     },
     {
       label: "Monthly Revenue",
-      value: `ETB ${(monthlyRevenue._sum.amount ?? 0).toLocaleString()}`,
+      value: `ETB ${((monthlyPayments._sum.amount ?? 0) + (monthlyPartialPayments._sum.amount ?? 0)).toLocaleString()}`,
       icon: CreditCard,
       color: "bg-amber-50 dark:bg-amber-900/20",
       iconColor: "text-amber-600",

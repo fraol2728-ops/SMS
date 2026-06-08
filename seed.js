@@ -1,7 +1,7 @@
 ﻿const { PrismaClient } = require('@prisma/client')
 const { PrismaPg } = require('@prisma/adapter-pg')
 
-const adapter = new PrismaPg({ connectionString: 'postgresql://neondb_owner:npg_9dNDkMbjKGm2@ep-falling-sky-aplikygp.c-7.us-east-1.aws.neon.tech/neondb?sslmode=verify-full' })
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
@@ -13,7 +13,7 @@ async function main() {
     }
   }
   console.log('Done! Seeded 2 campuses and 20 labs.')
-  await prisma.disconnect()
+  await prisma.$disconnect()
 }
 
 main().catch(e => { console.error(e); process.exit(1) })

@@ -51,7 +51,7 @@ export default async function StudentsPage({
           where: { status: "ACTIVE" },
           include: {
             class: { include: { course: true } },
-            payments: { where: { status: "PAID" }, take: 1 },
+            payments: { take: 1 },
           },
           orderBy: { createdAt: "desc" },
           take: 1,

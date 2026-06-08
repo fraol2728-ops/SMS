@@ -29,7 +29,7 @@ type EnrollmentData = {
   courseFee: number;
   paymentAmount: string;
   remaining: number;
-  paymentStatus: "PAID" | "PENDING";
+  paymentStatus: "PAID" | "PARTIAL" | "PENDING";
   paymentMethod?: string;
 };
 
@@ -87,12 +87,21 @@ export function EnrollmentSection({
 
     const paid = parseFloat(value) || 0;
     const rem = Math.max(0, enrollment.courseFee - paid);
-    const newStatus = rem > 0 ? "PENDING" : "PAID";
+    
+    // Auto-determine payment status based on amount paid
+    let newStatus: "PAID" | "PARTIAL" | "PENDING";
+    if (paid === 0) {
+      newStatus = "PENDING";
+    } else if (paid >= enrollment.courseFee) {
+      newStatus = "PAID";
+    } else {
+      newStatus = "PARTIAL";
+    }
 
     onUpdateEnrollment(enrollmentId, {
       paymentAmount: value,
       remaining: rem,
-      paymentStatus: enrollment.paymentStatus === "PAID" && rem > 0 ? "PENDING" : enrollment.paymentStatus,
+      paymentStatus: newStatus,
     });
   };
 
@@ -257,13 +266,14 @@ export function EnrollmentSection({
                   value={enrollment.paymentStatus}
                   onChange={(event) =>
                     onUpdateEnrollment(enrollment.id, {
-                      paymentStatus: event.target.value as "PAID" | "PENDING",
+                      paymentStatus: event.target.value as "PAID" | "PARTIAL" | "PENDING",
                     })
                   }
                   className="h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                 >
-                  <option value="PAID">Paid in Full</option>
-                  <option value="PENDING">Partial / Pending</option>
+                  <option value="PENDING">Pending (Not Paid)</option>
+                  <option value="PARTIAL">Partial Payment</option>
+                  <option value="PAID">Full Payment</option>
                 </select>
               </div>
 
@@ -290,7 +300,7 @@ export function EnrollmentSection({
                 />
               </div>
 
-              {enrollment.paymentStatus === "PAID" ? (
+              {(enrollment.paymentStatus === "PAID" || enrollment.paymentStatus === "PARTIAL") ? (
                 <div className="space-y-2">
                   <Label htmlFor={`paymentMethod-${enrollment.id}`}>
                     Payment Method *

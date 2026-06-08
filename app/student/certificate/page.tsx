@@ -52,7 +52,7 @@ export default async function StudentCertificatePage() {
               className={`bg-white rounded-3xl border shadow-sm overflow-hidden ${
                 cert.isDelivered
                   ? "border-green-100"
-                  : cert.paymentStatus === "PAID"
+                  : (cert.paymentStatus === "PAID" || cert.paymentStatus === "PARTIAL")
                     ? "border-blue-100"
                     : "border-amber-100"
               }`}
@@ -61,7 +61,7 @@ export default async function StudentCertificatePage() {
                 className={`p-5 ${
                   cert.isDelivered
                     ? "bg-gradient-to-r from-green-500 to-teal-500"
-                    : cert.paymentStatus === "PAID"
+                    : (cert.paymentStatus === "PAID" || cert.paymentStatus === "PARTIAL")
                       ? "bg-gradient-to-r from-blue-500 to-indigo-500"
                       : "bg-gradient-to-r from-amber-400 to-orange-500"
                 } text-white`}
@@ -80,7 +80,7 @@ export default async function StudentCertificatePage() {
                             Certificate Delivered
                           </span>
                         </>
-                      ) : cert.paymentStatus === "PAID" ? (
+                      ) : (cert.paymentStatus === "PAID" || cert.paymentStatus === "PARTIAL") ? (
                         <>
                           <Package size={14} />
                           <span className="text-sm font-medium">
@@ -146,7 +146,7 @@ export default async function StudentCertificatePage() {
                     </p>
                   </div>
                 )}
-                {!cert.isDelivered && cert.paymentStatus === "PAID" && (
+                {!cert.isDelivered && (cert.paymentStatus === "PAID" || cert.paymentStatus === "PARTIAL") && (
                   <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
                     <p className="text-sm text-blue-800 font-medium">
                       🎉 Your certificate is ready!

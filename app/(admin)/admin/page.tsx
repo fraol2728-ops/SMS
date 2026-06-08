@@ -69,7 +69,8 @@ export default async function AdminPage() {
     activeEnrollments,
     activeCourses,
     revenue,
-    monthlyRevenue,
+    monthlyPayments,
+    monthlyPartialPayments,
     totalRemaining,
     payments,
     newStudents,
@@ -91,16 +92,25 @@ export default async function AdminPage() {
     }),
     prisma.payment.aggregate({
       where: {
-        status: "PAID",
         user: campusId ? { campusId } : undefined,
       },
       _sum: { amount: true },
     }),
     prisma.payment.aggregate({
       where: {
-        status: "PAID",
         paidAt: { gte: monthStart },
         user: campusId ? { campusId } : undefined,
+      },
+      _sum: { amount: true },
+    }),
+    prisma.partialPayment.aggregate({
+      where: {
+        createdAt: { gte: monthStart },
+        paymentRemaining: {
+          enrollment: {
+            class: campusId ? { campusId } : undefined,
+          },
+        },
       },
       _sum: { amount: true },
     }),
@@ -113,7 +123,6 @@ export default async function AdminPage() {
     }),
     prisma.payment.findMany({
       where: {
-        status: "PAID",
         paidAt: { gte: chartStart },
         user: campusId ? { campusId } : undefined,
       },
@@ -197,7 +206,7 @@ export default async function AdminPage() {
     () => 1,
   );
   const totalRevenue = revenue._sum.amount ?? 0;
-  const totalMonthlyRevenue = monthlyRevenue._sum.amount ?? 0;
+  const totalMonthlyRevenue = (monthlyPayments._sum.amount ?? 0) + (monthlyPartialPayments._sum.amount ?? 0);
   const outstandingRemaining = totalRemaining._sum.remainingAmount ?? 0;
 
   const adminName = adminUser

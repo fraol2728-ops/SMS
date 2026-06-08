@@ -67,7 +67,6 @@ export default async function StudentDetailPage({
     : null;
   const totalPaid = student.studentProfile.enrollments
     .flatMap((enrollment) => enrollment.payments)
-    .filter((payment) => payment.status === "PAID")
     .reduce((sum, payment) => sum + payment.amount, 0);
   const attendanceRecords = activeEnrollment?.attendance ?? [];
   const presentCount = attendanceRecords.filter(
