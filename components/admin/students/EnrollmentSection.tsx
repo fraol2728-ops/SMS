@@ -31,6 +31,7 @@ type EnrollmentData = {
   remaining: number;
   paymentStatus: "PAID" | "PARTIAL" | "PENDING";
   paymentMethod?: string;
+  receiptNumber?: string;
 };
 
 type EnrollmentSectionProps = {
@@ -78,16 +79,13 @@ export function EnrollmentSection({
     }
   };
 
-  const handlePaymentAmountChange = (
-    enrollmentId: string,
-    value: string,
-  ) => {
+  const handlePaymentAmountChange = (enrollmentId: string, value: string) => {
     const enrollment = enrollments.find((e) => e.id === enrollmentId);
     if (!enrollment) return;
 
     const paid = parseFloat(value) || 0;
     const rem = Math.max(0, enrollment.courseFee - paid);
-    
+
     // Auto-determine payment status based on amount paid
     let newStatus: "PAID" | "PARTIAL" | "PENDING";
     if (paid === 0) {
@@ -185,7 +183,9 @@ export function EnrollmentSection({
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor={`classId-${enrollment.id}`}>Select Class *</Label>
+                <Label htmlFor={`classId-${enrollment.id}`}>
+                  Select Class *
+                </Label>
                 <select
                   id={`classId-${enrollment.id}`}
                   name={`classId-${enrollment.id}`}
@@ -205,7 +205,9 @@ export function EnrollmentSection({
                     const spotsLeft =
                       classOption.capacity - classOption._count.enrollments;
                     const timeLabel =
-                      TIME_SLOTS[classOption.timeSlot as keyof typeof TIME_SLOTS];
+                      TIME_SLOTS[
+                        classOption.timeSlot as keyof typeof TIME_SLOTS
+                      ];
                     const daysLabel =
                       CLASS_DAYS[classOption.days as keyof typeof CLASS_DAYS];
                     return (
@@ -266,7 +268,10 @@ export function EnrollmentSection({
                   value={enrollment.paymentStatus}
                   onChange={(event) =>
                     onUpdateEnrollment(enrollment.id, {
-                      paymentStatus: event.target.value as "PAID" | "PARTIAL" | "PENDING",
+                      paymentStatus: event.target.value as
+                        | "PAID"
+                        | "PARTIAL"
+                        | "PENDING",
                     })
                   }
                   className="h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
@@ -300,7 +305,42 @@ export function EnrollmentSection({
                 />
               </div>
 
-              {(enrollment.paymentStatus === "PAID" || enrollment.paymentStatus === "PARTIAL") ? (
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor={
+                    index === 0
+                      ? "receiptNumber"
+                      : `receiptNumber-${enrollment.id}`
+                  }
+                >
+                  Receipt Number
+                </Label>
+                <Input
+                  id={
+                    index === 0
+                      ? "receiptNumber"
+                      : `receiptNumber-${enrollment.id}`
+                  }
+                  name={
+                    index === 0
+                      ? "receiptNumber"
+                      : `receiptNumber-${enrollment.id}`
+                  }
+                  placeholder="e.g. RCP-2024-001"
+                  value={enrollment.receiptNumber ?? ""}
+                  onChange={(event) =>
+                    onUpdateEnrollment(enrollment.id, {
+                      receiptNumber: event.target.value,
+                    })
+                  }
+                />
+                <p className="text-xs text-gray-400">
+                  Optional — enter the receipt number for this payment
+                </p>
+              </div>
+
+              {enrollment.paymentStatus === "PAID" ||
+              enrollment.paymentStatus === "PARTIAL" ? (
                 <div className="space-y-2">
                   <Label htmlFor={`paymentMethod-${enrollment.id}`}>
                     Payment Method *
@@ -327,8 +367,8 @@ export function EnrollmentSection({
                         Payment Remaining
                       </p>
                       <p className="text-sm text-amber-600">
-                        ETB {enrollment.remaining.toLocaleString()} will be due at
-                        the halfway point of the course
+                        ETB {enrollment.remaining.toLocaleString()} will be due
+                        at the halfway point of the course
                       </p>
                     </div>
                     <p className="text-2xl font-bold text-amber-700">
