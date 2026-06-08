@@ -37,8 +37,24 @@ export function ManualCertificateForm({
       className="bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-xl p-6 space-y-4"
     >
       <div className="space-y-1.5">
-        <Label>Student Full Name *</Label>
-        <Input name="studentName" required placeholder="Full name" />
+        <Label htmlFor="studentName">Student Full Name *</Label>
+        <Input
+          id="studentName"
+          name="studentName"
+          required
+          placeholder="Full name"
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="fullNameAmharic">Full Name in Amharic</Label>
+        <Input
+          id="fullNameAmharic"
+          name="fullNameAmharic"
+          placeholder="ሙሉ ስም በአማርኛ"
+        />
+        <p className="text-xs text-gray-400">
+          Optional — used for the printed certificate
+        </p>
       </div>
       <div className="space-y-1.5">
         <Label>Course *</Label>

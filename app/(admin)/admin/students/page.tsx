@@ -1,16 +1,11 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
-import {
-  StudentsTable,
-  type StudentTableRow,
-} from "@/components/admin/students/StudentsTable";
 import { Pagination } from "@/components/shared/Pagination";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
-import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-
-export const dynamic = "force-dynamic";
 
 export default async function StudentsPage({
   searchParams,
@@ -22,39 +17,26 @@ export default async function StudentsPage({
   const params = (await searchParams) ?? {};
   const PAGE_SIZE = 20;
   const currentPage = Math.max(1, Number(params.page ?? 1) || 1);
-  const searchQuery = params.q?.trim();
+  const q = params.q?.trim();
 
   const where = {
     user: {
       role: "STUDENT" as const,
       ...(campusId ? { campusId } : {}),
     },
-    ...(searchQuery
+    ...(q
       ? {
           OR: [
-            {
-              studentCode: {
-                contains: searchQuery,
-                mode: "insensitive" as const,
-              },
-            },
+            { studentCode: { contains: q, mode: "insensitive" as const } },
             {
               user: {
-                firstName: {
-                  contains: searchQuery,
-                  mode: "insensitive" as const,
-                },
+                firstName: { contains: q, mode: "insensitive" as const },
               },
             },
             {
-              user: {
-                lastName: {
-                  contains: searchQuery,
-                  mode: "insensitive" as const,
-                },
-              },
+              user: { lastName: { contains: q, mode: "insensitive" as const } },
             },
-            { user: { phone: { contains: searchQuery } } },
+            { user: { phone: { contains: q } } },
           ],
         }
       : {}),
@@ -68,10 +50,8 @@ export default async function StudentsPage({
         enrollments: {
           where: { status: "ACTIVE" },
           include: {
-            class: {
-              include: { course: true, lab: { select: { name: true } } },
-            },
-            payments: { orderBy: { createdAt: "desc" }, take: 1 },
+            class: { include: { course: true } },
+            payments: { where: { status: "PAID" }, take: 1 },
           },
           orderBy: { createdAt: "desc" },
           take: 1,
@@ -85,75 +65,75 @@ export default async function StudentsPage({
   ]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const rows: StudentTableRow[] = students.map((student) => {
-    const activeEnrollment = student.enrollments[0];
-    const latestPayment = activeEnrollment?.payments[0];
-    const classRecord = activeEnrollment?.class;
-
-    return {
-      id: student.userId,
-      studentCode: student.studentCode,
-      fullName: `${student.user.firstName} ${student.user.lastName}`,
-      phone: student.user.phone ?? "-",
-      lab: classRecord?.lab?.name ?? "-",
-      course: classRecord?.course.title ?? "-",
-      time: classRecord
-        ? TIME_SLOTS[classRecord.timeSlot as keyof typeof TIME_SLOTS]
-        : "-",
-      days: classRecord
-        ? CLASS_DAYS[classRecord.days as keyof typeof CLASS_DAYS]
-        : "-",
-      paymentStatus: latestPayment?.status ?? "PENDING",
-    };
-  });
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Students"
         description={`${totalCount} total students`}
-        action={{ label: "Add student", href: "/admin/students/new" }}
+        action={{ label: "Add Student", href: "/admin/students/new" }}
       />
-      <div className="space-y-2 md:hidden">
-        {students.map((student) => {
-          const activeEnrollment = student.enrollments[0];
-          return (
-            <Link key={student.id} href={`/admin/students/${student.userId}`}>
-              <div className="flex items-center justify-between rounded-xl border bg-white p-4 transition-all hover:border-blue-300 active:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:active:bg-gray-800">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 text-sm dark:bg-blue-950 dark:text-blue-300">
+
+      <form method="GET">
+        <input
+          name="q"
+          defaultValue={q}
+          placeholder="Search by name, phone, or student code..."
+          className="h-11 w-full rounded-2xl border bg-white px-4 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900"
+        />
+      </form>
+
+      <div className="overflow-hidden rounded-3xl border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        {students.length === 0 ? (
+          <div className="py-16 text-center text-gray-400">
+            <p className="mb-3 text-4xl">👥</p>
+            <p className="font-semibold">No students found</p>
+          </div>
+        ) : (
+          <div className="divide-y dark:divide-gray-700/50">
+            {students.map((student) => {
+              const enrollment = student.enrollments[0];
+              const course = enrollment?.class?.course?.title;
+              return (
+                <Link
+                  key={student.id}
+                  href={`/admin/students/${student.userId}`}
+                  className="group flex items-center gap-4 px-6 py-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                >
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white shadow-sm">
                     {student.user.firstName[0]}
                     {student.user.lastName[0]}
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white">
                       {student.user.firstName} {student.user.lastName}
                     </p>
-                    <p className="text-gray-400 text-xs dark:text-gray-500">
-                      {student.studentCode}
+                    <p className="truncate text-gray-400 text-sm">
+                      {course ?? "No class assigned"}
                     </p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700 text-xs dark:bg-blue-950 dark:text-blue-300">
-                    {activeEnrollment?.class?.course?.title ?? "No class"}
-                  </span>
-                  <p className="mt-1 text-gray-400 text-xs dark:text-gray-500">
-                    ›
+                  <p className="hidden flex-shrink-0 text-gray-500 text-sm sm:block">
+                    {student.user.phone ?? "—"}
                   </p>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
+                  <span className="flex-shrink-0 text-gray-300 transition-colors group-hover:text-blue-500">
+                    ›
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+        {totalPages > 1 && (
+          <div className="border-t px-6 py-4 dark:border-gray-700">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalCount}
+              itemsPerPage={PAGE_SIZE}
+            />
+          </div>
+        )}
       </div>
-      <StudentsTable className="hidden md:block" students={rows} />
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={totalCount}
-        itemsPerPage={PAGE_SIZE}
-      />
     </div>
   );
 }
