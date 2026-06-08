@@ -138,7 +138,7 @@ export async function createStudent(
 ) {
   try {
     const raw = actionInputToObject(input);
-    
+
     // Use the first enrollment for basic validation if enrollmentsData is provided
     const enrollments = enrollmentsData || [
       {
@@ -201,10 +201,15 @@ export async function createStudent(
     const classRecords = await Promise.all(
       enrollments.map((enr) =>
         prisma.class.findFirst({
-          where: { id: enr.selectedClassId, campusId: adminCampusId ?? undefined },
+          where: {
+            id: enr.selectedClassId,
+            campusId: adminCampusId ?? undefined,
+          },
           include: {
             course: true,
-            _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+            _count: {
+              select: { enrollments: { where: { status: "ACTIVE" } } },
+            },
           },
         }),
       ),
@@ -228,6 +233,9 @@ export async function createStudent(
     }
 
     const campusId = classRecords[0]!.campusId;
+    const registrationDate = v.registrationDate
+      ? new Date(v.registrationDate)
+      : new Date();
     const startDate = v.startDate
       ? new Date(v.startDate)
       : (classRecords[0]!.startDate ?? new Date());
@@ -272,9 +280,7 @@ export async function createStudent(
           studentProfile: {
             create: {
               studentCode,
-              registrationDate: v.registrationDate
-                ? new Date(v.registrationDate)
-                : new Date(),
+              registrationDate,
               guardianName: v.guardianName,
               guardianPhone: v.guardianPhone,
               emergencyContact: v.emergencyContact,
@@ -312,7 +318,8 @@ export async function createStudent(
             amount: paymentAmount,
             method: (enrollment.paymentMethod as PaymentMethod) || undefined,
             status: enrollment.paymentStatus as PaymentStatus,
-            paidAt: enrollment.paymentStatus === "PAID" ? new Date() : undefined,
+            paidAt:
+              enrollment.paymentStatus === "PAID" ? new Date() : undefined,
           },
         });
 
@@ -320,15 +327,16 @@ export async function createStudent(
         const remainingAmount = enrollment.remaining ?? 0;
         if (remainingAmount > 0) {
           const classRecord = classRecords[i]!;
-          const durationDays = (classRecord.course.durationWeeks ?? 8) * 7;
-          const startDateObj = enrollmentRecord.startDate ?? new Date();
-          const dueDate = new Date(startDateObj);
-          dueDate.setDate(dueDate.getDate() + Math.floor(durationDays / 2));
+          const halfwayDays = Math.floor(
+            (classRecord.course.durationWeeks * 7) / 2,
+          );
+          const dueDate = new Date(registrationDate);
+          dueDate.setDate(dueDate.getDate() + halfwayDays);
 
           await tx.paymentRemaining.create({
             data: {
               enrollmentId: enrollmentRecord.id,
-              originalFee: paymentAmount + remainingAmount,
+              originalFee: classRecord.course.fee ?? 0,
               paidAmount: paymentAmount,
               remainingAmount,
               dueDate,
@@ -512,7 +520,12 @@ export async function updateStudent(id: string, formData: FormData) {
     });
 
     // If email changed and student has accepted invitation (has real clerkId), send new invitation to new email
-    if (newEmail && newEmail !== currentEmail && currentUser.clerkId && !currentUser.clerkId.startsWith("pending_")) {
+    if (
+      newEmail &&
+      newEmail !== currentEmail &&
+      currentUser.clerkId &&
+      !currentUser.clerkId.startsWith("pending_")
+    ) {
       try {
         const clerk = await clerkClient();
 
@@ -1458,6 +1471,7 @@ export async function claimCertificate(
     if (!adminId) return err("Not authenticated");
     const paymentStatus = formData.get("paymentStatus") as string;
     const paymentMethod = formData.get("paymentMethod") as string | null;
+    const fullNameAmharic = formData.get("fullNameAmharic") as string | null;
     const notes = formData.get("notes") as string | null;
     const student = await prisma.user.findUnique({
       where: { id: studentUserId },
@@ -1485,6 +1499,7 @@ export async function claimCertificate(
         paymentStatus: paymentStatus as PaymentStatus,
         paymentMethod:
           paymentStatus === "PAID" ? (paymentMethod as PaymentMethod) : null,
+        fullNameAmharic: fullNameAmharic?.trim() || null,
         claimedById: adminId,
         notes: notes?.trim() || null,
         isDelivered: false,
@@ -1504,6 +1519,7 @@ export async function createManualCertificate(formData: FormData) {
     const adminId = await getCurrentAdminUserId();
     if (!adminId) return err("Not authenticated");
     const studentName = formData.get("studentName") as string;
+    const fullNameAmharic = formData.get("fullNameAmharic") as string | null;
     const courseId = formData.get("courseId") as string;
     const paymentStatus = formData.get("paymentStatus") as string;
     const paymentMethod = formData.get("paymentMethod") as string;
@@ -1513,6 +1529,7 @@ export async function createManualCertificate(formData: FormData) {
     await prisma.certificate.create({
       data: {
         manualStudentName: studentName.trim(),
+        fullNameAmharic: fullNameAmharic?.trim() || null,
         courseId,
         paymentStatus: paymentStatus as PaymentStatus,
         paymentMethod:

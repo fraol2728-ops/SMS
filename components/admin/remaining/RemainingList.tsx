@@ -48,12 +48,6 @@ function getDaysBadge(daysLeft: number) {
   if (daysLeft <= 7) {
     return {
       label: `${daysLeft} days left`,
-      className: "border border-orange-200 bg-orange-100 text-orange-700",
-    };
-  }
-  if (daysLeft <= 14) {
-    return {
-      label: `${daysLeft} days left`,
       className: "border border-amber-200 bg-amber-100 text-amber-700",
     };
   }
@@ -157,8 +151,8 @@ export function RemainingList({
                 daysLeft < 0
                   ? "border-red-200"
                   : daysLeft <= 7
-                    ? "border-orange-200"
-                    : "border-gray-200"
+                    ? "border-amber-200"
+                    : "border-green-200"
               }`}
             >
               <div className="p-5">
