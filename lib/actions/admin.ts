@@ -132,7 +132,7 @@ export async function createStudent(
     courseFee: number;
     paymentAmount: string;
     remaining: number;
-    paymentStatus: "PAID" | "PENDING";
+    paymentStatus: "PAID" | "PARTIAL" | "PENDING";
     paymentMethod?: string;
   }>,
 ) {
@@ -150,7 +150,7 @@ export async function createStudent(
         courseFee: Number(raw.courseFee ?? 0),
         paymentAmount: String(raw.paymentAmount ?? 0),
         remaining: Number(raw.remainingAmount ?? 0),
-        paymentStatus: (raw.paymentStatus as "PAID" | "PENDING") ?? "PENDING",
+        paymentStatus: (raw.paymentStatus as "PAID" | "PARTIAL" | "PENDING") ?? "PENDING",
         paymentMethod: emptyToUndefined(raw.paymentMethod as string),
       },
     ];
@@ -189,9 +189,27 @@ export async function createStudent(
     const adminCampusId =
       currentUser.role === "SUPER_ADMIN" ? null : currentUser.campusId;
 
-    const studentCount = await prisma.studentProfile.count();
+    // Generate unique student code based on highest existing code for current year
     const currentYear = new Date().getFullYear();
-    const studentCode = `EXC-${currentYear}-${String(studentCount + 1).padStart(3, "0")}`;
+    const yearPrefix = `EXC-${currentYear}-`;
+    const existingCodes = await prisma.studentProfile.findMany({
+      where: {
+        studentCode: {
+          startsWith: yearPrefix,
+        },
+      },
+      select: { studentCode: true },
+      orderBy: { studentCode: "desc" },
+      take: 1,
+    });
+
+    let nextNumber = 1;
+    if (existingCodes.length > 0) {
+      const lastCode = existingCodes[0].studentCode;
+      const numberPart = parseInt(lastCode.split("-").pop() || "0", 10);
+      nextNumber = numberPart + 1;
+    }
+    const studentCode = `${yearPrefix}${String(nextNumber).padStart(3, "0")}`;
 
     const email = v.email?.trim()
       ? v.email.trim().toLowerCase()

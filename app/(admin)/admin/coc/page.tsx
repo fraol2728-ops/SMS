@@ -18,8 +18,14 @@ export default async function COCPage() {
     orderBy: { createdAt: "desc" },
   });
   const totalRevenue = cocStudents
-    .filter((s) => s.paymentStatus === "PAID")
+    .filter((s) => s.paymentStatus === "PAID" || s.paymentStatus === "PARTIAL")
     .reduce((sum, s) => sum + s.paymentAmount, 0);
+  const paid = cocStudents.filter(
+    (s) => s.paymentStatus === "PAID",
+  ).length;
+  const partial = cocStudents.filter(
+    (s) => s.paymentStatus === "PARTIAL",
+  ).length;
   const pending = cocStudents.filter(
     (s) => s.paymentStatus === "PENDING",
   ).length;
@@ -30,7 +36,7 @@ export default async function COCPage() {
         description="Students registered for COC examinations"
         action={{ label: "Add Student", href: "/admin/coc/new" }}
       />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           {
             label: "Total Students",
@@ -39,8 +45,13 @@ export default async function COCPage() {
           },
           {
             label: "Paid",
-            value: cocStudents.filter((s) => s.paymentStatus === "PAID").length,
+            value: paid,
             color: "bg-green-50 text-green-700",
+          },
+          {
+            label: "Partial",
+            value: partial,
+            color: "bg-yellow-50 text-yellow-700",
           },
           {
             label: "Pending",

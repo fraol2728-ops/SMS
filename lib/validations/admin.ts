@@ -18,7 +18,7 @@ export const studentSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   remainingAmount: z.coerce.number().min(0).default(0),
-  paymentStatus: z.enum(["PENDING", "PAID", "OVERDUE", "CANCELLED"]),
+  paymentStatus: z.enum(["PENDING", "PARTIAL", "PAID", "OVERDUE", "CANCELLED"]),
   paymentMethod: z
     .enum(["CASH", "BANK_TRANSFER", "MOBILE_MONEY", "CARD"])
     .optional(),

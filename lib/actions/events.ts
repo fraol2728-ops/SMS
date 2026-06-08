@@ -107,3 +107,5 @@ export async function updateEvent(eventId: string, formData: FormData) {
     return err(e instanceof Error ? e.message : "Failed to update event");
   }
 }
+
+

@@ -25,8 +25,12 @@ export default async function SuperAdminCOCPage({
   });
 
   const totalRevenue = cocStudents
-    .filter((s) => s.paymentStatus === "PAID")
+    .filter((s) => s.paymentStatus === "PAID" || s.paymentStatus === "PARTIAL")
     .reduce((sum, s) => sum + s.paymentAmount, 0);
+
+  const paid = cocStudents.filter((s) => s.paymentStatus === "PAID").length;
+  const partial = cocStudents.filter((s) => s.paymentStatus === "PARTIAL").length;
+  const pending = cocStudents.filter((s) => s.paymentStatus === "PENDING").length;
 
   const query = campusId ? `?campusId=${campusId}` : "";
 
@@ -37,7 +41,7 @@ export default async function SuperAdminCOCPage({
         action={{ label: "Add Student", href: `/super-admin/coc/new${query}` }}
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {[
           {
             label: "Total",
@@ -47,14 +51,19 @@ export default async function SuperAdminCOCPage({
           },
           {
             label: "Paid",
-            value: cocStudents.filter((s) => s.paymentStatus === "PAID").length,
+            value: paid,
             color:
               "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400",
           },
           {
+            label: "Partial",
+            value: partial,
+            color:
+              "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400",
+          },
+          {
             label: "Pending",
-            value: cocStudents.filter((s) => s.paymentStatus === "PENDING")
-              .length,
+            value: pending,
             color:
               "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
           },

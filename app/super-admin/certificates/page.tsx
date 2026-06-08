@@ -76,7 +76,7 @@ export default async function SuperAdminCertificatesPage({
                     </div>
                     <span
                       className={`rounded-full px-2 py-1 text-xs ${
-                        certificate.paymentStatus === "PAID"
+                        (certificate.paymentStatus === "PAID" || certificate.paymentStatus === "PARTIAL")
                           ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                           : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                       }`}

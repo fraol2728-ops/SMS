@@ -23,7 +23,7 @@ type EnrollmentData = {
   courseFee: number;
   paymentAmount: string;
   remaining: number;
-  paymentStatus: "PAID" | "PENDING";
+  paymentStatus: "PAID" | "PARTIAL" | "PENDING";
   paymentMethod?: string;
 };
 
@@ -152,11 +152,21 @@ export function StudentForm({
 
     const paid = parseFloat(value) || 0;
     const rem = Math.max(0, enrollment.courseFee - paid);
+    
+    // Auto-determine payment status based on amount paid
+    let newStatus: "PAID" | "PARTIAL" | "PENDING";
+    if (paid === 0) {
+      newStatus = "PENDING";
+    } else if (paid >= enrollment.courseFee) {
+      newStatus = "PAID";
+    } else {
+      newStatus = "PARTIAL";
+    }
 
     updateEnrollment(enrollmentId, {
       paymentAmount: value,
       remaining: rem,
-      paymentStatus: enrollment.paymentStatus === "PAID" && rem > 0 ? "PENDING" : enrollment.paymentStatus,
+      paymentStatus: newStatus,
     });
   };
 

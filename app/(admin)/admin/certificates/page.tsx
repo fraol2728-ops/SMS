@@ -60,7 +60,7 @@ export default async function CertificatesPage() {
                     </div>
                     <div className="text-right">
                       <span
-                        className={`text-xs px-2 py-1 rounded-full ${cert.paymentStatus === "PAID" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}
+                        className={`text-xs px-2 py-1 rounded-full ${(cert.paymentStatus === "PAID" || cert.paymentStatus === "PARTIAL") ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}
                       >
                         {cert.paymentStatus}
                       </span>
