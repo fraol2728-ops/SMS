@@ -629,6 +629,7 @@ model Certificate {
   studentId         String?
   student           StudentProfile? @relation(fields: [studentId], references: [id])
   manualStudentName String?
+  fullNameAmharic   String?
   courseId          String
   course            Course          @relation(fields: [courseId], references: [id])
   issuedAt          DateTime        @default(now())

@@ -30,6 +30,16 @@ export default async function SuperAdminCertificateDetailPage({
 
   if (!certificate) notFound();
 
+  const studentRemaining = certificate.studentId
+    ? await prisma.paymentRemaining.findFirst({
+        where: {
+          enrollment: { studentId: certificate.studentId },
+          status: { not: "PAID" },
+        },
+        select: { remainingAmount: true, dueDate: true },
+      })
+    : null;
+
   return (
     <div className="max-w-2xl space-y-6">
       <Link href={`/super-admin/certificates?campusId=${campusId ?? ""}`}>
@@ -43,6 +53,7 @@ export default async function SuperAdminCertificateDetailPage({
       <PageHeader title="Certificate Details" />
       <CertificateDetailClient
         cert={certificate}
+        studentRemaining={studentRemaining}
         redirectTo={`/super-admin/certificates?campusId=${campusId ?? ""}`}
       />
     </div>

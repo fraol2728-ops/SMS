@@ -1,125 +1,100 @@
+export const dynamic = "force-dynamic";
+
+import { BookOpen, Phone } from "lucide-react";
 import Link from "next/link";
-import { DataTable } from "@/components/admin/shared/DataTable";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
-import { Button } from "@/components/ui/button";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
-
 export default async function TeachersPage() {
   await requireAdmin();
   const campusId = await getCurrentUserCampusId();
-  const rows = await prisma.user.findMany({
-    where: { role: "TEACHER", ...(campusId ? { campusId } : {}) },
-    include: { teacherProfile: { include: { classes: true } } },
-    orderBy: { createdAt: "desc" },
+  const teachers = await prisma.user.findMany({
+    where: { role: "TEACHER", campusId: campusId ?? undefined },
+    include: {
+      teacherProfile: {
+        include: {
+          _count: {
+            select: {
+              classes: { where: { isActive: true, status: "STARTED" } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { firstName: "asc" },
   });
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Teachers"
-        action={{ label: "Add teacher", href: "/admin/teachers/new" }}
+        description={`${teachers.length} teachers`}
+        action={{ label: "Add Teacher", href: "/admin/teachers/new" }}
       />
-      <div className="space-y-2 md:hidden">
-        {rows.map((t) => (
-          <Link key={t.id} href={`/admin/teachers/${t.id}`}>
-            <div className="flex items-center gap-3 rounded-xl border bg-white p-4 transition-all hover:border-blue-300 dark:border-gray-700 dark:bg-gray-900">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700 dark:bg-green-950 dark:text-green-300">
-                {t.firstName[0]}
-                {t.lastName[0]}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-medium text-gray-900 dark:text-white">
-                  {t.firstName} {t.lastName}
-                </p>
-                <div className="mt-0.5 flex flex-wrap gap-1">
-                  {(t.teacherProfile?.specialties?.length
-                    ? t.teacherProfile.specialties
-                    : t.teacherProfile?.specialty
-                      ? [t.teacherProfile.specialty]
-                      : []
-                  )
-                    .slice(0, 2)
-                    .map((specialty) => (
-                      <span
-                        key={specialty}
-                        className="rounded-full bg-green-50 px-1.5 py-0.5 text-xs text-green-700 dark:bg-green-950 dark:text-green-300"
-                      >
-                        {specialty}
-                      </span>
-                    ))}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {teachers.map((teacher) => {
+          const specialties = teacher.teacherProfile?.specialties?.length
+            ? teacher.teacherProfile.specialties
+            : teacher.teacherProfile?.specialty
+              ? [teacher.teacherProfile.specialty]
+              : [];
+          return (
+            <Link
+              key={teacher.id}
+              href={`/admin/teachers/${teacher.teacherProfile?.id ?? teacher.id}`}
+              className="group rounded-3xl border bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-800"
+            >
+              <div className="mb-4 flex items-center gap-4">
+                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-green-400 to-teal-500 font-black text-white text-xl shadow-md transition-transform group-hover:scale-105">
+                  {teacher.firstName[0]}
+                  {teacher.lastName[0]}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-bold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white">
+                    {teacher.firstName} {teacher.lastName}
+                  </p>
+                  <p className="truncate text-gray-400 text-xs">
+                    {teacher.teacherProfile?.teacherCode ?? "—"}
+                  </p>
                 </div>
               </div>
-              <span className="ml-auto text-lg text-gray-400 dark:text-gray-500">
-                ›
-              </span>
-            </div>
-          </Link>
-        ))}
-      </div>
-      <div className="hidden md:block">
-        <DataTable
-          data={rows}
-          columns={[
-            {
-              key: "code",
-              label: "Code",
-              render: (r) => r.teacherProfile?.teacherCode ?? "-",
-            },
-            {
-              key: "name",
-              label: "Name",
-              render: (r) => `${r.firstName} ${r.lastName}`,
-            },
-            { key: "email", label: "Email" },
-            {
-              key: "specialty",
-              label: "Specialties",
-              render: (r) => {
-                const specialties = r.teacherProfile?.specialties?.length
-                  ? r.teacherProfile.specialties
-                  : r.teacherProfile?.specialty
-                    ? [r.teacherProfile.specialty]
-                    : [];
-                return specialties.length ? (
-                  <div className="flex flex-wrap gap-1">
-                    {specialties.map((specialty) => (
-                      <span
-                        key={specialty}
-                        className="rounded-full bg-green-50 px-2 py-1 text-xs text-green-700 dark:bg-green-950 dark:text-green-300"
-                      >
-                        {specialty}
-                      </span>
-                    ))}
-                  </div>
+              {specialties.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  {specialties.slice(0, 3).map((specialty) => (
+                    <span
+                      key={specialty}
+                      className="rounded-full bg-green-50 px-2.5 py-1 font-medium text-green-700 text-xs dark:bg-green-900/30 dark:text-green-400"
+                    >
+                      {specialty}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="mt-2 flex items-center justify-between border-t pt-3 text-sm dark:border-gray-700">
+                {teacher.phone ? (
+                  <span className="flex items-center gap-1.5 text-gray-500">
+                    <Phone size={12} />
+                    {teacher.phone}
+                  </span>
                 ) : (
-                  "-"
-                );
-              },
-            },
-            {
-              key: "classes",
-              label: "Classes count",
-              render: (r) => r.teacherProfile?.classes.length ?? 0,
-            },
-            {
-              key: "actions",
-              label: "Actions",
-              render: (r) => (
-                <div className="flex flex-wrap gap-2">
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/admin/teachers/${r.id}`}>View</Link>
-                  </Button>
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/admin/teachers/${r.id}/edit`}>Edit</Link>
-                  </Button>
-                </div>
-              ),
-            },
-          ]}
-        />
+                  <span />
+                )}
+                <span className="flex items-center gap-1.5 font-semibold text-blue-600 dark:text-blue-400">
+                  <BookOpen size={13} />
+                  {teacher.teacherProfile?._count.classes ?? 0} classes
+                </span>
+              </div>
+            </Link>
+          );
+        })}
+        {teachers.length === 0 && (
+          <div className="py-16 text-center text-gray-400 sm:col-span-2 lg:col-span-3 rounded-3xl border bg-white dark:border-gray-700 dark:bg-gray-900">
+            <p className="mb-3 text-4xl">👨‍🏫</p>
+            <p className="font-semibold">No teachers yet</p>
+          </div>
+        )}
       </div>
     </div>
   );

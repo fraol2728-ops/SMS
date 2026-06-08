@@ -3,10 +3,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { claimCertificate } from "@/lib/actions/admin";
+import { cn } from "@/lib/utils";
 export function ClaimCertificateModal({
   studentId,
   studentName,
@@ -74,6 +74,17 @@ export function ClaimCertificateModal({
           <div>
             <Label>Full Name</Label>
             <Input name="fullName" defaultValue={studentName} required />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="fullNameAmharic">Full Name in Amharic</Label>
+            <Input
+              id="fullNameAmharic"
+              name="fullNameAmharic"
+              placeholder="ሙሉ ስም በአማርኛ"
+            />
+            <p className="text-xs text-gray-400">
+              Optional — used for the printed certificate
+            </p>
           </div>
           <div>
             <Label>Course</Label>
