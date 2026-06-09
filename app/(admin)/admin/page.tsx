@@ -80,6 +80,7 @@ export default async function AdminPage() {
     overduePayments,
     dueSoonPayments,
     nextEvent,
+    pendingCertificates,
   ] = await Promise.all([
     prisma.user.count({
       where: { role: "STUDENT", ...(campusId ? { campusId } : {}) },
@@ -185,6 +186,14 @@ export default async function AdminPage() {
       },
       orderBy: { date: "asc" },
     }),
+    prisma.certificate.count({
+      where: {
+        isDelivered: false,
+        student: {
+          user: { campusId: campusId ?? undefined },
+        },
+      },
+    }),
   ]);
 
   const revenueSeries = buildTrendSeries(
@@ -206,7 +215,9 @@ export default async function AdminPage() {
     () => 1,
   );
   const totalRevenue = revenue._sum.amount ?? 0;
-  const totalMonthlyRevenue = (monthlyPayments._sum.amount ?? 0) + (monthlyPartialPayments._sum.amount ?? 0);
+  const totalMonthlyRevenue =
+    (monthlyPayments._sum.amount ?? 0) +
+    (monthlyPartialPayments._sum.amount ?? 0);
   const outstandingRemaining = totalRemaining._sum.remainingAmount ?? 0;
 
   const adminName = adminUser
@@ -230,6 +241,28 @@ export default async function AdminPage() {
         overdueCount={overduePayments}
         dueSoonCount={dueSoonPayments}
       />
+
+      {pendingCertificates > 0 && (
+        <Link href="/admin/certificates">
+          <div className="flex cursor-pointer items-center justify-between rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 p-4 shadow-sm transition-opacity hover:opacity-90">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/20 text-xl">
+                🎓
+              </div>
+              <div>
+                <p className="font-medium text-white/80 text-xs">
+                  Certificates Pending
+                </p>
+                <p className="font-bold text-white">
+                  {pendingCertificates} certificate
+                  {pendingCertificates !== 1 ? "s" : ""} to deliver
+                </p>
+              </div>
+            </div>
+            <span className="flex-shrink-0 text-white text-xl">→</span>
+          </div>
+        </Link>
+      )}
 
       <section>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { recordPartialPayment } from "@/lib/actions/admin";
+import { ClaimCertificateModal } from "../certificates/ClaimCertificateModal";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 
 export function StudentInfoClient({
@@ -42,6 +43,7 @@ export function StudentInfoClient({
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [loading, setLoading] = useState(false);
+  const [showCertModal, setShowCertModal] = useState(false);
 
   async function handleRecordPayment() {
     const amount = Number(paymentAmount);
@@ -96,6 +98,23 @@ export function StudentInfoClient({
           <ArrowLeft size={16} />
           Back to students
         </Link>
+
+        {showCertModal && activeEnrollment && (
+          <ClaimCertificateModal
+            student={{
+              id: student.id,
+              firstName: student.firstName,
+              lastName: student.lastName,
+              fullNameAmharic: profile.fullNameAmharic ?? null,
+            }}
+            studentProfileId={profile.id}
+            courseId={activeEnrollment.class?.course?.id ?? ""}
+            courseTitle={activeEnrollment.class?.course?.title ?? ""}
+            enrollmentId={activeEnrollment.id}
+            remainingBalance={remaining?.remainingAmount ?? null}
+            onClose={() => setShowCertModal(false)}
+          />
+        )}
 
         <div className="overflow-hidden rounded-3xl border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
           <div className="h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
@@ -429,13 +448,14 @@ export function StudentInfoClient({
                   <Edit size={13} />
                   Edit Student
                 </Link>
-                <Link
-                  href={`/admin/certificates/new?studentId=${student.id}`}
+                <button
+                  onClick={() => setShowCertModal(true)}
                   className="flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2 font-medium text-sm text-white transition-colors hover:bg-amber-500"
+                  type="button"
                 >
                   <Award size={13} />
                   Claim Certificate
-                </Link>
+                </button>
               </div>
             </div>
           </div>

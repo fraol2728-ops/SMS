@@ -1499,52 +1499,48 @@ export async function markWaitlistJoined(id: string) {
   }
 }
 
-export async function claimCertificate(
-  studentUserId: string,
-  formData: FormData,
-) {
+export async function claimCertificate(formData: FormData) {
   try {
-    const adminId = await getCurrentAdminUserId();
-    if (!adminId) return err("Not authenticated");
-    const paymentStatus = formData.get("paymentStatus") as string;
-    const paymentMethod = formData.get("paymentMethod") as string | null;
-    const fullNameAmharic = formData.get("fullNameAmharic") as string | null;
-    const notes = formData.get("notes") as string | null;
-    const student = await prisma.user.findUnique({
-      where: { id: studentUserId },
-      include: {
-        studentProfile: {
-          include: {
-            enrollments: {
-              where: { status: { in: ["ACTIVE", "COMPLETED"] } },
-              include: { class: { include: { course: true } } },
-              orderBy: { createdAt: "desc" },
-              take: 1,
-            },
-          },
-        },
-      },
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return err("Not authenticated");
+
+    const admin = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
     });
-    if (!student?.studentProfile) return err("Student not found");
-    const enrollment = student.studentProfile.enrollments[0];
-    if (!enrollment?.class?.courseId)
-      return err("No enrollment found for this student");
+    if (!admin) return err("Not authenticated");
+
+    const studentId = formData.get("studentId") as string;
+    const courseId = formData.get("courseId") as string;
+    const receiptNumber = formData.get("receiptNumber") as string;
+    const fullNameAmharic = formData.get("fullNameAmharic") as string;
+    const manualStudentName = formData.get("manualStudentName") as string;
+
+    if (!receiptNumber?.trim()) return err("Receipt number is required");
+    if (!studentId || !courseId) return err("Missing required fields");
+
+    const existing = await prisma.certificate.findFirst({
+      where: { studentId, courseId },
+    });
+    if (existing) {
+      return err("Certificate already exists for this student and course");
+    }
+
     await prisma.certificate.create({
       data: {
-        studentId: student.studentProfile.id,
-        courseId: enrollment.class.courseId,
-        paymentStatus: paymentStatus as PaymentStatus,
-        paymentMethod:
-          paymentStatus === "PAID" ? (paymentMethod as PaymentMethod) : null,
+        studentId,
+        courseId,
+        receiptNumber: receiptNumber.trim(),
         fullNameAmharic: fullNameAmharic?.trim() || null,
-        claimedById: adminId,
-        notes: notes?.trim() || null,
+        manualStudentName: manualStudentName?.trim() || null,
+        claimedById: admin.id,
+        paymentStatus: "PENDING",
         isDelivered: false,
       },
     });
+
     revalidatePath("/admin/certificates");
     revalidatePath("/super-admin/certificates");
-    revalidatePath(`/admin/students/${studentUserId}`);
     return ok;
   } catch (e) {
     return err(e instanceof Error ? e.message : "Failed to claim certificate");
@@ -1637,18 +1633,84 @@ export async function unmarkCertificateAsDone(certificateId: string) {
 
 export async function markCertificateDelivered(certificateId: string) {
   try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return err("Not authenticated");
+
+    const admin = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+    if (!admin) return err("Not authenticated");
+
+    const cert = await prisma.certificate.findUnique({
+      where: { id: certificateId },
+      include: {
+        student: {
+          include: {
+            user: { select: { id: true } },
+            enrollments: {
+              include: {
+                paymentRemaining: {
+                  select: { remainingAmount: true, status: true },
+                },
+              },
+            },
+          },
+        },
+        course: { select: { title: true } },
+      },
+    });
+
+    if (!cert) return err("Certificate not found");
+
+    const hasUnpaidRemaining = cert.student?.enrollments.some(
+      (enrollment) =>
+        enrollment.paymentRemaining &&
+        enrollment.paymentRemaining.status !== "PAID" &&
+        enrollment.paymentRemaining.remainingAmount > 0,
+    );
+
+    if (hasUnpaidRemaining) {
+      return err(
+        "Cannot deliver certificate. Student has outstanding balance.",
+      );
+    }
+
     await prisma.certificate.update({
       where: { id: certificateId },
-      data: { isDelivered: true, deliveredAt: new Date() },
+      data: {
+        isDelivered: true,
+        deliveredAt: new Date(),
+      },
     });
+
+    if (cert.student?.user?.id) {
+      await prisma.studentNotification
+        .create({
+          data: {
+            studentId: cert.student.user.id,
+            title: "🎓 Your Certificate is Ready!",
+            body: `Your ${cert.course.title} certificate has been delivered. Please visit the training center to collect it.`,
+            type: "SUCCESS",
+            createdById: admin.id,
+          },
+        })
+        .catch(() => {});
+    }
+
     revalidatePath("/admin/certificates");
     revalidatePath("/super-admin/certificates");
     revalidatePath("/student/certificate");
     return ok;
-  } catch {
-    return err("Failed");
+  } catch (e) {
+    return err(
+      e instanceof Error
+        ? e.message
+        : "Failed to mark certificate as delivered",
+    );
   }
 }
+
 export async function updateCertificatePayment(
   certificateId: string,
   paymentStatus: string,
