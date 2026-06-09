@@ -20,20 +20,25 @@ export default async function SuperAdminCertificateDetailPage({
   const { id } = await params;
   const { campusId } = (await searchParams) ?? {};
 
-  const certificate = await prisma.certificate.findUnique({
+  const cert = await prisma.certificate.findUnique({
     where: { id },
     include: {
-      student: { include: { user: true } },
+      student: {
+        include: {
+          user: { select: { firstName: true, lastName: true, id: true } },
+        },
+      },
       course: true,
+      claimedBy: { select: { firstName: true, lastName: true } },
     },
   });
 
-  if (!certificate) notFound();
+  if (!cert) notFound();
 
-  const studentRemaining = certificate.studentId
+  const studentRemaining = cert.studentId
     ? await prisma.paymentRemaining.findFirst({
         where: {
-          enrollment: { studentId: certificate.studentId },
+          enrollment: { student: { id: cert.studentId } },
           status: { not: "PAID" },
         },
         select: { remainingAmount: true, dueDate: true },
@@ -41,20 +46,19 @@ export default async function SuperAdminCertificateDetailPage({
     : null;
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       <Link href={`/super-admin/certificates?campusId=${campusId ?? ""}`}>
         <button
-          className="text-gray-500 text-sm hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+          className="mb-2 flex items-center gap-2 text-gray-500 text-sm transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
           type="button"
         >
-          ← Back
+          ← Back to Certificates
         </button>
       </Link>
       <PageHeader title="Certificate Details" />
       <CertificateDetailClient
-        cert={certificate}
+        cert={cert}
         studentRemaining={studentRemaining}
-        redirectTo={`/super-admin/certificates?campusId=${campusId ?? ""}`}
       />
     </div>
   );

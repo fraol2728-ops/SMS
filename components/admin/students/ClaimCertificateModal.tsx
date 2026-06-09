@@ -31,10 +31,11 @@ export function ClaimCertificateModal({
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await claimCertificate(
-        studentId,
-        new FormData(e.currentTarget),
-      );
+      const formData = new FormData(e.currentTarget);
+      formData.set("studentId", studentId);
+      formData.set("courseId", String(formData.get("courseId") ?? ""));
+      formData.set("manualStudentName", studentName);
+      const res = await claimCertificate(formData);
       if (res.success) {
         toast.success("Certificate claimed successfully");
         setOpen(false);

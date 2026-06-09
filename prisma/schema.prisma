@@ -643,6 +643,7 @@ model Certificate {
   claimedBy         User?           @relation("CertificateClaimedBy", fields: [claimedById], references: [id])
   paymentStatus     PaymentStatus   @default(PENDING)
   paymentMethod     PaymentMethod?
+  receiptNumber     String?
   isDone            Boolean         @default(false)
   doneAt            DateTime?
   doneById          String?

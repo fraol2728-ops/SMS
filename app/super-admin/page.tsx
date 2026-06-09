@@ -63,6 +63,7 @@ export default async function SuperAdminDashboard({
     monthlyPartialPayments,
     outstanding,
     certificatesCount,
+    pendingCertificates,
     todayAttendance,
     recentStudents,
   ] = await Promise.all([
@@ -111,6 +112,14 @@ export default async function SuperAdminDashboard({
       where: {
         isDelivered: false,
         course: { campusId: effectiveCampusId },
+      },
+    }),
+    prisma.certificate.count({
+      where: {
+        isDelivered: false,
+        student: {
+          user: { campusId: effectiveCampusId ?? undefined },
+        },
       },
     }),
     prisma.attendance.count({
@@ -244,6 +253,28 @@ export default async function SuperAdminDashboard({
           </div>
         </div>
       </div>
+
+      {pendingCertificates > 0 && (
+        <Link href={`/super-admin/certificates?campusId=${effectiveCampusId}`}>
+          <div className="flex cursor-pointer items-center justify-between rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 p-4 shadow-sm transition-opacity hover:opacity-90">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/20 text-xl">
+                🎓
+              </div>
+              <div>
+                <p className="font-medium text-white/80 text-xs">
+                  Certificates Pending
+                </p>
+                <p className="font-bold text-white">
+                  {pendingCertificates} certificate
+                  {pendingCertificates !== 1 ? "s" : ""} to deliver
+                </p>
+              </div>
+            </div>
+            <span className="flex-shrink-0 text-white text-xl">→</span>
+          </div>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map(
