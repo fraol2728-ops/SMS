@@ -1515,6 +1515,10 @@ export async function claimCertificate(formData: FormData) {
     const receiptNumber = formData.get("receiptNumber") as string;
     const fullNameAmharic = formData.get("fullNameAmharic") as string;
     const manualStudentName = formData.get("manualStudentName") as string;
+    const paymentStatus =
+      (formData.get("paymentStatus") as string) || "PENDING";
+    const paymentMethod = (formData.get("paymentMethod") as string) || "CASH";
+    const notes = formData.get("notes") as string;
 
     if (!receiptNumber?.trim()) return err("Receipt number is required");
     if (!studentId || !courseId) return err("Missing required fields");
@@ -1534,7 +1538,9 @@ export async function claimCertificate(formData: FormData) {
         fullNameAmharic: fullNameAmharic?.trim() || null,
         manualStudentName: manualStudentName?.trim() || null,
         claimedById: admin.id,
-        paymentStatus: "PENDING",
+        paymentStatus: paymentStatus as PaymentStatus,
+        paymentMethod: paymentMethod as PaymentMethod,
+        notes: notes?.trim() || null,
         isDelivered: false,
       },
     });
@@ -1589,25 +1595,42 @@ export async function markCertificateAsDone(certificateId: string) {
       where: { clerkId },
       select: { id: true },
     });
-    if (!admin) return err("Admin not found");
+    if (!admin) return err("Not authenticated");
+
+    const cert = await prisma.certificate.findUnique({
+      where: { id: certificateId },
+      include: {
+        student: { include: { user: { select: { id: true } } } },
+        course: { select: { title: true } },
+      },
+    });
+    if (!cert) return err("Certificate not found");
 
     await prisma.certificate.update({
       where: { id: certificateId },
-      data: {
-        isDone: true,
-        doneAt: new Date(),
-        doneById: admin.id,
-      },
+      data: { isDone: true, doneAt: new Date() },
     });
+
+    if (cert.student?.user?.id) {
+      await prisma.studentNotification
+        .create({
+          data: {
+            studentId: cert.student.user.id,
+            title: "🎓 Your Certificate is Ready!",
+            body: `Your ${cert.course.title} certificate is ready. Please visit the training center to collect it.`,
+            type: "SUCCESS",
+            createdById: admin.id,
+          },
+        })
+        .catch(() => {});
+    }
 
     revalidatePath("/admin/certificates");
     revalidatePath("/super-admin/certificates");
     revalidatePath("/student/certificate");
     return ok;
   } catch (e) {
-    return err(
-      e instanceof Error ? e.message : "Failed to mark certificate as done",
-    );
+    return err(e instanceof Error ? e.message : "Failed to mark as done");
   }
 }
 
@@ -1615,19 +1638,14 @@ export async function unmarkCertificateAsDone(certificateId: string) {
   try {
     await prisma.certificate.update({
       where: { id: certificateId },
-      data: {
-        isDone: false,
-        doneAt: null,
-        doneById: null,
-      },
+      data: { isDone: false, doneAt: null },
     });
-
     revalidatePath("/admin/certificates");
     revalidatePath("/super-admin/certificates");
     revalidatePath("/student/certificate");
     return ok;
   } catch (e) {
-    return err(e instanceof Error ? e.message : "Failed to unmark certificate");
+    return err(e instanceof Error ? e.message : "Failed to unmark");
   }
 }
 
