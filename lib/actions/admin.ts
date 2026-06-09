@@ -1711,6 +1711,39 @@ export async function markCertificateDelivered(certificateId: string) {
   }
 }
 
+export async function updateCertificate(
+  certificateId: string,
+  formData: FormData,
+) {
+  try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return err("Not authenticated");
+
+    const manualStudentName = formData.get("manualStudentName") as string;
+    const fullNameAmharic = formData.get("fullNameAmharic") as string;
+    const receiptNumber = formData.get("receiptNumber") as string;
+    const notes = formData.get("notes") as string;
+    const paymentStatus = formData.get("paymentStatus") as string;
+
+    await prisma.certificate.update({
+      where: { id: certificateId },
+      data: {
+        manualStudentName: manualStudentName?.trim() || null,
+        fullNameAmharic: fullNameAmharic?.trim() || null,
+        receiptNumber: receiptNumber?.trim() || null,
+        notes: notes?.trim() || null,
+        paymentStatus: (paymentStatus as PaymentStatus) || "PENDING",
+      },
+    });
+
+    revalidatePath("/admin/certificates");
+    revalidatePath("/super-admin/certificates");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to update certificate");
+  }
+}
+
 export async function updateCertificatePayment(
   certificateId: string,
   paymentStatus: string,
