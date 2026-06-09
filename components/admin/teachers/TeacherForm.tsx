@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ProfilePhotoUpload } from "@/components/shared/ProfilePhotoUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ type DefaultTeacherValues = {
   specialties?: string[];
   bio?: string;
   waitlistId?: string;
+  profilePhoto?: string | null;
 };
 
 export function TeacherForm({
@@ -35,6 +37,11 @@ export function TeacherForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState(
+    defaultValues?.profilePhoto ?? "",
+  );
+  const [firstName, setFirstName] = useState(defaultValues?.firstName ?? "");
+  const [lastName, setLastName] = useState(defaultValues?.lastName ?? "");
   const [specialties, setSpecialties] = useState<string[]>(
     defaultValues?.specialties ??
       (defaultValues?.specialty ? [defaultValues.specialty] : []),
@@ -92,6 +99,15 @@ export function TeacherForm({
           value={defaultValues.waitlistId}
         />
       ) : null}
+      <div className="flex justify-center">
+        <ProfilePhotoUpload
+          currentUrl={profilePhoto || null}
+          onUpload={setProfilePhoto}
+          onRemove={() => setProfilePhoto("")}
+          name={`${firstName} ${lastName}`.trim() || "Teacher"}
+        />
+        <input type="hidden" name="profilePhoto" value={profilePhoto} />
+      </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="firstName">First Name *</Label>
@@ -100,7 +116,8 @@ export function TeacherForm({
             name="firstName"
             required
             placeholder="First name"
-            defaultValue={defaultValues?.firstName ?? ""}
+            value={firstName}
+            onChange={(event) => setFirstName(event.target.value)}
           />
         </div>
         <div className="space-y-2">
@@ -110,7 +127,8 @@ export function TeacherForm({
             name="lastName"
             required
             placeholder="Last name"
-            defaultValue={defaultValues?.lastName ?? ""}
+            value={lastName}
+            onChange={(event) => setLastName(event.target.value)}
           />
         </div>
         <div className="space-y-2">

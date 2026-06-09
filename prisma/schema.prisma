@@ -263,6 +263,7 @@ model User {
   telegram    String?
   whatsapp    String?
   avatar      String?
+  profilePhoto String?
   gender      Gender?
   dateOfBirth DateTime?
   address     String?
@@ -589,6 +590,8 @@ model Withdrawal {
   reason             String
   startDate          DateTime         @default(now())
   expectedReturnDate DateTime?
+  contactDuring      String?
+  withdrawalNotes    String?
   actualReturnDate   DateTime?
   status             WithdrawalStatus @default(ACTIVE)
   approvedById       String

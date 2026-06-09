@@ -2,9 +2,9 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import CalculatorWidget from "@/components/ui/CalculatorWidget";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StudentForm } from "@/components/admin/students/StudentForm";
+import CalculatorWidget from "@/components/ui/CalculatorWidget";
 import { prisma } from "@/lib/prisma";
 
 export default async function SuperAdminNewStudentPage({
@@ -38,13 +38,13 @@ export default async function SuperAdminNewStudentPage({
         select: { enrollments: { where: { status: "ACTIVE" } } },
       },
     },
-    orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
+    orderBy: [{ status: "asc" }, { lab: { name: "asc" } }, { timeSlot: "asc" }],
   });
 
   const formattedClasses = classes.map((klass) => ({
     ...klass,
-    startDate: klass.startDate?.toISOString().slice(0, 10) ?? "",
-    endDate: klass.endDate?.toISOString().slice(0, 10) ?? "",
+    startDate: klass.startDate?.toISOString().slice(0, 10) ?? null,
+    endDate: klass.endDate?.toISOString().slice(0, 10) ?? null,
   }));
 
   return (
