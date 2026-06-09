@@ -20,7 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { recordPartialPayment } from "@/lib/actions/admin";
+import { deleteStudent, recordPartialPayment } from "@/lib/actions/admin";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { ClaimCertificateModal } from "../certificates/ClaimCertificateModal";
 import { ChangeClassButton } from "./ChangeClassButton";
@@ -47,6 +47,29 @@ export function StudentInfoClient({
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [loading, setLoading] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (
+      !confirm(
+        `Are you sure you want to permanently delete ${student.firstName} ${student.lastName}? This will delete ALL their data including payments, attendance, and Clerk account. This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await deleteStudent(student.id);
+      if (res.success) {
+        toast.success("Student deleted permanently");
+        router.push("/admin/students");
+      } else {
+        toast.error(res.error);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function handleRecordPayment() {
     const amount = Number(paymentAmount);
@@ -123,10 +146,24 @@ export function StudentInfoClient({
           <div className="h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
           <div className="p-6">
             <div className="flex flex-col items-start gap-5 sm:flex-row">
-              <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 font-black text-2xl text-white shadow-lg">
-                {student.firstName[0]}
-                {student.lastName[0]}
-              </div>
+              {student.profilePhoto ? (
+                <a
+                  href={student.profilePhoto}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={student.profilePhoto}
+                    alt={`${student.firstName} ${student.lastName}`}
+                    className="h-20 w-20 cursor-pointer rounded-3xl object-cover shadow-lg"
+                  />
+                </a>
+              ) : (
+                <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 font-black text-2xl text-white shadow-lg">
+                  {student.firstName[0]}
+                  {student.lastName[0]}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <h1 className="font-black text-2xl text-gray-900 dark:text-white">
@@ -617,15 +654,13 @@ export function StudentInfoClient({
 
         <div className="flex justify-end">
           <button
-            onClick={async () => {
-              if (!confirm("Delete this student? This cannot be undone."))
-                return;
-            }}
-            className="flex items-center gap-2 rounded-2xl border border-red-200 px-4 py-2 text-red-600 text-sm transition-colors hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-900/20"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="flex items-center gap-2 rounded-2xl border border-red-200 px-4 py-2 text-red-600 text-sm transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:hover:bg-red-900/20"
             type="button"
           >
             <Trash2 size={14} />
-            Delete Student
+            {deleting ? "Deleting..." : "Delete Student"}
           </button>
         </div>
       </div>

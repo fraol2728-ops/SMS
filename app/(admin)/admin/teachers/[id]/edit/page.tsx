@@ -33,6 +33,7 @@ export default async function EditTeacherPage({
           specialty: teacher.teacherProfile?.specialty ?? "",
           specialties: teacher.teacherProfile?.specialties ?? [],
           bio: teacher.teacherProfile?.bio ?? "",
+          profilePhoto: teacher.profilePhoto,
         }}
       />
     </div>
