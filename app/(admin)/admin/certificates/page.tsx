@@ -1,26 +1,28 @@
 export const dynamic = "force-dynamic";
 
-import { CheckCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import { ExportCertificatesButton } from "@/components/admin/certificates/ExportButton";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
+
 export default async function CertificatesPage() {
   await requireAdmin();
   const campusId = await getCurrentUserCampusId();
   const certificates = await prisma.certificate.findMany({
     where: {
       isDelivered: false,
-      OR: [
-        { student: { user: campusId ? { campusId } : undefined } },
-        { studentId: null },
-      ],
+      student: { user: { campusId: campusId ?? undefined } },
     },
-    include: { student: { include: { user: true } }, course: true },
+    include: {
+      student: { include: { user: true } },
+      course: true,
+      claimedBy: { select: { firstName: true, lastName: true } },
+    },
     orderBy: { issuedAt: "desc" },
   });
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -32,8 +34,8 @@ export default async function CertificatesPage() {
         <ExportCertificatesButton certificates={certificates} />
       </div>
       {certificates.length === 0 ? (
-        <div className="bg-white border rounded-xl p-12 text-center">
-          <p className="text-4xl mb-3">🎓</p>
+        <div className="rounded-xl border bg-white p-12 text-center">
+          <p className="mb-3 text-4xl">🎓</p>
           <p className="font-semibold">No pending certificates</p>
         </div>
       ) : (
@@ -42,41 +44,47 @@ export default async function CertificatesPage() {
             const user = cert.student?.user;
             const studentName =
               cert.manualStudentName ??
-              `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ??
-              "Manual student";
+              (`${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ||
+                "Manual student");
             return (
               <Link key={cert.id} href={`/admin/certificates/${cert.id}`}>
-                <div className="bg-white border rounded-xl p-5 hover:border-yellow-300">
-                  <div className="flex items-center justify-between">
+                <div className="rounded-xl border bg-white p-5 transition-all hover:border-yellow-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-yellow-700">
+                  <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold text-xl">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 font-bold text-xl text-yellow-700">
                         🎓
                       </div>
                       <div>
-                        <p className="font-semibold">{studentName}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="font-semibold dark:text-white">
+                          {studentName}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
                           {cert.course.title}
                         </p>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2 text-right">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {cert.isDone ? (
-                          <span className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 font-medium text-green-700 text-xs dark:bg-green-900/30 dark:text-green-400">
-                            <CheckCircle size={11} /> Done
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 font-medium text-gray-500 text-xs dark:bg-gray-700 dark:text-gray-400">
-                            <Clock size={11} /> Pending
-                          </span>
-                        )}
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         <span
-                          className={`rounded-full px-2 py-1 text-xs ${cert.paymentStatus === "PAID" || cert.paymentStatus === "PARTIAL" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}
+                          className={`rounded-full px-2.5 py-1 font-medium text-xs ${
+                            cert.isDelivered
+                              ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          }`}
                         >
-                          {cert.paymentStatus}
+                          {cert.isDelivered ? "✓ Delivered" : "⏳ Pending"}
+                        </span>
+                        <span
+                          className={`rounded-full px-2.5 py-1 font-medium text-xs ${
+                            cert.paymentStatus === "PAID"
+                              ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                          }`}
+                        >
+                          Payment: {cert.paymentStatus}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="mt-1 text-muted-foreground text-xs">
                         {new Date(cert.issuedAt).toLocaleDateString("en-GB")}
                       </p>
                     </div>
