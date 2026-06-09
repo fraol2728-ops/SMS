@@ -1,14 +1,14 @@
+export const dynamic = "force-dynamic";
+
+import { BookOpen, Building2, Phone } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { DeleteConfirmDialog } from "@/components/admin/shared/DeleteConfirmDialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
-export default async function TeacherDetail({
+export default async function TeacherDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -16,213 +16,239 @@ export default async function TeacherDetail({
   await requireAdmin();
   const { id } = await params;
   const campusId = await getCurrentUserCampusId();
-  const t = await prisma.user.findFirst({
-    where: { id, ...(campusId ? { campusId } : {}) },
+
+  const teacherProfile = await prisma.teacherProfile.findUnique({
+    where: { id },
     include: {
-      teacherProfile: {
+      user: { include: { campus: true } },
+      classes: {
+        where: { isActive: true },
         include: {
-          classes: {
-            include: {
-              course: true,
-              lab: { select: { name: true } },
-              _count: { select: { enrollments: true } },
-            },
+          course: true,
+          lab: true,
+          _count: {
+            select: { enrollments: { where: { status: "ACTIVE" } } },
           },
         },
+        orderBy: { createdAt: "desc" },
       },
     },
   });
 
-  if (!t) notFound();
+  if (teacherProfile && campusId && teacherProfile.user.campusId !== campusId) {
+    notFound();
+  }
 
-  const classes = t.teacherProfile?.classes ?? [];
-  const totalClasses = classes.length;
-  const totalCapacity = classes.reduce(
-    (sum, cls) => sum + (cls.capacity ?? 0),
+  if (!teacherProfile) {
+    const userWithProfile = await prisma.user.findFirst({
+      where: { id, ...(campusId ? { campusId } : {}) },
+      include: {
+        teacherProfile: {
+          include: {
+            user: { include: { campus: true } },
+            classes: {
+              where: { isActive: true },
+              include: {
+                course: true,
+                lab: true,
+                _count: {
+                  select: { enrollments: { where: { status: "ACTIVE" } } },
+                },
+              },
+              orderBy: { createdAt: "desc" },
+            },
+          },
+        },
+      },
+    });
+    if (!userWithProfile?.teacherProfile) notFound();
+    redirect(`/admin/teachers/${userWithProfile.teacherProfile.id}`);
+  }
+
+  const user = teacherProfile.user;
+  const totalStudents = teacherProfile.classes.reduce(
+    (sum, c) => sum + c._count.enrollments,
     0,
   );
-  const totalStudents = classes.reduce(
-    (sum, cls) => sum + (cls._count?.enrollments ?? 0),
-    0,
-  );
-  const groupClasses = classes.filter(
-    (cls) => cls.classType === "GROUP",
-  ).length;
-  const personalClasses = classes.filter(
-    (cls) => cls.classType === "PERSONAL",
-  ).length;
-  const specialty = t.teacherProfile?.specialty ?? "No specialty set";
-  const bio = t.teacherProfile?.bio ?? "No bio available.";
-  const initials = `${t.firstName?.[0] ?? "T"}${t.lastName?.[0] ?? ""}`;
 
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-slate-900 to-slate-600 text-2xl font-semibold text-white shadow-lg">
-                {initials}
-              </div>
-              <div className="min-w-0 space-y-4">
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-2xl font-semibold tracking-tight truncate">
-                      {t.firstName} {t.lastName}
-                    </h1>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-700">
-                      Teacher
-                    </span>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2 text-sm text-slate-600">
-                    <p>
-                      <span className="font-semibold text-slate-900">
-                        Email:
-                      </span>{" "}
-                      {t.email}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-slate-900">
-                        Specialty:
-                      </span>{" "}
-                      {specialty}
-                    </p>
-                    <p className="sm:col-span-2 text-slate-700">{bio}</p>
-                  </div>
-                </div>
-                <div className="grid gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 justify-items-center">
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-center w-full max-w-[220px]">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                      Classes
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-slate-900">
-                      {totalClasses}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-center w-full max-w-[220px]">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                      Total students
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-slate-900">
-                      {totalStudents}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-center w-full max-w-[220px]">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                      Group classes
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-slate-900">
-                      {groupClasses}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-center w-full max-w-[220px]">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                      Personal classes
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-slate-900">
-                      {personalClasses}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+    <div className="max-w-4xl space-y-6">
+      <Link href="/admin/teachers">
+        <button
+          type="button"
+          className="mb-2 flex items-center gap-2 text-gray-500 text-sm transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+        >
+          ← Back to Teachers
+        </button>
+      </Link>
 
-            <div className="flex flex-col items-start gap-3 sm:items-end">
-              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:space-x-3">
-                <Button asChild size="sm">
-                  <a href={`/admin/teachers/${t.id}/edit`}>Edit Teacher</a>
-                </Button>
-                <DeleteConfirmDialog
-                  label="Delete Teacher"
-                  dialogTitle="Delete this teacher?"
-                  dialogDescription="This action cannot be undone. Remove the teacher only if they are no longer assigned to any classes."
-                  endpoint="/api/admin/delete-teacher"
-                  payload={{ id: t.id }}
-                  successRedirect="/admin/teachers"
-                />
+      <div className="overflow-hidden rounded-3xl border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <div className="h-2 bg-gradient-to-r from-green-400 to-teal-500" />
+        <div className="p-6">
+          <div className="flex flex-col items-start gap-5 sm:flex-row">
+            <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-green-400 to-teal-500 font-black text-2xl text-white shadow-lg">
+              {user.firstName[0]}
+              {user.lastName[0]}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="font-black text-2xl text-gray-900 dark:text-white">
+                {user.firstName} {user.lastName}
+              </h1>
+              <p className="font-mono text-gray-500 text-sm dark:text-gray-400">
+                {teacherProfile.teacherCode}
+              </p>
+              {(teacherProfile.specialties ?? []).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {(teacherProfile.specialties ?? []).map((specialty) => (
+                    <span
+                      key={specialty}
+                      className="rounded-full bg-green-50 px-2.5 py-1 font-medium text-green-700 text-xs dark:bg-green-900/30 dark:text-green-400"
+                    >
+                      {specialty}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 flex flex-wrap gap-3 text-gray-500 text-sm dark:text-gray-400">
+                {user.phone && (
+                  <a
+                    href={`tel:${user.phone}`}
+                    className="flex items-center gap-1.5 hover:text-green-600"
+                  >
+                    <Phone size={13} className="text-green-500" />
+                    {user.phone}
+                  </a>
+                )}
+                {user.campus && (
+                  <span className="flex items-center gap-1.5">
+                    <Building2 size={13} className="text-blue-500" />
+                    {user.campus.name}
+                  </span>
+                )}
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Class schedule</h2>
-              <p className="text-sm text-slate-500">
-                Overview of classes assigned to this teacher.
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        {[
+          {
+            label: "Active Classes",
+            value: teacherProfile.classes.length,
+            color:
+              "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400",
+          },
+          {
+            label: "Total Students",
+            value: totalStudents,
+            color:
+              "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400",
+          },
+          {
+            label: "Campus",
+            value: user.campus?.name ?? "—",
+            color:
+              "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400",
+          },
+        ].map(({ label, value, color }) => (
+          <div
+            key={label}
+            className={`rounded-2xl p-5 ${color.split(" ").slice(0, 2).join(" ")}`}
+          >
+            <p
+              className={`font-black text-3xl ${color.split(" ").slice(2).join(" ")}`}
+            >
+              {value}
+            </p>
+            <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
+              {label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <h2 className="mb-4 font-bold text-gray-900 dark:text-white">
+          Personal Information
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            {
+              label: "Email",
+              value: user.email.includes("@exceed.local") ? "—" : user.email,
+            },
+            { label: "Phone", value: user.phone ?? "—" },
+            { label: "Gender", value: user.gender ?? "—" },
+            { label: "Address", value: user.address ?? "—" },
+            { label: "Telegram", value: user.telegram ?? "—" },
+            { label: "WhatsApp", value: user.whatsapp ?? "—" },
+            { label: "Bio", value: teacherProfile.bio ?? "—" },
+          ].map(({ label, value }) => (
+            <div
+              key={label}
+              className="rounded-2xl bg-gray-50 p-4 dark:bg-gray-800"
+            >
+              <p className="mb-1 font-semibold text-gray-400 text-xs uppercase tracking-wide">
+                {label}
+              </p>
+              <p className="font-semibold text-gray-900 text-sm dark:text-white">
+                {value}
               </p>
             </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-700">
-              {totalClasses} classes
-            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <h2 className="mb-4 font-bold text-gray-900 dark:text-white">
+          Active Classes ({teacherProfile.classes.length})
+        </h2>
+        {teacherProfile.classes.length === 0 ? (
+          <div className="py-8 text-center text-gray-400">
+            <BookOpen size={32} className="mx-auto mb-2 opacity-20" />
+            <p>No active classes assigned</p>
           </div>
-          <div className="mt-6 overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-100 text-left text-xs uppercase tracking-[0.16em] text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Course</th>
-                  <th className="px-4 py-3">Lab</th>
-                  <th className="px-4 py-3">Time</th>
-                  <th className="px-4 py-3">Days</th>
-                  <th className="px-4 py-3">Capacity</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-700">
-                {classes.map((cls) => (
-                  <tr
-                    key={cls.id}
-                    className="group hover:bg-slate-50 transition-colors"
-                  >
-                    <td className="px-4 py-4 font-medium text-slate-900">
-                      <Link
-                        href={`/admin/classes/${cls.id}`}
-                        className="block w-full text-slate-900 hover:text-slate-900"
-                      >
-                        {cls.course.title}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-4">
-                      <Link
-                        href={`/admin/classes/${cls.id}`}
-                        className="block w-full text-slate-700 hover:text-slate-900"
-                      >
-                        {cls.lab?.name ?? "Online"}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-4">
-                      <Link
-                        href={`/admin/classes/${cls.id}`}
-                        className="block w-full text-slate-700 hover:text-slate-900"
-                      >
-                        {TIME_SLOTS[cls.timeSlot as keyof typeof TIME_SLOTS]}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-4">
-                      <Link
-                        href={`/admin/classes/${cls.id}`}
-                        className="block w-full text-slate-700 hover:text-slate-900"
-                      >
-                        {CLASS_DAYS[cls.days as keyof typeof CLASS_DAYS]}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-4">
-                      <Link
-                        href={`/admin/classes/${cls.id}`}
-                        className="block w-full text-slate-700 hover:text-slate-900"
-                      >
-                        {cls.capacity}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        ) : (
+          <div className="space-y-3">
+            {teacherProfile.classes.map((c) => (
+              <Link key={c.id} href={`/admin/classes/${c.id}`}>
+                <div className="group flex items-center justify-between rounded-2xl bg-gray-50 p-4 transition-colors hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-blue-900/20">
+                  <div>
+                    <p className="font-semibold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white">
+                      {c.course.title}
+                    </p>
+                    <p className="mt-0.5 text-gray-400 text-xs">
+                      {c.lab?.name ?? "Online"} •{" "}
+                      {TIME_SLOTS[c.timeSlot as keyof typeof TIME_SLOTS] ??
+                        c.timeSlot}{" "}
+                      •{" "}
+                      {CLASS_DAYS[c.days as keyof typeof CLASS_DAYS] ?? c.days}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-gray-900 dark:text-white">
+                      {c._count.enrollments}/{c.capacity}
+                    </p>
+                    <p className="text-gray-400 text-xs">students</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <Link href={`/admin/teachers/${teacherProfile.id}/edit`}>
+          <button
+            type="button"
+            className="rounded-2xl border bg-white px-5 py-2.5 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            ✏️ Edit Teacher
+          </button>
+        </Link>
+      </div>
     </div>
   );
 }
