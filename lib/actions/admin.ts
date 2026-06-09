@@ -141,6 +141,7 @@ export async function createStudent(
   try {
     const raw = actionInputToObject(input);
     const receiptNumber = String(raw.receiptNumber ?? "").trim() || null;
+    const profilePhoto = String(raw.profilePhoto ?? "").trim() || null;
 
     // Use the first enrollment for basic validation if enrollmentsData is provided
     const enrollments = enrollmentsData || [
@@ -299,6 +300,7 @@ export async function createStudent(
           gender: v.gender,
           dateOfBirth: v.dateOfBirth ? new Date(v.dateOfBirth) : undefined,
           address: v.address,
+          profilePhoto,
           campusId,
           studentProfile: {
             create: {
@@ -542,6 +544,7 @@ export async function updateStudent(id: string, formData: FormData) {
         gender: v.gender,
         dateOfBirth: v.dateOfBirth ? new Date(v.dateOfBirth) : undefined,
         address: v.address,
+        profilePhoto: String(raw.profilePhoto ?? "").trim() || null,
         studentProfile: {
           update: {
             registrationDate: v.registrationDate
@@ -591,67 +594,97 @@ export async function updateStudent(id: string, formData: FormData) {
   }
 }
 
-export async function deleteStudent(id: string) {
+export async function deleteStudent(userId: string) {
   try {
-    // Delete all related data in transaction for atomicity
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return err("Not authenticated");
+
+    const student = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        studentProfile: {
+          include: {
+            enrollments: {
+              include: {
+                payments: true,
+                attendance: true,
+                paymentRemaining: true,
+                feedback: true,
+              },
+            },
+            certificates: true,
+            cocEntries: true,
+          },
+        },
+      },
+    });
+
+    if (!student) return err("Student not found");
+
+    if (!student.clerkId.startsWith("pending_")) {
+      try {
+        const clerk = await clerkClient();
+        await clerk.users.deleteUser(student.clerkId);
+      } catch (clerkErr) {
+        console.warn("Clerk delete failed (may not exist):", clerkErr);
+      }
+    }
+
+    const profileId = student.studentProfile?.id;
+
     await prisma.$transaction(async (tx) => {
-      // Get student profile ID first
-      const user = await tx.user.findUnique({
-        where: { id },
-        select: { studentProfile: { select: { id: true } } },
-      });
-
-      if (user?.studentProfile?.id) {
-        const studentProfileId = user.studentProfile.id;
-
-        // Delete all enrollments and related records
-        const enrollments = await tx.enrollment.findMany({
-          where: { studentId: studentProfileId },
-          select: { id: true },
+      if (profileId) {
+        await tx.attendance.deleteMany({
+          where: { enrollment: { studentId: profileId } },
         });
 
-        for (const enrollment of enrollments) {
-          // Delete attendance records
-          await tx.attendance.deleteMany({
-            where: { enrollmentId: enrollment.id },
-          });
-
-          // Delete payments
-          await tx.payment.deleteMany({
-            where: { enrollmentId: enrollment.id },
-          });
-
-          // Delete payment remaining
-          await tx.paymentRemaining.deleteMany({
-            where: { enrollmentId: enrollment.id },
-          });
-        }
-
-        // Delete enrollments
-        await tx.enrollment.deleteMany({
-          where: { studentId: studentProfileId },
+        await tx.partialPayment.deleteMany({
+          where: { paymentRemaining: { enrollment: { studentId: profileId } } },
         });
 
-        // Delete assessment
-        await tx.studentAssessment.deleteMany({
-          where: { studentId: studentProfileId },
+        await tx.paymentRemaining.deleteMany({
+          where: { enrollment: { studentId: profileId } },
         });
 
-        // Delete student notifications
+        await tx.payment.deleteMany({
+          where: { enrollment: { studentId: profileId } },
+        });
+
+        await tx.studentFeedback.deleteMany({
+          where: { studentId: student.id },
+        });
+
         await tx.studentNotification.deleteMany({
-          where: { studentId: id },
+          where: { studentId: student.id },
         });
 
-        // Delete student profile
+        await tx.withdrawal.deleteMany({
+          where: { enrollment: { studentId: profileId } },
+        });
+
+        await tx.enrollment.deleteMany({
+          where: { studentId: profileId },
+        });
+
+        await tx.certificate.deleteMany({
+          where: { studentId: profileId },
+        });
+
+        await tx.cOCStudent.deleteMany({
+          where: { studentProfileId: profileId },
+        });
+
+        await tx.studentAssessment.deleteMany({
+          where: { studentId: profileId },
+        });
+
         await tx.studentProfile.delete({
-          where: { id: studentProfileId },
+          where: { id: profileId },
         });
       }
 
-      // Delete user
-      await tx.user.delete({
-        where: { id },
-      });
+      await tx.payment.deleteMany({ where: { userId: student.id } });
+      await tx.user.delete({ where: { id: userId } });
     });
 
     revalidatePath("/admin/students");
@@ -659,7 +692,7 @@ export async function deleteStudent(id: string) {
     return ok;
   } catch (e) {
     console.error("Delete student error:", e);
-    return err("Failed to delete student and associated data.");
+    return err(e instanceof Error ? e.message : "Failed to delete student");
   }
 }
 
@@ -902,6 +935,7 @@ export async function createTeacher(formData: FormData) {
   try {
     const raw = actionInputToObject(formData);
     const specialtiesRaw = raw.specialties as string | undefined;
+    const profilePhoto = String(raw.profilePhoto ?? "").trim() || null;
     const specialties = specialtiesRaw
       ? specialtiesRaw.split("||").filter(Boolean)
       : [];
@@ -938,6 +972,7 @@ export async function createTeacher(formData: FormData) {
         email,
         phone: v.phone,
         gender: v.gender,
+        profilePhoto,
         campusId,
         teacherProfile: {
           create: {
@@ -1018,6 +1053,7 @@ export async function updateTeacher(id: string, formData: FormData) {
         email: v.email,
         phone: v.phone,
         gender: v.gender,
+        profilePhoto: String(normalized.profilePhoto ?? "").trim() || null,
         teacherProfile: {
           update: {
             specialties,
@@ -1374,6 +1410,18 @@ export async function withdrawStudent(
       enrollmentIdOrFormData instanceof FormData
         ? (enrollmentIdOrFormData.get("reason") as string)
         : maybeReason;
+    const formExpectedReturnDate =
+      enrollmentIdOrFormData instanceof FormData
+        ? (enrollmentIdOrFormData.get("expectedReturnDate") as string)
+        : expectedReturnDate;
+    const contactDuring =
+      enrollmentIdOrFormData instanceof FormData
+        ? (enrollmentIdOrFormData.get("contactDuring") as string)
+        : null;
+    const withdrawalNotes =
+      enrollmentIdOrFormData instanceof FormData
+        ? (enrollmentIdOrFormData.get("notes") as string)
+        : notes;
 
     if (!enrollmentId) return err("Missing enrollment ID");
     if (!reason?.trim()) return err("Reason is required");
@@ -1393,12 +1441,15 @@ export async function withdrawStudent(
       data: {
         enrollmentId,
         reason: reason.trim(),
-        expectedReturnDate: expectedReturnDate
-          ? new Date(expectedReturnDate)
+        startDate: new Date(),
+        expectedReturnDate: formExpectedReturnDate
+          ? new Date(formExpectedReturnDate)
           : null,
+        contactDuring: contactDuring?.trim() || null,
+        withdrawalNotes: withdrawalNotes?.trim() || null,
         status: "ACTIVE",
         approvedById: adminId,
-        notes: notes?.trim() || null,
+        notes: withdrawalNotes?.trim() || null,
       },
     });
     revalidatePath("/admin/students");

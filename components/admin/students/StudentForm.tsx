@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AssessmentSection } from "@/components/admin/students/AssessmentSection";
-import { EnrollmentSection } from "@/components/admin/students/EnrollmentSection";
 import { EmailValidationInput } from "@/components/admin/students/EmailValidationInput";
+import { EnrollmentSection } from "@/components/admin/students/EnrollmentSection";
+import { ProfilePhotoUpload } from "@/components/shared/ProfilePhotoUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +34,7 @@ type ClassOption = {
   timeSlot: string;
   days: string;
   classType: "GROUP" | "PERSONAL" | "ONLINE";
+  status: "REGISTRATION" | "STARTED" | "ENDED";
   startDate: string | null;
   endDate: string | null;
   course: { title: string; fee: number };
@@ -57,6 +59,7 @@ type DefaultStudentValues = {
   guardianPhone?: string;
   emergencyContact?: string;
   notes?: string;
+  profilePhoto?: string | null;
 };
 
 export function StudentForm({
@@ -77,6 +80,15 @@ export function StudentForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState(
+    defaultValues?.profilePhoto ?? "",
+  );
+  const [firstName, setFirstName] = useState(
+    defaultValues?.firstName ?? defaultPersonalValues?.firstName ?? "",
+  );
+  const [lastName, setLastName] = useState(
+    defaultValues?.lastName ?? defaultPersonalValues?.lastName ?? "",
+  );
   const isEdit = Boolean(defaultValues?.id);
 
   // Manage multiple enrollments
@@ -116,18 +128,47 @@ export function StudentForm({
     setEnrollments(enrollments.filter((e) => e.id !== id));
   };
 
-  const updateEnrollment = (id: string, updates: Partial<EnrollmentData>) => {
-    setEnrollments(
-      enrollments.map((e) => (e.id === id ? { ...e, ...updates } : e)),
-    );
-  };
+  const updateEnrollment = useCallback(
+    (id: string, updates: Partial<EnrollmentData>) => {
+      setEnrollments((current) =>
+        current.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+      );
+    },
+    [],
+  );
+
+  const handlePaymentAmountChange = useCallback(
+    (enrollmentId: string, value: string) => {
+      const enrollment = enrollments.find((e) => e.id === enrollmentId);
+      if (!enrollment) return;
+
+      const paid = parseFloat(value) || 0;
+      const rem = Math.max(0, enrollment.courseFee - paid);
+
+      // Auto-determine payment status based on amount paid
+      let newStatus: "PAID" | "PARTIAL" | "PENDING";
+      if (paid === 0) {
+        newStatus = "PENDING";
+      } else if (paid >= enrollment.courseFee) {
+        newStatus = "PAID";
+      } else {
+        newStatus = "PARTIAL";
+      }
+
+      updateEnrollment(enrollmentId, {
+        paymentAmount: value,
+        remaining: rem,
+        paymentStatus: newStatus,
+      });
+    },
+    [enrollments, updateEnrollment],
+  );
 
   // Handle calculator integration for first enrollment
   useEffect(() => {
     function handler(e: Event) {
       const ce = e as CustomEvent<{ total: number }>;
       if (ce && typeof ce.detail?.total !== "undefined") {
-        // Update the first enrollment with the calculated total
         const firstEnrollment = enrollments[0];
         if (firstEnrollment) {
           handlePaymentAmountChange(
@@ -144,31 +185,7 @@ export function StudentForm({
         "calculator-use-total",
         handler as EventListener,
       );
-  }, [enrollments]);
-
-  const handlePaymentAmountChange = (enrollmentId: string, value: string) => {
-    const enrollment = enrollments.find((e) => e.id === enrollmentId);
-    if (!enrollment) return;
-
-    const paid = parseFloat(value) || 0;
-    const rem = Math.max(0, enrollment.courseFee - paid);
-
-    // Auto-determine payment status based on amount paid
-    let newStatus: "PAID" | "PARTIAL" | "PENDING";
-    if (paid === 0) {
-      newStatus = "PENDING";
-    } else if (paid >= enrollment.courseFee) {
-      newStatus = "PAID";
-    } else {
-      newStatus = "PARTIAL";
-    }
-
-    updateEnrollment(enrollmentId, {
-      paymentAmount: value,
-      remaining: rem,
-      paymentStatus: newStatus,
-    });
-  };
+  }, [enrollments, handlePaymentAmountChange]);
 
   async function onSubmit(formData: FormData) {
     setLoading(true);
@@ -217,6 +234,15 @@ export function StudentForm({
             Basic contact details for the student.
           </p>
         </div>
+        <div className="mb-4 flex justify-center">
+          <ProfilePhotoUpload
+            currentUrl={profilePhoto || null}
+            onUpload={setProfilePhoto}
+            onRemove={() => setProfilePhoto("")}
+            name={`${firstName} ${lastName}`.trim() || "Student"}
+          />
+          <input type="hidden" name="profilePhoto" value={profilePhoto} />
+        </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="firstName">First Name</Label>
@@ -224,11 +250,8 @@ export function StudentForm({
               id="firstName"
               name="firstName"
               required
-              defaultValue={
-                defaultValues?.firstName ??
-                defaultPersonalValues?.firstName ??
-                ""
-              }
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -237,9 +260,8 @@ export function StudentForm({
               id="lastName"
               name="lastName"
               required
-              defaultValue={
-                defaultValues?.lastName ?? defaultPersonalValues?.lastName ?? ""
-              }
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
             />
           </div>
           <div className="space-y-2">
