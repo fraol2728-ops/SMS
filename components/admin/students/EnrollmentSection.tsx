@@ -12,6 +12,7 @@ type ClassOption = {
   timeSlot: string;
   days: string;
   classType: "GROUP" | "PERSONAL" | "ONLINE";
+  status: "REGISTRATION" | "STARTED" | "ENDED";
   startDate: string | null;
   endDate: string | null;
   course: { title: string; fee: number };
@@ -53,6 +54,39 @@ export function EnrollmentSection({
 }: EnrollmentSectionProps) {
   const filteredClasses = (classType: "GROUP" | "PERSONAL" | "ONLINE") =>
     classes.filter((c) => c.classType === classType);
+
+  const selectedClass = (classId: string) =>
+    classes.find((c) => c.id === classId);
+
+  const startedSinceLabel = (classId: string) => {
+    const startDate = selectedClass(classId)?.startDate;
+    return startDate
+      ? new Date(startDate).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+        })
+      : null;
+  };
+
+  const formatClassOption = (classOption: ClassOption) => {
+    const spotsLeft = classOption.capacity - classOption._count.enrollments;
+    const timeLabel =
+      TIME_SLOTS[classOption.timeSlot as keyof typeof TIME_SLOTS] ??
+      classOption.timeSlot;
+    const daysLabel =
+      CLASS_DAYS[classOption.days as keyof typeof CLASS_DAYS] ??
+      classOption.days;
+    const startedLabel =
+      classOption.status === "STARTED"
+        ? `⚠️ ${classOption.lab?.name ?? "Online"} • ${classOption.course.title} • Started ${
+            classOption.startDate
+              ? new Date(classOption.startDate).toLocaleDateString("en-GB")
+              : ""
+          }`
+        : `${classOption.lab?.name ?? "Online"} • ${classOption.course.title} • ${timeLabel} • ${daysLabel}`;
+
+    return `${startedLabel}${spotsLeft <= 0 ? " — FULL" : ` — ${spotsLeft} spots left`}`;
+  };
 
   const handleClassSelect = (enrollmentId: string, classId: string) => {
     const selected = classes.find((c) => c.id === classId);
@@ -201,29 +235,42 @@ export function EnrollmentSection({
                       ? `No ${enrollment.classType.toLowerCase()} classes available`
                       : "Select a class"}
                   </option>
-                  {filteredClasses(enrollment.classType).map((classOption) => {
-                    const spotsLeft =
-                      classOption.capacity - classOption._count.enrollments;
-                    const timeLabel =
-                      TIME_SLOTS[
-                        classOption.timeSlot as keyof typeof TIME_SLOTS
-                      ];
-                    const daysLabel =
-                      CLASS_DAYS[classOption.days as keyof typeof CLASS_DAYS];
-                    return (
-                      <option
-                        key={classOption.id}
-                        value={classOption.id}
-                        disabled={spotsLeft <= 0}
-                      >
-                        {classOption.lab?.name ?? "Online"} •{" "}
-                        {classOption.course.title} • {timeLabel} • {daysLabel}
-                        {spotsLeft <= 0
-                          ? " — FULL"
-                          : ` — ${spotsLeft} spots left`}
-                      </option>
-                    );
-                  })}
+                  <optgroup label="Open for Registration">
+                    {filteredClasses(enrollment.classType)
+                      .filter(
+                        (classOption) => classOption.status === "REGISTRATION",
+                      )
+                      .map((classOption) => {
+                        const spotsLeft =
+                          classOption.capacity - classOption._count.enrollments;
+                        return (
+                          <option
+                            key={classOption.id}
+                            value={classOption.id}
+                            disabled={spotsLeft <= 0}
+                          >
+                            {formatClassOption(classOption)}
+                          </option>
+                        );
+                      })}
+                  </optgroup>
+                  <optgroup label="⚠️ Already Started">
+                    {filteredClasses(enrollment.classType)
+                      .filter((classOption) => classOption.status === "STARTED")
+                      .map((classOption) => {
+                        const spotsLeft =
+                          classOption.capacity - classOption._count.enrollments;
+                        return (
+                          <option
+                            key={classOption.id}
+                            value={classOption.id}
+                            disabled={spotsLeft <= 0}
+                          >
+                            {formatClassOption(classOption)}
+                          </option>
+                        );
+                      })}
+                  </optgroup>
                 </select>
                 {filteredClasses(enrollment.classType).length === 0 ? (
                   <p className="text-xs text-amber-600">
@@ -233,6 +280,19 @@ export function EnrollmentSection({
                     </a>
                   </p>
                 ) : null}
+                {selectedClass(enrollment.selectedClassId)?.status ===
+                  "STARTED" && (
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-700 text-xs dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                      ⚠️ Already Started
+                    </span>
+                    {startedSinceLabel(enrollment.selectedClassId) && (
+                      <span className="text-gray-400 text-xs">
+                        since {startedSinceLabel(enrollment.selectedClassId)}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {enrollment.selectedClassId ? (

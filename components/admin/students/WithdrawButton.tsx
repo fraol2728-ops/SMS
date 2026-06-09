@@ -17,11 +17,16 @@ export function WithdrawButton({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    reason: "",
+    expectedReturnDate: "",
+    contactDuring: "",
+    notes: "",
+  });
 
   async function handleWithdraw() {
-    if (!reason.trim()) {
+    if (!form.reason.trim()) {
       toast.error("Please enter a reason");
       return;
     }
@@ -29,13 +34,15 @@ export function WithdrawButton({
     try {
       const formData = new FormData();
       formData.set("enrollmentId", enrollmentId);
-      formData.set("reason", reason.trim());
+      formData.set("reason", form.reason.trim());
+      formData.set("expectedReturnDate", form.expectedReturnDate);
+      formData.set("contactDuring", form.contactDuring.trim());
+      formData.set("notes", form.notes.trim());
       const res = await withdrawStudent(formData);
       if (res.success) {
         toast.success("Student withdrawn successfully");
         setOpen(false);
         router.refresh();
-        router.push("/admin/withdrawn");
       } else {
         toast.error(res.error);
       }
@@ -59,11 +66,11 @@ export function WithdrawButton({
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <button
             type="button"
-            aria-label="Close withdraw modal"
+            aria-label="Close withdrawal modal"
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
-          <div className="relative mx-4 w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+          <div className="relative mx-4 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-gray-900">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-black text-gray-900 text-lg dark:text-white">
                 Withdraw Student
@@ -76,26 +83,80 @@ export function WithdrawButton({
                 <X size={18} />
               </button>
             </div>
-            <p className="mb-4 text-gray-500 text-sm dark:text-gray-400">
+
+            <p className="mb-5 text-gray-500 text-sm dark:text-gray-400">
               Withdrawing{" "}
-              <span className="font-semibold text-gray-900 dark:text-white">
+              <span className="font-semibold dark:text-white">
                 {studentName}
-              </span>{" "}
-              will pause their enrollment. They can be re-enrolled later.
+              </span>
+              . They can be re-enrolled later from the Withdrawn page.
             </p>
-            <div className="mb-5 space-y-1.5">
-              <Label>Reason for withdrawal *</Label>
-              <Input
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                placeholder="e.g. Personal reasons, travel, etc."
-                autoFocus
-              />
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Reason for Withdrawal *</Label>
+                <Input
+                  value={form.reason}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      reason: event.target.value,
+                    }))
+                  }
+                  placeholder="e.g. Personal reasons, travel, medical..."
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Expected Return Date (optional)</Label>
+                <input
+                  type="date"
+                  value={form.expectedReturnDate}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      expectedReturnDate: event.target.value,
+                    }))
+                  }
+                  min={new Date().toISOString().slice(0, 10)}
+                  className="h-10 w-full rounded-xl border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Contact During Absence (optional)</Label>
+                <Input
+                  value={form.contactDuring}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      contactDuring: event.target.value,
+                    }))
+                  }
+                  placeholder="Phone or email to reach student..."
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Additional Notes (optional)</Label>
+                <Input
+                  value={form.notes}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      notes: event.target.value,
+                    }))
+                  }
+                  placeholder="Any other important information..."
+                />
+              </div>
             </div>
-            <div className="flex gap-3">
+
+            <div className="mt-5 flex gap-3">
               <button
                 onClick={handleWithdraw}
-                disabled={loading || !reason.trim()}
+                disabled={loading || !form.reason.trim()}
                 className="flex-1 rounded-2xl bg-amber-500 py-3 font-bold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
                 type="button"
               >

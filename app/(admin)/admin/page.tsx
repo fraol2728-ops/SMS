@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { TrendChart } from "@/components/admin/shared/TrendChart";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
+import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { buildTrendSeries } from "@/lib/dashboard";
 import { prisma } from "@/lib/prisma";
 
@@ -81,6 +82,7 @@ export default async function AdminPage() {
     dueSoonPayments,
     nextEvent,
     pendingCertificates,
+    registrationClasses,
   ] = await Promise.all([
     prisma.user.count({
       where: { role: "STUDENT", ...(campusId ? { campusId } : {}) },
@@ -194,6 +196,21 @@ export default async function AdminPage() {
         },
       },
     }),
+    prisma.class.findMany({
+      where: {
+        campusId: campusId ?? undefined,
+        status: "REGISTRATION",
+        isActive: true,
+      },
+      include: {
+        course: true,
+        lab: true,
+        _count: {
+          select: { enrollments: { where: { status: "ACTIVE" } } },
+        },
+      },
+      orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
+    }),
   ]);
 
   const revenueSeries = buildTrendSeries(
@@ -262,6 +279,45 @@ export default async function AdminPage() {
             <span className="flex-shrink-0 text-white text-xl">→</span>
           </div>
         </Link>
+      )}
+
+      {registrationClasses.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="flex items-center gap-2 font-bold text-gray-700 dark:text-gray-300">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-blue-500" />
+            Open for Registration ({registrationClasses.length})
+          </h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {registrationClasses.map((c) => (
+              <Link key={c.id} href={`/admin/classes/${c.id}`}>
+                <div className="rounded-2xl border-2 border-blue-100 bg-white p-4 transition-all hover:border-blue-300 dark:border-blue-900/30 dark:bg-gray-900 dark:hover:border-blue-600">
+                  <div className="mb-2 flex items-start justify-between">
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/30">
+                      <span className="font-black text-blue-600 text-sm">
+                        {c._count.enrollments}
+                      </span>
+                    </div>
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700 text-xs dark:bg-blue-900/30 dark:text-blue-400">
+                      OPEN
+                    </span>
+                  </div>
+                  <p className="truncate font-bold text-gray-900 text-sm transition-colors group-hover:text-blue-600 dark:text-white">
+                    {c.course.title}
+                  </p>
+                  <p className="mt-0.5 truncate text-gray-400 text-xs">
+                    {c.lab?.name ?? "Online"} •{" "}
+                    {TIME_SLOTS[c.timeSlot as keyof typeof TIME_SLOTS] ??
+                      c.timeSlot}{" "}
+                    • {CLASS_DAYS[c.days as keyof typeof CLASS_DAYS] ?? c.days}
+                  </p>
+                  <p className="mt-1 text-gray-300 text-xs dark:text-gray-500">
+                    {c._count.enrollments}/{c.capacity} students
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
       )}
 
       <section>

@@ -1,17 +1,12 @@
 import Link from "next/link";
-import CalculatorWidget from "@/components/ui/CalculatorWidget";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StudentForm } from "@/components/admin/students/StudentForm";
+import CalculatorWidget from "@/components/ui/CalculatorWidget";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-type ClassWithDateFields = {
-  startDate: Date | null;
-  endDate: Date | null;
-};
 
 export default async function NewStudentPage({
   searchParams,
@@ -29,7 +24,7 @@ export default async function NewStudentPage({
     where: {
       campusId: campusId ?? undefined,
       isActive: true,
-      status: "REGISTRATION",
+      status: { in: ["REGISTRATION", "STARTED"] },
     },
     include: {
       course: { select: { title: true, fee: true } },
@@ -39,7 +34,7 @@ export default async function NewStudentPage({
       },
       _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
     },
-    orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
+    orderBy: [{ status: "asc" }, { lab: { name: "asc" } }, { timeSlot: "asc" }],
   });
 
   const formattedClasses = classes.map((classRecord) => ({

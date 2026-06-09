@@ -86,10 +86,24 @@ export default async function TeacherDetailPage({
         <div className="h-2 bg-gradient-to-r from-green-400 to-teal-500" />
         <div className="p-6">
           <div className="flex flex-col items-start gap-5 sm:flex-row">
-            <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-green-400 to-teal-500 font-black text-2xl text-white shadow-lg">
-              {user.firstName[0]}
-              {user.lastName[0]}
-            </div>
+            {user.profilePhoto ? (
+              <a
+                href={user.profilePhoto}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src={user.profilePhoto}
+                  alt={`${user.firstName} ${user.lastName}`}
+                  className="h-20 w-20 cursor-pointer rounded-3xl object-cover shadow-lg"
+                />
+              </a>
+            ) : (
+              <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-green-400 to-teal-500 font-black text-2xl text-white shadow-lg">
+                {user.firstName[0]}
+                {user.lastName[0]}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <h1 className="font-black text-2xl text-gray-900 dark:text-white">
                 {user.firstName} {user.lastName}

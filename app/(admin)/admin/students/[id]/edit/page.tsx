@@ -60,6 +60,7 @@ export default async function EditStudentPage({
           emergencyContact:
             student.studentProfile?.emergencyContact ?? undefined,
           notes: student.studentProfile?.notes ?? undefined,
+          profilePhoto: student.profilePhoto,
         }}
       />
     </div>
