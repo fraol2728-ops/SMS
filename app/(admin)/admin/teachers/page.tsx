@@ -40,12 +40,8 @@ export default async function TeachersPage() {
             : teacher.teacherProfile?.specialty
               ? [teacher.teacherProfile.specialty]
               : [];
-          return (
-            <Link
-              key={teacher.id}
-              href={`/admin/teachers/${teacher.teacherProfile?.id ?? teacher.id}`}
-              className="group rounded-3xl border bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-800"
-            >
+          const cardContent = (
+            <>
               <div className="mb-4 flex items-center gap-4">
                 <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-green-400 to-teal-500 font-black text-white text-xl shadow-md transition-transform group-hover:scale-105">
                   {teacher.firstName[0]}
@@ -86,7 +82,29 @@ export default async function TeachersPage() {
                   {teacher.teacherProfile?._count.classes ?? 0} classes
                 </span>
               </div>
+              {!teacher.teacherProfile && (
+                <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 font-medium text-amber-700 text-xs dark:bg-amber-900/20 dark:text-amber-400">
+                  Profile not set up
+                </p>
+              )}
+            </>
+          );
+
+          return teacher.teacherProfile ? (
+            <Link
+              key={teacher.id}
+              href={`/admin/teachers/${teacher.teacherProfile.id}`}
+              className="group rounded-3xl border bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-800"
+            >
+              {cardContent}
             </Link>
+          ) : (
+            <div
+              key={teacher.id}
+              className="group rounded-3xl border bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+            >
+              {cardContent}
+            </div>
           );
         })}
         {teachers.length === 0 && (
