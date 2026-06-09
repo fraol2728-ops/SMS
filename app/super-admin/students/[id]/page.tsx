@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { SuperAdminClaimCertificateButton } from "@/components/admin/certificates/SuperAdminClaimCertificateButton";
 import { ContactButtons } from "@/components/shared/ContactButtons";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -146,6 +147,22 @@ export default async function SuperAdminStudentDetailPage({
           <h2 className="mb-4 font-semibold dark:text-white">
             Current Enrollment
           </h2>
+          <div className="mb-4 flex flex-wrap gap-2">
+            <SuperAdminClaimCertificateButton
+              student={{
+                id: student.id,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                fullNameAmharic: null,
+              }}
+              studentProfileId={student.studentProfile.id}
+              courseId={activeEnrollment.class?.course?.id ?? ""}
+              courseTitle={activeEnrollment.class?.course?.title ?? ""}
+              enrollmentId={activeEnrollment.id}
+              remainingBalance={activeRemaining?.remainingAmount ?? null}
+              redirectPath={`/super-admin/certificates?campusId=${campusId ?? ""}`}
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
               {
