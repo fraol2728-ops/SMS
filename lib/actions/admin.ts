@@ -730,10 +730,21 @@ export async function deleteClass(id: string) {
 }
 
 export async function changeStudentClass(
-  enrollmentId: string,
-  newClassId: string,
+  enrollmentIdOrFormData: string | FormData,
+  maybeNewClassId?: string,
 ) {
   try {
+    const enrollmentId =
+      enrollmentIdOrFormData instanceof FormData
+        ? (enrollmentIdOrFormData.get("enrollmentId") as string)
+        : enrollmentIdOrFormData;
+    const newClassId =
+      enrollmentIdOrFormData instanceof FormData
+        ? (enrollmentIdOrFormData.get("newClassId") as string)
+        : maybeNewClassId;
+
+    if (!enrollmentId || !newClassId) return err("Missing fields");
+
     const enrollment = await prisma.enrollment.findUnique({
       where: { id: enrollmentId },
       include: {
@@ -1346,14 +1357,34 @@ export async function updateClassStatus(
 }
 
 export async function withdrawStudent(
-  enrollmentId: string,
-  reason: string,
-  expectedReturnDate: string | null,
-  notes: string | null,
+  enrollmentIdOrFormData: string | FormData,
+  maybeReason?: string,
+  expectedReturnDate?: string | null,
+  notes?: string | null,
 ) {
   try {
     const adminId = await getCurrentAdminUserId();
     if (!adminId) return err("Not authenticated");
+
+    const enrollmentId =
+      enrollmentIdOrFormData instanceof FormData
+        ? (enrollmentIdOrFormData.get("enrollmentId") as string)
+        : enrollmentIdOrFormData;
+    const reason =
+      enrollmentIdOrFormData instanceof FormData
+        ? (enrollmentIdOrFormData.get("reason") as string)
+        : maybeReason;
+
+    if (!enrollmentId) return err("Missing enrollment ID");
+    if (!reason?.trim()) return err("Reason is required");
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+      select: { id: true, status: true },
+    });
+    if (!enrollment) return err("Enrollment not found");
+    if (enrollment.status !== "ACTIVE") return err("Enrollment is not active");
+
     await prisma.enrollment.update({
       where: { id: enrollmentId },
       data: { status: "ON_HOLD" },
@@ -1361,7 +1392,7 @@ export async function withdrawStudent(
     await prisma.withdrawal.create({
       data: {
         enrollmentId,
-        reason,
+        reason: reason.trim(),
         expectedReturnDate: expectedReturnDate
           ? new Date(expectedReturnDate)
           : null,

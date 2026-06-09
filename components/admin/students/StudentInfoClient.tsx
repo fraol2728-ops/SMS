@@ -21,8 +21,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { recordPartialPayment } from "@/lib/actions/admin";
-import { ClaimCertificateModal } from "../certificates/ClaimCertificateModal";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
+import { ClaimCertificateModal } from "../certificates/ClaimCertificateModal";
+import { ChangeClassButton } from "./ChangeClassButton";
+import { WithdrawButton } from "./WithdrawButton";
 
 export function StudentInfoClient({
   student,
@@ -33,6 +35,7 @@ export function StudentInfoClient({
   totalPaid,
   attendanceRate,
   attendanceRecords,
+  availableClasses,
 }: any) {
   const router = useRouter();
   const profile = student.studentProfile;
@@ -456,6 +459,15 @@ export function StudentInfoClient({
                   <Award size={13} />
                   Claim Certificate
                 </button>
+                <WithdrawButton
+                  enrollmentId={activeEnrollment.id}
+                  studentName={`${student.firstName} ${student.lastName}`}
+                />
+                <ChangeClassButton
+                  enrollmentId={activeEnrollment.id}
+                  availableClasses={availableClasses}
+                  currentClassId={activeEnrollment.classId ?? ""}
+                />
               </div>
             </div>
           </div>

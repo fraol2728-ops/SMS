@@ -10,10 +10,12 @@ import { prisma } from "@/lib/prisma";
 export default async function CertificatesPage() {
   await requireAdmin();
   const campusId = await getCurrentUserCampusId();
+  const studentCampusFilter = campusId ? { user: { campusId } } : undefined;
+
   const certificates = await prisma.certificate.findMany({
     where: {
       isDelivered: false,
-      student: { user: { campusId: campusId ?? undefined } },
+      student: studentCampusFilter,
     },
     include: {
       student: { include: { user: true } },
@@ -22,6 +24,24 @@ export default async function CertificatesPage() {
     },
     orderBy: { issuedAt: "desc" },
   });
+
+  const [totalClaimed, paidCount, doneCount, deliveredCount] =
+    await Promise.all([
+      prisma.certificate.count({ where: { student: studentCampusFilter } }),
+      prisma.certificate.count({
+        where: { paymentStatus: "PAID", student: studentCampusFilter },
+      }),
+      prisma.certificate.count({
+        where: {
+          isDone: true,
+          isDelivered: false,
+          student: studentCampusFilter,
+        },
+      }),
+      prisma.certificate.count({
+        where: { isDelivered: true, student: studentCampusFilter },
+      }),
+    ]);
 
   return (
     <div className="space-y-6">
@@ -32,6 +52,46 @@ export default async function CertificatesPage() {
       />
       <div className="flex justify-end">
         <ExportCertificatesButton certificates={certificates} />
+      </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          {
+            label: "Total Claimed",
+            value: totalClaimed,
+            color: "bg-blue-50 dark:bg-blue-900/20",
+            textColor: "text-blue-700 dark:text-blue-400",
+            emoji: "🎓",
+          },
+          {
+            label: "Cert Payment Paid",
+            value: paidCount,
+            color: "bg-green-50 dark:bg-green-900/20",
+            textColor: "text-green-700 dark:text-green-400",
+            emoji: "✅",
+          },
+          {
+            label: "Mark as Done",
+            value: doneCount,
+            color: "bg-indigo-50 dark:bg-indigo-900/20",
+            textColor: "text-indigo-700 dark:text-indigo-400",
+            emoji: "📦",
+          },
+          {
+            label: "Delivered",
+            value: deliveredCount,
+            color: "bg-teal-50 dark:bg-teal-900/20",
+            textColor: "text-teal-700 dark:text-teal-400",
+            emoji: "🚀",
+          },
+        ].map(({ label, value, color, textColor, emoji }) => (
+          <div key={label} className={`${color} rounded-2xl p-5`}>
+            <p className="mb-1 text-2xl">{emoji}</p>
+            <p className={`font-black text-3xl ${textColor}`}>{value}</p>
+            <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
+              {label}
+            </p>
+          </div>
+        ))}
       </div>
       {certificates.length === 0 ? (
         <div className="rounded-xl border bg-white p-12 text-center">
