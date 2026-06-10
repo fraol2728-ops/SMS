@@ -10,7 +10,7 @@ export async function sendOverdueNotification(
 ) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_API_KEY) {
-    console.log("RESEND_API_KEY not set, skipping email");
+    // Email service not configured — skip notification
     return;
   }
 

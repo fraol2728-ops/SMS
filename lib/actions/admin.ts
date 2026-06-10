@@ -141,7 +141,6 @@ export async function createStudent(
   try {
     const raw = actionInputToObject(input);
     const receiptNumber = String(raw.receiptNumber ?? "").trim() || null;
-    const profilePhoto = String(raw.profilePhoto ?? "").trim() || null;
 
     // Use the first enrollment for basic validation if enrollmentsData is provided
     const enrollments = enrollmentsData || [
@@ -300,7 +299,6 @@ export async function createStudent(
           gender: v.gender,
           dateOfBirth: v.dateOfBirth ? new Date(v.dateOfBirth) : undefined,
           address: v.address,
-          profilePhoto,
           campusId,
           studentProfile: {
             create: {
@@ -463,10 +461,6 @@ export async function createStudent(
             where: { email },
             data: { clerkId: existingClerkUser.id },
           });
-
-          console.log(
-            `Set STUDENT role directly on existing Clerk user: ${email}`,
-          );
         } else {
           // Send invitation with role metadata
           // The webhook will sync the role when the student accepts
@@ -476,10 +470,8 @@ export async function createStudent(
             redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student`,
             ignoreExisting: false, // Set to false to ensure proper metadata transfer
           });
-          console.log(`Invitation sent to ${email}`);
         }
       } catch (clerkError) {
-        console.error("Clerk error:", clerkError);
         // Continue even if Clerk fails — webhook will handle it
       }
     }
@@ -544,7 +536,6 @@ export async function updateStudent(id: string, formData: FormData) {
         gender: v.gender,
         dateOfBirth: v.dateOfBirth ? new Date(v.dateOfBirth) : undefined,
         address: v.address,
-        profilePhoto: String(raw.profilePhoto ?? "").trim() || null,
         studentProfile: {
           update: {
             registrationDate: v.registrationDate
@@ -576,10 +567,7 @@ export async function updateStudent(id: string, formData: FormData) {
           redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student`,
           ignoreExisting: false,
         });
-
-        console.log(`New invitation sent to updated email: ${newEmail}`);
       } catch (clerkError) {
-        console.error("Clerk invitation error:", clerkError);
         // Log but don't fail the update — email is already updated in database
       }
     }
@@ -626,7 +614,7 @@ export async function deleteStudent(userId: string) {
         const clerk = await clerkClient();
         await clerk.users.deleteUser(student.clerkId);
       } catch (clerkErr) {
-        console.warn("Clerk delete failed (may not exist):", clerkErr);
+        // If Clerk delete fails, continue anyway — the user can't sign in anyway
       }
     }
 
@@ -935,7 +923,6 @@ export async function createTeacher(formData: FormData) {
   try {
     const raw = actionInputToObject(formData);
     const specialtiesRaw = raw.specialties as string | undefined;
-    const profilePhoto = String(raw.profilePhoto ?? "").trim() || null;
     const specialties = specialtiesRaw
       ? specialtiesRaw.split("||").filter(Boolean)
       : [];
@@ -972,7 +959,6 @@ export async function createTeacher(formData: FormData) {
         email,
         phone: v.phone,
         gender: v.gender,
-        profilePhoto,
         campusId,
         teacherProfile: {
           create: {
@@ -1013,7 +999,7 @@ export async function createTeacher(formData: FormData) {
         });
       }
     } catch (clerkError) {
-      console.error("Clerk error:", clerkError);
+      // Continue even if Clerk fails — webhook will handle role assignment
     }
 
     revalidatePath("/admin/teachers");
@@ -1053,7 +1039,6 @@ export async function updateTeacher(id: string, formData: FormData) {
         email: v.email,
         phone: v.phone,
         gender: v.gender,
-        profilePhoto: String(normalized.profilePhoto ?? "").trim() || null,
         teacherProfile: {
           update: {
             specialties,

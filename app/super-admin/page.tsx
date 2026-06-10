@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireSuperAdmin } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma, withRetry } from "@/lib/prisma";
 
@@ -21,6 +22,7 @@ export default async function SuperAdminDashboard({
 }: {
   searchParams?: Promise<{ campusId?: string }>;
 }) {
+  await requireSuperAdmin();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 

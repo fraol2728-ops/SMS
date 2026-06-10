@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import type { ClassStatus } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireSuperAdmin } from "@/lib/auth-check";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -13,8 +14,10 @@ export default async function SuperAdminClassesPage({
 }: {
   searchParams?: Promise<{ campusId?: string; status?: string }>;
 }) {
+  await requireSuperAdmin();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
+
   const { campusId, status: requestedStatus } = (await searchParams) ?? {};
   const status = requestedStatus ?? "STARTED";
 

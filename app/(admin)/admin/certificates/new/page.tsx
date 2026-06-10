@@ -59,11 +59,13 @@ export default async function NewCertificatePage({
         id: student.id,
         firstName: student.firstName,
         lastName: student.lastName,
-        enrollments: student.studentProfile.enrollments.map((e) => ({
-          id: e.id,
-          courseTitle: e.class.course.title,
-          courseId: e.class.courseId,
-        })),
+        enrollments: student.studentProfile.enrollments
+          .filter((e) => e.class)
+          .map((e) => ({
+            id: e.id,
+            courseTitle: e.class!.course.title,
+            courseId: e.class!.courseId,
+          })),
         remaining: remaining
           ? {
               remainingAmount: remaining.remainingAmount,

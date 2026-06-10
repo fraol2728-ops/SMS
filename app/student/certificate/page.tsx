@@ -3,9 +3,11 @@ export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import { Award, CheckCircle, Clock } from "lucide-react";
 import { redirect } from "next/navigation";
+import { requireStudent } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
 
 export default async function StudentCertificatePage() {
+  await requireStudent();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
