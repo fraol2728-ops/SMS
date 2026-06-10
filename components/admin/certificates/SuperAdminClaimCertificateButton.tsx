@@ -11,6 +11,7 @@ export function SuperAdminClaimCertificateButton({
   courseTitle,
   enrollmentId,
   remainingBalance,
+  initialReceiptNumber,
   redirectPath,
 }: {
   student: {
@@ -24,6 +25,7 @@ export function SuperAdminClaimCertificateButton({
   courseTitle: string;
   enrollmentId: string;
   remainingBalance?: number | null;
+  initialReceiptNumber?: string | null;
   redirectPath: string;
 }) {
   const [showCertModal, setShowCertModal] = useState(false);
@@ -46,6 +48,7 @@ export function SuperAdminClaimCertificateButton({
           courseTitle={courseTitle}
           enrollmentId={enrollmentId}
           remainingBalance={remainingBalance}
+          initialReceiptNumber={initialReceiptNumber}
           onClose={() => setShowCertModal(false)}
           redirectPath={redirectPath}
         />

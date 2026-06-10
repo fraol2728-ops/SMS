@@ -21,6 +21,7 @@ interface ClaimCertificateModalProps {
   courseTitle: string;
   enrollmentId: string;
   remainingBalance?: number | null;
+  initialReceiptNumber?: string | null;
   onClose: () => void;
   redirectPath?: string;
 }
@@ -32,11 +33,14 @@ export function ClaimCertificateModal({
   courseTitle,
   enrollmentId,
   remainingBalance,
+  initialReceiptNumber,
   onClose,
   redirectPath = "/admin/certificates",
 }: ClaimCertificateModalProps) {
   const router = useRouter();
-  const [receiptNumber, setReceiptNumber] = useState("");
+  const [receiptNumber, setReceiptNumber] = useState(
+    initialReceiptNumber ?? ""
+  );
   const [fullNameAmharic, setFullNameAmharic] = useState(
     student.fullNameAmharic ?? "",
   );
@@ -169,12 +173,19 @@ export function ClaimCertificateModal({
               value={receiptNumber}
               onChange={(e) => setReceiptNumber(e.target.value)}
               placeholder="e.g. RCP-2024-001"
-              autoFocus
+              autoFocus={!initialReceiptNumber}
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
             />
-            <p className="text-xs text-gray-400">
-              Required — enter the payment receipt number
-            </p>
+            {initialReceiptNumber && (
+              <p className="text-xs text-green-600 dark:text-green-400">
+                ✓ Auto-filled from student payment record — edit if needed
+              </p>
+            )}
+            {!initialReceiptNumber && (
+              <p className="text-xs text-gray-400">
+                Required — enter the payment receipt number
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">

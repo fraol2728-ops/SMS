@@ -36,6 +36,7 @@ export function StudentInfoClient({
   attendanceRate,
   attendanceRecords,
   availableClasses,
+  receiptNumber,
 }: any) {
   const router = useRouter();
   const profile = student.studentProfile;
@@ -138,6 +139,7 @@ export function StudentInfoClient({
             courseTitle={activeEnrollment.class?.course?.title ?? ""}
             enrollmentId={activeEnrollment.id}
             remainingBalance={remaining?.remainingAmount ?? null}
+            initialReceiptNumber={receiptNumber}
             onClose={() => setShowCertModal(false)}
           />
         )}
