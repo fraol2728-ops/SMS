@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
-import { prisma } from "@/lib/prisma";
+import { prisma, withRetry } from "@/lib/prisma";
 
 export default async function SuperAdminDashboard({
   searchParams,
@@ -55,20 +55,13 @@ export default async function SuperAdminDashboard({
   );
   const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
 
+  // Batch 1 — core counts
   const [
     totalStudents,
     totalTeachers,
     onRegistration,
     activeCourses,
-    monthlyPayments,
-    monthlyPartialPayments,
-    outstanding,
-    certificatesCount,
-    pendingCertificates,
-    todayAttendance,
-    recentStudents,
-    registrationClasses,
-  ] = await Promise.all([
+  ] = await withRetry(() => Promise.all([
     prisma.user.count({
       where: { role: "STUDENT", campusId: effectiveCampusId },
     }),
@@ -85,10 +78,24 @@ export default async function SuperAdminDashboard({
     prisma.course.count({
       where: { campusId: effectiveCampusId, isActive: true },
     }),
+  ]));
+
+  // Batch 2 — revenue, certificates, and lists
+  const [
+    monthlyPayments,
+    monthlyPartialPayments,
+    outstanding,
+    pendingCertificates,
+    todayAttendance,
+    recentStudents,
+    registrationClasses,
+  ] = await withRetry(() => Promise.all([
     prisma.payment.aggregate({
       where: {
-        paidAt: { gte: monthStart },
-        user: { campusId: effectiveCampusId },
+        createdAt: { gte: monthStart },
+        enrollment: {
+          class: { campusId: effectiveCampusId },
+        },
       },
       _sum: { amount: true },
     }),
@@ -109,12 +116,6 @@ export default async function SuperAdminDashboard({
         enrollment: { class: { campusId: effectiveCampusId } },
       },
       _sum: { remainingAmount: true },
-    }),
-    prisma.certificate.count({
-      where: {
-        isDelivered: false,
-        course: { campusId: effectiveCampusId },
-      },
     }),
     prisma.certificate.count({
       where: {
@@ -158,7 +159,7 @@ export default async function SuperAdminDashboard({
       },
       orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
     }),
-  ]);
+  ]));
 
   const kpis = [
     {
@@ -206,7 +207,7 @@ export default async function SuperAdminDashboard({
     },
     {
       label: "Pending Certificates",
-      value: certificatesCount,
+      value: pendingCertificates,
       icon: Award,
       color: "bg-yellow-50 dark:bg-yellow-900/20",
       iconColor: "text-yellow-600",

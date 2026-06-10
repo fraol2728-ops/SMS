@@ -56,6 +56,16 @@ export default async function SuperAdminStudentDetailPage({
   const activeRemaining = activeEnrollment?.paymentRemaining;
   const hasRemaining = (activeRemaining?.remainingAmount ?? 0) > 0;
 
+  const latestPayment = activeEnrollment?.id
+    ? await prisma.payment.findFirst({
+        where: { enrollmentId: activeEnrollment.id },
+        orderBy: { createdAt: "desc" },
+        select: { receiptNumber: true, id: true },
+      })
+    : null;
+
+  const receiptNumber = latestPayment?.receiptNumber ?? null;
+
   return (
     <div className="max-w-4xl space-y-6">
       <Link href={`/super-admin/students?campusId=${campusId ?? ""}`}>
@@ -160,6 +170,7 @@ export default async function SuperAdminStudentDetailPage({
               courseTitle={activeEnrollment.class?.course?.title ?? ""}
               enrollmentId={activeEnrollment.id}
               remainingBalance={activeRemaining?.remainingAmount ?? null}
+              initialReceiptNumber={receiptNumber}
               redirectPath={`/super-admin/certificates?campusId=${campusId ?? ""}`}
             />
           </div>

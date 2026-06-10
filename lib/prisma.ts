@@ -28,5 +28,33 @@ if (process.env.NODE_ENV === "development") {
   globalForPrisma.prisma = prisma;
 }
 
+// Helper to run queries with retry on timeout
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delay = 1000
+): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isTimeout =
+        error?.message?.includes("timed out") ||
+        error?.message?.includes("Authentication timed out") ||
+        error?.message?.includes("connection") ||
+        error?.code === "P1001" ||
+        error?.code === "P1002";
+
+      if (isTimeout && i < retries - 1) {
+        console.log(`DB timeout, retrying... (${i + 1}/${retries})`);
+        await new Promise((r) => setTimeout(r, delay * (i + 1)));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("Max retries reached");
+}
+
 export { prisma };
 export default prisma;

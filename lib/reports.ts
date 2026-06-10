@@ -152,7 +152,6 @@ export async function generateReport(
     }),
     prisma.payment.findMany({
       where: {
-        status: "PAID",
         paidAt: { gte: startDate },
         user: campusId ? { campusId } : undefined,
       },

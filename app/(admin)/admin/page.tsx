@@ -12,7 +12,7 @@ import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { buildTrendSeries } from "@/lib/dashboard";
-import { prisma } from "@/lib/prisma";
+import { prisma, withRetry } from "@/lib/prisma";
 
 type RecentEnrollment = {
   id: string;
@@ -65,6 +65,8 @@ export default async function AdminPage() {
   weekStart.setHours(0, 0, 0, 0);
   const sevenDaysFromNow = new Date();
   sevenDaysFromNow.setDate(now.getDate() + 7);
+
+  // Batch 1 — core counts and aggregates
   const [
     totalStudents,
     activeEnrollments,
@@ -73,17 +75,7 @@ export default async function AdminPage() {
     monthlyPayments,
     monthlyPartialPayments,
     totalRemaining,
-    payments,
-    newStudents,
-    weeklyEnrollments,
-    recentEnrollments,
-    recentPayments,
-    overduePayments,
-    dueSoonPayments,
-    nextEvent,
-    pendingCertificates,
-    registrationClasses,
-  ] = await Promise.all([
+  ] = await withRetry(() => Promise.all([
     prisma.user.count({
       where: { role: "STUDENT", ...(campusId ? { campusId } : {}) },
     }),
@@ -95,14 +87,18 @@ export default async function AdminPage() {
     }),
     prisma.payment.aggregate({
       where: {
-        user: campusId ? { campusId } : undefined,
+        enrollment: {
+          class: campusId ? { campusId } : undefined,
+        },
       },
       _sum: { amount: true },
     }),
     prisma.payment.aggregate({
       where: {
-        paidAt: { gte: monthStart },
-        user: campusId ? { campusId } : undefined,
+        createdAt: { gte: monthStart },
+        enrollment: {
+          class: campusId ? { campusId } : undefined,
+        },
       },
       _sum: { amount: true },
     }),
@@ -124,6 +120,21 @@ export default async function AdminPage() {
       },
       _sum: { remainingAmount: true },
     }),
+  ]));
+
+  // Batch 2 — payment history and student data
+  const [
+    payments,
+    newStudents,
+    weeklyEnrollments,
+    recentEnrollments,
+    recentPayments,
+    overduePayments,
+    dueSoonPayments,
+    nextEvent,
+    pendingCertificates,
+    registrationClasses,
+  ] = await withRetry(() => Promise.all([
     prisma.payment.findMany({
       where: {
         paidAt: { gte: chartStart },
@@ -211,7 +222,7 @@ export default async function AdminPage() {
       },
       orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
     }),
-  ]);
+  ]));
 
   const revenueSeries = buildTrendSeries(
     payments,

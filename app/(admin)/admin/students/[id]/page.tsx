@@ -91,6 +91,16 @@ export default async function StudentDetailPage({
     orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
   });
 
+  const latestPayment = activeEnrollment?.id
+    ? await prisma.payment.findFirst({
+        where: { enrollmentId: activeEnrollment.id },
+        orderBy: { createdAt: "desc" },
+        select: { receiptNumber: true, id: true },
+      })
+    : null;
+
+  const receiptNumber = latestPayment?.receiptNumber ?? null;
+
   return (
     <StudentInfoClient
       student={student}
@@ -102,6 +112,7 @@ export default async function StudentDetailPage({
       attendanceRate={attendanceRate}
       attendanceRecords={attendanceRecords}
       availableClasses={availableClasses}
+      receiptNumber={receiptNumber}
     />
   );
 }
