@@ -13,11 +13,13 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireStudent } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { resolveStudentUser } from "@/lib/resolve-student-user";
 
 export default async function StudentDashboard() {
+  await requireStudent();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 

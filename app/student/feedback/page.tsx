@@ -3,11 +3,13 @@ export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import { MessageSquare, Shield } from "lucide-react";
 import { redirect } from "next/navigation";
+import { requireStudent } from "@/lib/auth-check";
 import { FeedbackForm } from "@/components/student/FeedbackForm";
 import { getFeedbackForEnrollment } from "@/lib/actions/feedback";
 import { prisma } from "@/lib/prisma";
 
 export default async function StudentFeedbackPage() {
+  await requireStudent();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 

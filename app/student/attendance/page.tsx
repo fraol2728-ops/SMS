@@ -2,9 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { requireStudent } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
 
 export default async function StudentAttendancePage() {
+  await requireStudent();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 

@@ -14,8 +14,6 @@ function createPrismaClient(): PrismaClient {
     );
   }
 
-  console.log("Creating new Prisma client instance");
-
   const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }
@@ -46,7 +44,6 @@ export async function withRetry<T>(
         error?.code === "P1002";
 
       if (isTimeout && i < retries - 1) {
-        console.log(`DB timeout, retrying... (${i + 1}/${retries})`);
         await new Promise((r) => setTimeout(r, delay * (i + 1)));
         continue;
       }

@@ -10,10 +10,12 @@ import {
   Users,
 } from "lucide-react";
 import { redirect } from "next/navigation";
+import { requireStudent } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export default async function StudentClassPage() {
+  await requireStudent();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 

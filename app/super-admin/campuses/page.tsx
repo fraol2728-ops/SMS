@@ -1,10 +1,17 @@
 export const dynamic = "force-dynamic";
 
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { requireSuperAdmin } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
 
 export default async function SuperAdminCampusesPage() {
+  await requireSuperAdmin();
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
+
   const campuses = await prisma.campus.findMany({
     include: {
       _count: {

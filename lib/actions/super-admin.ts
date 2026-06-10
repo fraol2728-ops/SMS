@@ -79,7 +79,6 @@ export async function createAdmin(formData: FormData) {
           where: { email },
           data: { clerkId: existingClerkUser.id },
         });
-        console.log(`Set ADMIN role directly on existing Clerk user: ${email}`);
       } else {
         await clerk.invitations.createInvitation({
           emailAddress: email,
@@ -147,7 +146,7 @@ export async function deleteAdmin(adminId: string) {
         await clerk.users.deleteUser(admin.clerkId);
       }
     } catch (clerkError) {
-      console.error("Clerk error:", clerkError);
+      // Continue even if Clerk delete fails
     }
 
     revalidatePath("/super-admin/admins");

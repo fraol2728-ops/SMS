@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireSuperAdmin } from "@/lib/auth-check";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
 import { prisma } from "@/lib/prisma";
@@ -12,6 +13,7 @@ export default async function SuperAdminStudentsPage({
 }: {
   searchParams?: Promise<{ campusId?: string; page?: string }>;
 }) {
+  await requireSuperAdmin();
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 

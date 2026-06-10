@@ -1,5 +1,28 @@
 import type { NextConfig } from "next";
 
+// Validate required environment variables at build time
+function validateEnv() {
+  const required = [
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    "CLERK_SECRET_KEY",
+    "DATABASE_URL",
+  ];
+
+  const missing = required.filter((env) => !process.env[env]);
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missing.join(", ")}. ` +
+        `Please check your .env.local file.`
+    );
+  }
+}
+
+// Only validate in production builds
+if (process.env.NODE_ENV === "production") {
+  validateEnv();
+}
+
 const nextConfig: NextConfig = {
   /* config options here */
   env: {
@@ -15,6 +38,31 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   async headers() {
     return [
+      {
+        source: "/:path((?!api).*)",
+        headers: [
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
       {
         source: "/sw.js",
         headers: [
@@ -44,6 +92,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "cdn.sanity.io",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
       },
     ],
   },

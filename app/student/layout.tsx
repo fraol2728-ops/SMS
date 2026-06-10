@@ -55,9 +55,8 @@ export default async function StudentLayout({
         await clerk.users.updateUser(userId, {
           publicMetadata: { role: "STUDENT" },
         });
-        console.log(`✅ Updated Clerk role for student ${userId}`);
       } catch (err) {
-        console.error("Failed to update Clerk role:", err);
+        // Silent fail — user can still access via fallback role from DB
       }
     }
 
