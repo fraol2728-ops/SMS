@@ -1,14 +1,24 @@
 "use server";
 
-import { clerkClient } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
 const ok = { success: true as const };
 const err = (error: string) => ({ success: false as const, error });
 
+async function requireSuperAdminAction() {
+  const { userId, sessionClaims } = await auth();
+  if (!userId) throw new Error("Not authenticated");
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  if (role !== "SUPER_ADMIN") throw new Error("Forbidden");
+  return userId;
+}
+
 export async function createCampus(formData: FormData) {
   try {
+    await requireSuperAdminAction();
+
     const name = formData.get("name") as string;
     const location = formData.get("location") as string;
 
@@ -35,6 +45,8 @@ export async function createCampus(formData: FormData) {
 
 export async function createAdmin(formData: FormData) {
   try {
+    await requireSuperAdminAction();
+
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
     const email = (formData.get("email") as string)?.trim().toLowerCase();
@@ -100,6 +112,8 @@ export async function createAdmin(formData: FormData) {
 
 export async function updateAdmin(adminId: string, formData: FormData) {
   try {
+    await requireSuperAdminAction();
+
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
     const phone = formData.get("phone") as string;
@@ -135,6 +149,8 @@ export async function updateAdmin(adminId: string, formData: FormData) {
 
 export async function deleteAdmin(adminId: string) {
   try {
+    await requireSuperAdminAction();
+
     const admin = await prisma.user.findUnique({ where: { id: adminId } });
     if (!admin) return err("Admin not found.");
 
@@ -158,6 +174,8 @@ export async function deleteAdmin(adminId: string) {
 
 export async function moveCampus(studentId: string, newCampusId: string) {
   try {
+    await requireSuperAdminAction();
+
     await prisma.user.update({
       where: { id: studentId },
       data: { campusId: newCampusId },
@@ -184,6 +202,8 @@ export async function moveCampus(studentId: string, newCampusId: string) {
 
 export async function updateCampus(id: string, formData: FormData) {
   try {
+    await requireSuperAdminAction();
+
     const name = formData.get("name") as string;
     const location = formData.get("location") as string;
     const color = formData.get("color") as string;
@@ -211,6 +231,8 @@ export async function updateCampus(id: string, formData: FormData) {
 
 export async function updateCoursePrice(courseId: string, formData: FormData) {
   try {
+    await requireSuperAdminAction();
+
     const fee = Number(formData.get("fee"));
     const durationWeeks = Number(formData.get("durationWeeks"));
     const isActive = formData.get("isActive") === "on";

@@ -187,5 +187,11 @@ export async function updateAppearanceSettings(data: {
 }
 
 export async function exportData(type: "students" | "payments" | "history") {
-  return { success: true as const, type };
+  try {
+    const userId = await getCurrentDbUserId();
+    if (!userId) return err("Not authenticated");
+    return { success: true as const, type };
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed");
+  }
 }

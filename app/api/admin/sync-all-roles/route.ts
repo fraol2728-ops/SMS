@@ -1,4 +1,4 @@
-import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -6,19 +6,16 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Only super admin can run this
-    const clerkUser = await currentUser();
-    const role = clerkUser?.publicMetadata?.role as string | undefined;
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
     if (role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get all users from DB that have real clerkIds
     const dbUsers = await prisma.user.findMany({
       where: {
         clerkId: { not: { startsWith: "pending_" } },
@@ -57,7 +54,6 @@ export async function GET() {
       }
     }
 
-    // Also find users by email for pending ones
     const pendingUsers = await prisma.user.findMany({
       where: { clerkId: { startsWith: "pending_" } },
       select: { id: true, email: true, role: true, campusId: true },
@@ -80,7 +76,6 @@ export async function GET() {
             publicMetadata: metadata,
           });
 
-          // Update DB clerkId
           await prisma.user.update({
             where: { email: user.email },
             data: { clerkId: clerkUser.id },

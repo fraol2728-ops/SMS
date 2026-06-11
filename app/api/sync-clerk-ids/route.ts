@@ -1,4 +1,4 @@
-import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -6,20 +6,23 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    if (role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get Clerk user
-    const clerkUser = await currentUser();
-    const email = clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase();
+    const clerk = await clerkClient();
+    const clerkUser = await clerk.users.getUser(userId);
+    const email = clerkUser.emailAddresses[0]?.emailAddress?.toLowerCase();
 
     if (!email) {
       return NextResponse.json({ error: "No email found" }, { status: 400 });
     }
 
-    // Find in DB by email
     const dbUser = await prisma.user.findUnique({
       where: { email },
       select: { id: true, role: true, clerkId: true, campusId: true },
@@ -36,24 +39,24 @@ export async function GET() {
       );
     }
 
-    // Update clerkId in DB
-    if (dbUser.clerkId !== clerkId) {
+    if (dbUser.clerkId !== userId) {
       await prisma.user.update({
         where: { email },
-        data: { clerkId },
+        data: { clerkId: userId },
       });
     }
 
-    // Set role on Clerk
     const metadataToSet: Record<string, unknown> = {
       role: dbUser.role,
     };
-    if ((dbUser.role === "ADMIN" || dbUser.role === "STUDENT") && dbUser.campusId) {
+    if (
+      (dbUser.role === "ADMIN" || dbUser.role === "STUDENT") &&
+      dbUser.campusId
+    ) {
       metadataToSet.campusId = dbUser.campusId;
     }
 
-    const clerk = await clerkClient();
-    await clerk.users.updateUser(clerkId, {
+    await clerk.users.updateUser(userId, {
       publicMetadata: metadataToSet,
     });
 

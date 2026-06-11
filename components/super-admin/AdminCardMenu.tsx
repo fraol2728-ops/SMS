@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { MoreVertical, Edit, Trash2, Lock, Unlock } from "lucide-react";
+import { MoreVertical, Edit, Trash2 } from "lucide-react";
 
 export function AdminCardMenu({ adminId }: { adminId: string }) {
   const [showMenu, setShowMenu] = useState(false);

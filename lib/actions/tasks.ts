@@ -69,6 +69,9 @@ export async function completeTask(taskId: string, note: string | null) {
 
 export async function cancelTask(taskId: string) {
   try {
+    const { userId } = await auth();
+    if (!userId) return err("Not authenticated");
+
     await prisma.task.update({
       where: { id: taskId },
       data: { status: "CANCELLED" },
@@ -83,6 +86,9 @@ export async function cancelTask(taskId: string) {
 
 export async function updateTaskStatus(taskId: string, status: string) {
   try {
+    const { userId } = await auth();
+    if (!userId) return err("Not authenticated");
+
     await prisma.task.update({
       where: { id: taskId },
       data: { status: status as TaskStatus },

@@ -98,19 +98,35 @@ async function getCurrentAdminUserId(): Promise<string | null> {
   }
 }
 
-async function getCurrentAdminCampusId(): Promise<string | null> {
-  try {
-    const { userId } = await auth();
-    if (!userId) return null;
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      select: { campusId: true, role: true },
-    });
-    if (user?.role === "SUPER_ADMIN") return null;
-    return user?.campusId ?? null;
-  } catch {
-    return null;
+async function requireAdminAction() {
+  const { userId, sessionClaims } = await auth();
+  if (!userId) return null;
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) return null;
+  return userId;
+}
+
+async function getCurrentAdminCampusId(): Promise<{
+  campusId: string | null;
+  authenticated: boolean;
+}> {
+  const { userId: clerkId, sessionClaims } = await auth();
+  if (!clerkId) return { campusId: null, authenticated: false };
+
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) {
+    return { campusId: null, authenticated: false };
   }
+
+  if (role === "SUPER_ADMIN") {
+    return { campusId: null, authenticated: true };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { clerkId },
+    select: { campusId: true },
+  });
+  return { campusId: user?.campusId ?? null, authenticated: true };
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
@@ -492,6 +508,9 @@ export async function createStudent(
 
 export async function updateStudent(id: string, formData: FormData) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     const raw = actionInputToObject(formData);
     const v = updateStudentSchema.parse({
       ...raw,
@@ -686,7 +705,9 @@ export async function deleteStudent(userId: string) {
 
 export async function deleteTeacher(id: string) {
   try {
-    const campusId = await getCurrentAdminCampusId();
+    const { campusId, authenticated } = await getCurrentAdminCampusId();
+    if (!authenticated) return err("Not authenticated");
+
     const teacher = await prisma.user.findFirst({
       where: {
         id,
@@ -722,7 +743,9 @@ export async function deleteTeacher(id: string) {
 
 export async function deleteClass(id: string) {
   try {
-    const campusId = await getCurrentAdminCampusId();
+    const { campusId, authenticated } = await getCurrentAdminCampusId();
+    if (!authenticated) return err("Not authenticated");
+
     const classRecord = await prisma.class.findFirst({
       where: { id, ...(campusId ? { campusId } : {}) },
     });
@@ -847,12 +870,18 @@ export async function createCourse(input: ActionInput) {
     });
 
     const currentUser = await getCurrentUser();
+    const adminCampus = await getCurrentAdminCampusId();
     const campusId =
       currentUser?.role === "SUPER_ADMIN"
         ? typeof raw.campusId === "string" && raw.campusId.trim()
           ? raw.campusId.trim()
           : null
-        : await getCurrentAdminCampusId();
+        : adminCampus.authenticated
+          ? adminCampus.campusId
+          : null;
+    if (!adminCampus.authenticated && currentUser?.role !== "SUPER_ADMIN") {
+      return err("Not authenticated");
+    }
     if (!campusId) return err("Could not determine your campus.");
 
     const createCourseWithSlug = () =>
@@ -896,6 +925,9 @@ export async function createCourse(input: ActionInput) {
 
 export async function updateCourse(id: string, formData: FormData) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     const raw = actionInputToObject(formData);
     const v = courseSchema.partial().parse({
       title: raw.title,
@@ -921,6 +953,9 @@ export async function updateCourse(id: string, formData: FormData) {
 
 export async function createTeacher(formData: FormData) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     const raw = actionInputToObject(formData);
     const specialtiesRaw = raw.specialties as string | undefined;
     const specialties = specialtiesRaw
@@ -937,7 +972,8 @@ export async function createTeacher(formData: FormData) {
     const v = teacherSchema.parse(normalized);
 
     const email = v.email.trim().toLowerCase();
-    const campusId = await getCurrentAdminCampusId();
+    const { campusId, authenticated } = await getCurrentAdminCampusId();
+    if (!authenticated) return err("Not authenticated");
     if (!campusId) {
       return err(
         "Could not determine your campus. Please contact super admin.",
@@ -987,9 +1023,6 @@ export async function createTeacher(formData: FormData) {
           where: { email },
           data: { clerkId: existingClerkUser.id },
         });
-        console.log(
-          `Set TEACHER role directly on existing Clerk user: ${email}`,
-        );
       } else {
         await clerk.invitations.createInvitation({
           emailAddress: email,
@@ -1017,6 +1050,9 @@ export async function createTeacher(formData: FormData) {
 
 export async function updateTeacher(id: string, formData: FormData) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     const normalized = actionInputToObject(formData);
     const specialtiesRaw = normalized.specialties as string | undefined;
     const specialties = specialtiesRaw
@@ -1059,6 +1095,9 @@ export async function updateTeacher(id: string, formData: FormData) {
 
 export async function updateClass(id: string, formData: FormData) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     const raw = actionInputToObject(formData);
     const v = updateClassSchema.parse({
       courseId: raw.courseId as string,
@@ -1075,7 +1114,8 @@ export async function updateClass(id: string, formData: FormData) {
       onlineLink: raw.onlineLink as string | undefined,
     });
 
-    const campusId = await getCurrentAdminCampusId();
+    const { campusId, authenticated } = await getCurrentAdminCampusId();
+    if (!authenticated) return err("Not authenticated");
     if (!campusId) return err("Could not determine your campus.");
 
     const classRecord = await prisma.class.findFirst({
@@ -1134,19 +1174,27 @@ export async function updateClass(id: string, formData: FormData) {
 }
 
 export async function syncClerkUsers() {
-  // This action finds Clerk users that don't have a matching DB user
-  // and can be called manually to diagnose sync issues
-  // For now just return a helpful message
-  return {
-    success: true,
-    message:
-      "Use Clerk Dashboard to manually delete orphan users at dashboard.clerk.com",
-  };
+  try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
+    return {
+      success: true as const,
+      message:
+        "Use Clerk Dashboard to manually delete orphan users at dashboard.clerk.com",
+    };
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed");
+  }
 }
 
 export async function createClass(formData: FormData) {
   try {
-    const campusId = await getCurrentAdminCampusId();
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
+    const { campusId, authenticated } = await getCurrentAdminCampusId();
+    if (!authenticated) return err("Not authenticated");
     if (!campusId) return err("Could not determine your campus.");
 
     const courseId = formData.get("courseId") as string;
@@ -1302,6 +1350,9 @@ export async function createSchedule(_formData: FormData) {
 }
 export async function replyToReport(reportId: string, content: string) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     if (!content) return err("Content required");
     await prisma.report.update({
       where: { id: reportId },
@@ -1316,6 +1367,9 @@ export async function replyToReport(reportId: string, content: string) {
 
 export async function markReportRead(reportId: string) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     const report = await prisma.report.findUnique({ where: { id: reportId } });
     if (report?.status === "UNREAD") {
       await prisma.report.update({
@@ -1332,6 +1386,9 @@ export async function markReportRead(reportId: string) {
 
 export async function dropEnrollment(enrollmentId: string) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     await prisma.enrollment.update({
       where: { id: enrollmentId },
       data: { status: "DROPPED", endDate: new Date() },
@@ -1344,11 +1401,18 @@ export async function dropEnrollment(enrollmentId: string) {
 }
 
 export async function dropEnrollmentFormAction(enrollmentId: string) {
-  await dropEnrollment(enrollmentId);
+  try {
+    await dropEnrollment(enrollmentId);
+  } catch (e) {
+    console.error("dropEnrollmentFormAction error:", e);
+  }
 }
 
 export async function toggleCourseStatus(courseId: string, isActive: boolean) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     await prisma.course.update({ where: { id: courseId }, data: { isActive } });
     revalidatePath("/admin/courses");
     return ok;
@@ -1362,6 +1426,9 @@ export async function updateClassStatus(
   status: "REGISTRATION" | "STARTED" | "ENDED",
 ) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     if (status === "ENDED") {
       await prisma.enrollment.updateMany({
         where: { classId, status: "ACTIVE" },
@@ -1450,7 +1517,9 @@ export async function assignWithdrawnStudent(
   newClassId: string,
 ) {
   try {
-    await getCurrentAdminUserId();
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     const newClass = await prisma.class.findUnique({
       where: { id: newClassId },
       include: {
@@ -1483,6 +1552,9 @@ export async function assignWithdrawnStudent(
 
 export async function dropStudent(enrollmentId: string, _reason: string) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     await prisma.enrollment.update({
       where: { id: enrollmentId },
       data: { status: "DROPPED", endDate: new Date() },
@@ -1497,6 +1569,9 @@ export async function dropStudent(enrollmentId: string, _reason: string) {
 
 export async function undropStudent(enrollmentId: string) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     const enrollment = await prisma.enrollment.findUnique({
       where: { id: enrollmentId },
     });
@@ -1516,6 +1591,9 @@ export async function undropStudent(enrollmentId: string) {
 
 export async function addToWaitlist(formData: FormData) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
     const phone = formData.get("phone") as string;
@@ -1544,6 +1622,9 @@ export async function addToWaitlist(formData: FormData) {
 
 export async function removeFromWaitlist(id: string) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     await prisma.teacherWaitlist.delete({ where: { id } });
     revalidatePath("/admin/waitlist");
     revalidatePath("/super-admin/waitlist");
@@ -1554,6 +1635,9 @@ export async function removeFromWaitlist(id: string) {
 }
 export async function markWaitlistJoined(id: string) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     await prisma.teacherWaitlist.update({
       where: { id },
       data: { status: "JOINED" },
@@ -1622,8 +1706,12 @@ export async function claimCertificate(formData: FormData) {
 
 export async function createManualCertificate(formData: FormData) {
   try {
-    const adminId = await getCurrentAdminUserId();
+    const adminId = await requireAdminAction();
     if (!adminId) return err("Not authenticated");
+
+    const dbAdminId = await getCurrentAdminUserId();
+    if (!dbAdminId) return err("Not authenticated");
+
     const studentName = formData.get("studentName") as string;
     const fullNameAmharic = formData.get("fullNameAmharic") as string | null;
     const courseId = formData.get("courseId") as string;
@@ -1640,7 +1728,7 @@ export async function createManualCertificate(formData: FormData) {
         paymentStatus: paymentStatus as PaymentStatus,
         paymentMethod:
           paymentStatus === "PAID" ? (paymentMethod as PaymentMethod) : null,
-        claimedById: adminId,
+        claimedById: dbAdminId,
         notes: notes?.trim() || null,
         isDelivered: false,
         verifyCode: `CERT-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
@@ -1703,6 +1791,9 @@ export async function markCertificateAsDone(certificateId: string) {
 
 export async function unmarkCertificateAsDone(certificateId: string) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     await prisma.certificate.update({
       where: { id: certificateId },
       data: { isDone: false, doneAt: null },
@@ -1835,6 +1926,9 @@ export async function updateCertificatePayment(
   paymentMethod: string,
 ) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     await prisma.certificate.update({
       where: { id: certificateId },
       data: {
@@ -1852,6 +1946,9 @@ export async function updateCertificatePayment(
 
 export async function updateWaitlist(id: string, formData: FormData) {
   try {
+    const adminId = await requireAdminAction();
+    if (!adminId) return err("Not authenticated");
+
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
     const phone = formData.get("phone") as string;
@@ -1883,14 +1980,18 @@ export async function updateWaitlist(id: string, formData: FormData) {
 
 export async function sendStudentNotification(formData: FormData) {
   try {
-    const adminId = await getCurrentAdminUserId();
+    const adminId = await requireAdminAction();
     if (!adminId) return err("Not authenticated");
+
+    const dbAdminId = await getCurrentAdminUserId();
+    if (!dbAdminId) return err("Not authenticated");
 
     const title = formData.get("title") as string;
     const body = formData.get("body") as string;
     const type = (formData.get("type") as string) || "INFO";
     const target = formData.get("target") as string;
-    const campusId = await getCurrentAdminCampusId();
+    const { campusId, authenticated } = await getCurrentAdminCampusId();
+    if (!authenticated) return err("Not authenticated");
 
     if (!title?.trim() || !body?.trim()) {
       return err("Title and message are required");
@@ -1921,7 +2022,7 @@ export async function sendStudentNotification(formData: FormData) {
         title: title.trim(),
         body: body.trim(),
         type,
-        createdById: adminId,
+        createdById: dbAdminId,
         campusId,
       })),
     });

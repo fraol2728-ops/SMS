@@ -45,6 +45,9 @@ export async function sendMessage(formData: FormData) {
 }
 export async function markMessageRead(messageId: string) {
   try {
+    const { userId } = await auth();
+    if (!userId) return err("Not authenticated");
+
     await prisma.message.update({
       where: { id: messageId },
       data: { isRead: true, readAt: new Date() },
@@ -58,6 +61,9 @@ export async function markMessageRead(messageId: string) {
 }
 export async function deleteMessage(messageId: string) {
   try {
+    const { userId } = await auth();
+    if (!userId) return err("Not authenticated");
+
     await prisma.message.delete({ where: { id: messageId } });
     revalidatePath("/admin/mail");
     revalidatePath("/teacher/mail");
