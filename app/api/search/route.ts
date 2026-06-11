@@ -14,8 +14,12 @@ type SearchResult = {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = await auth();
+    const { userId, sessionClaims } = await auth();
     if (!userId) return NextResponse.json({ results: [] });
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    if (!role || !["ADMIN", "SUPER_ADMIN", "TEACHER"].includes(role)) {
+      return NextResponse.json({ results: [] });
+    }
 
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q")?.trim();

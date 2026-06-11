@@ -11,7 +11,6 @@ import {
   Video,
 } from "lucide-react";
 import { redirect } from "next/navigation";
-import { requireStudent } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
 
 const TYPE_CONFIG: Record<

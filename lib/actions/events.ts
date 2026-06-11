@@ -66,6 +66,13 @@ export async function createEvent(formData: FormData) {
 
 export async function deleteEvent(eventId: string) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) return err("Not authenticated");
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) {
+      return err("Forbidden");
+    }
+
     await prisma.event.delete({ where: { id: eventId } });
     revalidatePath("/admin/events");
     revalidatePath("/teacher/events");
@@ -78,6 +85,13 @@ export async function deleteEvent(eventId: string) {
 
 export async function updateEvent(eventId: string, formData: FormData) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) return err("Not authenticated");
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) {
+      return err("Forbidden");
+    }
+
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const date = formData.get("date") as string;

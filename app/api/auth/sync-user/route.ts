@@ -3,41 +3,28 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 
-const isRole = (
-  value: string,
-): value is "SUPER_ADMIN" | "ADMIN" | "TEACHER" | "STUDENT" => {
-  return (
-    value === "SUPER_ADMIN" ||
-    value === "ADMIN" ||
-    value === "TEACHER" ||
-    value === "STUDENT"
-  );
-};
-
 export async function POST() {
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
 
   if (!userId) {
-    return NextResponse.json({ synced: false }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const metadataRole = (
-    sessionClaims?.metadata as { role?: string } | undefined
-  )?.role;
-  const role =
-    typeof metadataRole === "string" ? metadataRole.toUpperCase() : undefined;
 
   const dbUser = await prisma.user.findUnique({
     where: { clerkId: userId },
-    select: { id: true, role: true },
+    select: { id: true, role: true, clerkId: true },
   });
 
-  if (dbUser && role && isRole(role) && dbUser.role !== role) {
+  if (!dbUser) {
+    return NextResponse.json({ synced: false }, { status: 404 });
+  }
+
+  if (dbUser.clerkId.startsWith("pending_")) {
     await prisma.user.update({
       where: { id: dbUser.id },
-      data: { role },
+      data: { clerkId: userId },
     });
   }
 
-  return NextResponse.json({ synced: true });
+  return NextResponse.json({ synced: true, role: dbUser.role });
 }

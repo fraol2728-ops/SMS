@@ -104,6 +104,13 @@ export async function addCOCStudentFromProfile(
 
 export async function updateCOCStudent(id: string, formData: FormData) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) return err("Not authenticated");
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) {
+      return err("Forbidden");
+    }
+
     const paymentStatus = (nullable(formData.get("paymentStatus")) ??
       "PENDING") as PaymentStatus;
     await prisma.cOCStudent.update({
@@ -130,6 +137,13 @@ export async function updateCOCStudent(id: string, formData: FormData) {
 
 export async function deleteCOCStudent(id: string) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) return err("Not authenticated");
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) {
+      return err("Forbidden");
+    }
+
     await prisma.cOCStudent.delete({ where: { id } });
     revalidatePath("/admin/coc");
     return ok;

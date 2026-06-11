@@ -13,8 +13,6 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker
           .register("/sw.js")
           .then((registration) => {
-            console.log("SW registered:", registration.scope);
-
             registration.addEventListener("updatefound", () => {
               const newWorker = registration.installing;
               if (newWorker) {
@@ -23,7 +21,7 @@ export function ServiceWorkerRegistration() {
                     newWorker.state === "installed" &&
                     navigator.serviceWorker.controller
                   ) {
-                    console.log("New version available");
+                    // New service worker version available
                   }
                 });
               }
