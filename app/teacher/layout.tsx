@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { Footer } from "@/components/shared/Footer";
 import { TeacherHeader } from "@/components/teacher/layout/TeacherHeader";
@@ -10,11 +10,10 @@ export default async function TeacherLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await auth();
+  const { userId, sessionClaims } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const user = await currentUser();
-  const role = user?.publicMetadata?.role as string | undefined;
+  const role = (sessionClaims?.metadata as any)?.role as string | undefined;
   if (role !== "TEACHER") redirect("/unauthorized");
 
   const dbUser = await prisma.user.findUnique({

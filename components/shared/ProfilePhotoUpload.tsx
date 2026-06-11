@@ -35,32 +35,37 @@ export function ProfilePhotoUpload({
     setUploading(true);
 
     try {
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+      if (!cloudName || !uploadPreset) {
+        setError("Upload not configured. Contact admin.");
+        setUploading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("file", file);
-      formData.append(
-        "upload_preset",
-        process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!,
-      );
+      formData.append("upload_preset", uploadPreset);
       formData.append("folder", "exceed/profiles");
-      formData.append(
-        "transformation",
-        JSON.stringify([
-          { width: 400, height: 400, crop: "fill", gravity: "face" },
-        ]),
-      );
 
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
       const res = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         { method: "POST", body: formData },
       );
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const errData = await res.json();
+        console.error("Cloudinary error response:", errData);
+        throw new Error(errData.error?.message ?? "Upload failed");
+      }
+
       const data = await res.json();
       setPreview(data.secure_url);
       onUpload(data.secure_url);
-    } catch {
-      setError("Upload failed — please try again");
+    } catch (e: any) {
+      console.error("Upload error:", e);
+      setError(e?.message ?? "Upload failed — please try again");
     } finally {
       setUploading(false);
     }
