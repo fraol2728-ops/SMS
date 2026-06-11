@@ -8,16 +8,18 @@ export default async function SuperAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await auth();
+  const { userId, sessionClaims } = await auth();
   if (!userId) redirect("/sign-in");
 
-  // Read role directly from Clerk — most reliable
-  const clerkUser = await currentUser();
-  const role = clerkUser?.publicMetadata?.role as string | undefined;
+  // Read role from sessionClaims — matches middleware (NEVER use currentUser for role checks)
+  const role = (sessionClaims?.metadata as any)?.role as string | undefined;
 
   if (role !== "SUPER_ADMIN") {
     redirect("/unauthorized?reason=not-super-admin");
   }
+
+  // Get Clerk user profile data for email/name (only for display/sync, not auth)
+  const clerkUser = await currentUser();
 
   // Get or create DB user
   let dbUser = await prisma.user.findUnique({
