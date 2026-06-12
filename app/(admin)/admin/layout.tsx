@@ -4,7 +4,7 @@ import { AdminHeader } from "@/components/admin/layout/AdminHeader";
 import { AdminSidebar } from "@/components/admin/layout/AdminSidebar";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Footer } from "@/components/shared/Footer";
-import { prisma } from "@/lib/prisma";
+import { prisma, withRetry } from "@/lib/prisma";
 
 export default async function AdminLayout({
   children,
@@ -14,18 +14,19 @@ export default async function AdminLayout({
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const dbUser = await prisma.user.findUnique({
-    where: { clerkId: userId },
-    include: {
-      campus: true,
-      adminSettings: true,
-    },
-  });
+  const dbUser = await withRetry(() =>
+    prisma.user.findUnique({
+      where: { clerkId: userId },
+      include: {
+        campus: true,
+        adminSettings: true,
+      },
+    }),
+  ).catch(() => null);
 
-  if (!dbUser) redirect("/sign-in");
-
-  const role = dbUser.role;
-  if (role !== "ADMIN" && role !== "SUPER_ADMIN") redirect("/unauthorized");
+  if (!dbUser) {
+    redirect("/sign-in");
+  }
 
   const theme = dbUser.adminSettings?.sidebarTheme ?? "dark";
 

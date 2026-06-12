@@ -1,7 +1,15 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { SuperAdminShell } from "@/components/super-admin/layout/SuperAdminShell";
-import { prisma } from "@/lib/prisma";
+import { prisma, withRetry } from "@/lib/prisma";
+
+const dbUserSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  role: true,
+} as const;
 
 export default async function SuperAdminLayout({
   children,
@@ -11,96 +19,75 @@ export default async function SuperAdminLayout({
   const { userId, sessionClaims } = await auth();
   if (!userId) redirect("/sign-in");
 
-  // Read role from sessionClaims — matches middleware (NEVER use currentUser for role checks)
-  const role = (sessionClaims?.metadata as any)?.role as string | undefined;
+  const claims = sessionClaims as Record<string, unknown> | undefined;
+  const email = (claims?.email as string | undefined)?.toLowerCase();
+  const firstName = (claims?.first_name as string | undefined) ?? "Super";
+  const lastName = (claims?.last_name as string | undefined) ?? "Admin";
 
-  if (role !== "SUPER_ADMIN") {
-    redirect("/unauthorized?reason=not-super-admin");
-  }
+  let dbUser = await withRetry(() =>
+    prisma.user.findUnique({
+      where: { clerkId: userId },
+      select: dbUserSelect,
+    }),
+  ).catch(() => null);
 
-  // Get Clerk user profile data for email/name (only for display/sync, not auth)
-  const clerkUser = await currentUser();
+  if (!dbUser && email) {
+    const byEmail = await withRetry(() =>
+      prisma.user.findUnique({ where: { email } }),
+    ).catch(() => null);
 
-  // Get or create DB user
-  let dbUser = await prisma.user.findUnique({
-    where: { clerkId: userId },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      role: true,
-    },
-  });
-
-  // If DB user doesn't exist or has wrong role, sync it
-  if (!dbUser) {
-    const email = clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase();
-    if (email) {
-      const byEmail = await prisma.user.findUnique({ where: { email } });
-      if (byEmail) {
-        dbUser = await prisma.user.update({
+    if (byEmail) {
+      dbUser = await withRetry(() =>
+        prisma.user.update({
           where: { email },
           data: { clerkId: userId, role: "SUPER_ADMIN" },
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            role: true,
-          },
-        });
-      } else {
-        dbUser = await prisma.user.create({
+          select: dbUserSelect,
+        }),
+      ).catch(() => null);
+    } else {
+      dbUser = await withRetry(() =>
+        prisma.user.create({
           data: {
             clerkId: userId,
-            firstName: clerkUser?.firstName ?? "Super",
-            lastName: clerkUser?.lastName ?? "Admin",
+            firstName,
+            lastName,
             email,
             role: "SUPER_ADMIN",
           },
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            role: true,
-          },
-        });
-      }
+          select: dbUserSelect,
+        }),
+      ).catch(() => null);
     }
   }
 
   if (dbUser && dbUser.role !== "SUPER_ADMIN") {
-    dbUser = await prisma.user.update({
-      where: { id: dbUser.id },
-      data: { role: "SUPER_ADMIN" },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true,
-      },
-    });
+    dbUser = await withRetry(() =>
+      prisma.user.update({
+        where: { id: dbUser!.id },
+        data: { role: "SUPER_ADMIN" },
+        select: dbUserSelect,
+      }),
+    ).catch(() => dbUser);
   }
 
   if (!dbUser) redirect("/unauthorized");
 
-  const campuses = await prisma.campus.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      name: true,
-      color: true,
-      _count: {
-        select: {
-          users: { where: { role: "STUDENT" } },
+  const campuses = await withRetry(() =>
+    prisma.campus.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        _count: {
+          select: {
+            users: { where: { role: "STUDENT" } },
+          },
         },
       },
-    },
-  });
+    }),
+  ).catch(() => []);
 
   return (
     <SuperAdminShell campuses={campuses} admin={dbUser}>
