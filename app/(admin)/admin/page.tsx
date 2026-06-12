@@ -72,6 +72,7 @@ export default async function AdminPage() {
     activeEnrollments,
     activeCourses,
     revenue,
+    partialRevenue,
     monthlyPayments,
     monthlyPartialPayments,
     totalRemaining,
@@ -89,6 +90,16 @@ export default async function AdminPage() {
       where: {
         enrollment: {
           class: campusId ? { campusId } : undefined,
+        },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.partialPayment.aggregate({
+      where: {
+        paymentRemaining: {
+          enrollment: {
+            class: campusId ? { campusId } : undefined,
+          },
         },
       },
       _sum: { amount: true },
@@ -242,7 +253,8 @@ export default async function AdminPage() {
     (item) => item.createdAt,
     () => 1,
   );
-  const totalRevenue = revenue._sum.amount ?? 0;
+  const totalRevenue =
+    (revenue._sum.amount ?? 0) + (partialRevenue._sum.amount ?? 0);
   const totalMonthlyRevenue =
     (monthlyPayments._sum.amount ?? 0) +
     (monthlyPartialPayments._sum.amount ?? 0);

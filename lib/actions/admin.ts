@@ -1323,18 +1323,6 @@ export async function recordPartialPayment(
           status: newStatus,
         },
       });
-
-      await tx.payment.create({
-        data: {
-          userId: remaining.enrollment.student.userId,
-          enrollmentId: remaining.enrollmentId,
-          amount,
-          method: method as "CASH" | "BANK_TRANSFER" | "MOBILE_MONEY" | "CARD",
-          status: "PAID",
-          paidAt: new Date(),
-          note: note?.trim() || "Partial remaining payment",
-        },
-      });
     });
 
     revalidatePath("/admin/remaining");
