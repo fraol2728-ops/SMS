@@ -28,18 +28,21 @@ import { WithdrawButton } from "./WithdrawButton";
 
 export function StudentInfoClient({
   student,
+  enrollments,
   activeEnrollment,
   remaining,
   hasRemaining,
   daysLeft,
   totalPaid,
-  attendanceRate,
   attendanceRecords,
   availableClasses,
   receiptNumber,
 }: any) {
   const router = useRouter();
   const profile = student.studentProfile;
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState(
+    activeEnrollment?.id ?? enrollments?.[0]?.id ?? "",
+  );
   const [activeTab, setActiveTab] = useState<
     "overview" | "attendance" | "payments"
   >("overview");
@@ -100,7 +103,10 @@ export function StudentInfoClient({
     }
   }
 
-  const classInfo = activeEnrollment?.class;
+  const selectedEnrollment =
+    enrollments?.find((enrollment: any) => enrollment.id === selectedEnrollmentId) ??
+    activeEnrollment;
+  const classInfo = selectedEnrollment?.class;
   const timeLabel = classInfo
     ? (TIME_SLOTS[classInfo.timeSlot as keyof typeof TIME_SLOTS] ??
       classInfo.timeSlot)
@@ -108,11 +114,26 @@ export function StudentInfoClient({
   const daysLabel = classInfo
     ? (CLASS_DAYS[classInfo.days as keyof typeof CLASS_DAYS] ?? classInfo.days)
     : null;
-  const presentSessions = attendanceRecords.filter(
+  const selectedAttendanceRecords = selectedEnrollment?.attendance ?? [];
+  const selectedPayments = selectedEnrollment?.payments ?? [];
+  const selectedRemaining =
+    selectedEnrollment?.paymentRemaining ?? remaining ?? null;
+  const selectedHasRemaining = !!selectedRemaining && selectedRemaining.remainingAmount > 0;
+  const selectedDaysLeft = selectedRemaining?.dueDate
+    ? Math.ceil(
+        (new Date(selectedRemaining.dueDate).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24),
+      )
+    : null;
+  const presentSessions = selectedAttendanceRecords.filter(
     (a: any) => a.status === "PRESENT",
   ).length;
-  const progressPercent = remaining?.originalFee
-    ? Math.min(100, (remaining.paidAmount / remaining.originalFee) * 100)
+  const attendanceRate =
+    selectedAttendanceRecords.length > 0
+      ? Math.round((presentSessions / selectedAttendanceRecords.length) * 100)
+      : 0;
+  const progressPercent = selectedRemaining?.originalFee
+    ? Math.min(100, (selectedRemaining.paidAmount / selectedRemaining.originalFee) * 100)
     : 0;
 
   return (
@@ -126,7 +147,7 @@ export function StudentInfoClient({
           Back to students
         </Link>
 
-        {showCertModal && activeEnrollment && (
+        {showCertModal && selectedEnrollment && (
           <ClaimCertificateModal
             student={{
               id: student.id,
@@ -135,14 +156,42 @@ export function StudentInfoClient({
               fullNameAmharic: profile.fullNameAmharic ?? null,
             }}
             studentProfileId={profile.id}
-            courseId={activeEnrollment.class?.course?.id ?? ""}
-            courseTitle={activeEnrollment.class?.course?.title ?? ""}
-            enrollmentId={activeEnrollment.id}
+            courseId={selectedEnrollment.class?.course?.id ?? ""}
+            courseTitle={selectedEnrollment.class?.course?.title ?? ""}
+            enrollments={enrollments}
+            enrollmentId={selectedEnrollment.id}
             remainingBalance={remaining?.remainingAmount ?? null}
             initialReceiptNumber={receiptNumber}
             onClose={() => setShowCertModal(false)}
           />
         )}
+
+        {enrollments?.length > 1 ? (
+          <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <h2 className="mb-4 font-bold text-gray-900 dark:text-white">
+              Enrolled Courses
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {enrollments.map((enrollment: any) => {
+                const courseTitle = enrollment.class?.course?.title ?? "Unknown course";
+                const labName = enrollment.class?.lab?.name
+                  ? ` (${enrollment.class.lab.name})`
+                  : "";
+                const isSelected = enrollment.id === selectedEnrollment?.id;
+                return (
+                  <button
+                    key={enrollment.id}
+                    type="button"
+                    onClick={() => setSelectedEnrollmentId(enrollment.id)}
+                    className={`rounded-2xl border px-3 py-2 text-sm font-medium transition ${isSelected ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"}`}
+                  >
+                    {courseTitle}{labName}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         <div className="overflow-hidden rounded-3xl border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
           <div className="h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
@@ -255,26 +304,26 @@ export function StudentInfoClient({
             </p>
             <p className="mt-1 text-gray-500 text-xs">Attendance Rate</p>
             <p className="mt-0.5 text-gray-400 text-xs">
-              {presentSessions} / {attendanceRecords.length} sessions
+              {presentSessions} / {selectedAttendanceRecords.length} sessions
             </p>
           </div>
 
           <div
-            className={`rounded-3xl border p-5 ${hasRemaining ? "border-amber-100 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-900/20" : "border-green-100 bg-green-50 dark:border-green-900/30 dark:bg-green-900/20"}`}
+            className={`rounded-3xl border p-5 ${selectedHasRemaining ? "border-amber-100 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-900/20" : "border-green-100 bg-green-50 dark:border-green-900/30 dark:bg-green-900/20"}`}
           >
             <CreditCard
               size={20}
-              className={`mb-2 ${hasRemaining ? "text-amber-600" : "text-green-600"}`}
+              className={`mb-2 ${selectedHasRemaining ? "text-amber-600" : "text-green-600"}`}
             />
             <p
-              className={`font-black text-xl leading-tight ${hasRemaining ? "text-amber-700 dark:text-amber-400" : "text-green-700 dark:text-green-400"}`}
+              className={`font-black text-xl leading-tight ${selectedHasRemaining ? "text-amber-700 dark:text-amber-400" : "text-green-700 dark:text-green-400"}`}
             >
               ETB {totalPaid.toLocaleString()}
             </p>
             <p className="mt-1 text-gray-500 text-xs">Total Paid</p>
-            {hasRemaining ? (
+            {selectedHasRemaining ? (
               <p className="mt-0.5 font-semibold text-amber-600 text-xs">
-                ETB {remaining.remainingAmount.toLocaleString()} remaining
+                ETB {selectedRemaining.remainingAmount.toLocaleString()} remaining
               </p>
             ) : (
               <p className="mt-0.5 font-semibold text-green-600 text-xs">
@@ -283,7 +332,7 @@ export function StudentInfoClient({
             )}
           </div>
 
-          {hasRemaining && daysLeft !== null ? (
+          {selectedHasRemaining && selectedDaysLeft !== null ? (
             <div
               className={`rounded-3xl border p-5 ${daysLeft < 0 ? "border-red-100 bg-red-50 dark:border-red-900/30 dark:bg-red-900/20" : daysLeft <= 7 ? "border-amber-100 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-900/20" : "border-green-100 bg-green-50 dark:border-green-900/30 dark:bg-green-900/20"}`}
             >
@@ -450,7 +499,7 @@ export function StudentInfoClient({
           </div>
         )}
 
-        {classInfo && (
+        {classInfo ? (
           <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
             <h2 className="mb-4 font-bold text-gray-900 dark:text-white">
               Current Class
@@ -499,18 +548,18 @@ export function StudentInfoClient({
                   Claim Certificate
                 </button>
                 <WithdrawButton
-                  enrollmentId={activeEnrollment.id}
+                  enrollmentId={selectedEnrollment.id}
                   studentName={`${student.firstName} ${student.lastName}`}
                 />
                 <ChangeClassButton
-                  enrollmentId={activeEnrollment.id}
+                  enrollmentId={selectedEnrollment.id}
                   availableClasses={availableClasses}
-                  currentClassId={activeEnrollment.classId ?? ""}
+                  currentClassId={selectedEnrollment.classId ?? ""}
                 />
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         <div className="overflow-hidden rounded-3xl border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
           <div className="flex border-b dark:border-gray-700">
@@ -583,7 +632,7 @@ export function StudentInfoClient({
             )}
             {activeTab === "attendance" && (
               <div>
-                {attendanceRecords.length === 0 ? (
+                {selectedAttendanceRecords.length === 0 ? (
                   <div className="py-10 text-center text-gray-400">
                     <ClipboardCheck
                       size={40}
@@ -593,7 +642,7 @@ export function StudentInfoClient({
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {attendanceRecords.map((attendance: any) => (
+                    {selectedAttendanceRecords.map((attendance: any) => (
                       <div
                         key={attendance.id}
                         title={`${new Date(attendance.date).toLocaleDateString("en-GB")} — ${attendance.status}`}
@@ -615,14 +664,14 @@ export function StudentInfoClient({
             )}
             {activeTab === "payments" && (
               <div>
-                {!activeEnrollment?.payments.length ? (
+                {!selectedPayments.length ? (
                   <div className="py-10 text-center text-gray-400">
                     <CreditCard size={40} className="mx-auto mb-3 opacity-20" />
                     <p>No payments recorded yet</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {activeEnrollment?.payments.map((payment: any) => (
+                    {selectedPayments.map((payment: any) => (
                       <div
                         key={payment.id}
                         className="flex items-center justify-between rounded-2xl bg-gray-50 p-4 dark:bg-gray-800"
