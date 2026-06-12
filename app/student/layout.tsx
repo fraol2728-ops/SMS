@@ -1,11 +1,10 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { StudentShell } from "@/components/student/layout/StudentShell";
 import {
   getFeedbackForEnrollment,
   shouldShowFeedbackModal,
 } from "@/lib/actions/feedback";
-import { getAuthRole } from "@/lib/clerk-role";
 import { prisma } from "@/lib/prisma";
 import { resolveStudentUser } from "@/lib/resolve-student-user";
 
@@ -35,15 +34,16 @@ export default async function StudentLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await auth();
+  const { userId, sessionClaims } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const clerkUser = await currentUser();
-  const email = clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase();
+  const email = (sessionClaims as { email?: string } | undefined)?.email
+    ?.toLowerCase();
 
   const dbUser = await resolveStudentUser(userId, email, studentUserInclude);
 
-  const clerkRole = await getAuthRole();
+  const clerkRole = (sessionClaims?.metadata as { role?: string } | undefined)
+    ?.role;
   const effectiveRole = clerkRole ?? dbUser?.role;
 
   if (effectiveRole !== "STUDENT") {

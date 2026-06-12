@@ -18,42 +18,52 @@ export default clerkMiddleware(async (auth, req) => {
   // Allow public routes without auth
   if (isPublicRoute(req)) return NextResponse.next()
 
-  const { userId, sessionClaims } = await auth()
+  try {
+    const { userId, sessionClaims } = await auth()
 
-  // Not logged in — redirect to sign in
-  if (!userId) {
-    return NextResponse.redirect(new URL('/sign-in', req.url))
-  }
+    // Not logged in
+    if (!userId) {
+      return NextResponse.redirect(new URL('/sign-in', req.url))
+    }
 
-  const role = (sessionClaims?.metadata as any)?.role as string | undefined
+    const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role
 
-  // If no role yet — don't redirect to sign-in (would cause loop)
-  // Instead redirect to unauthorized
-  if (!role) {
-    if (req.nextUrl.pathname !== '/unauthorized') {
+    // No role — send to unauthorized not sign-in (prevents loop)
+    if (!role) {
+      if (req.nextUrl.pathname === '/unauthorized') {
+        return NextResponse.next()
+      }
       return NextResponse.redirect(new URL('/unauthorized', req.url))
     }
+
+    // Role-based access control
+    if (isSuperAdminRoute(req) && role !== 'SUPER_ADMIN') {
+      return NextResponse.redirect(new URL('/unauthorized', req.url))
+    }
+    if (isAdminRoute(req) && !['ADMIN', 'SUPER_ADMIN'].includes(role)) {
+      return NextResponse.redirect(new URL('/unauthorized', req.url))
+    }
+    if (isTeacherRoute(req) && role !== 'TEACHER') {
+      return NextResponse.redirect(new URL('/unauthorized', req.url))
+    }
+    if (isStudentRoute(req) && role !== 'STUDENT') {
+      return NextResponse.redirect(new URL('/unauthorized', req.url))
+    }
+
     return NextResponse.next()
-  }
+  } catch (error) {
+    // If Clerk API is unreachable, allow the request through
+    // The layout will handle auth — better than crashing
+    console.error('Middleware auth error:', error)
 
-  // Role-based access control
-  if (isSuperAdminRoute(req) && role !== 'SUPER_ADMIN') {
-    return NextResponse.redirect(new URL('/unauthorized', req.url))
-  }
+    // If going to sign-in already, let it through
+    if (req.nextUrl.pathname.startsWith('/sign-in')) {
+      return NextResponse.next()
+    }
 
-  if (isAdminRoute(req) && !['ADMIN', 'SUPER_ADMIN'].includes(role)) {
-    return NextResponse.redirect(new URL('/unauthorized', req.url))
+    // For other routes, redirect to sign-in on auth failure
+    return NextResponse.redirect(new URL('/sign-in', req.url))
   }
-
-  if (isTeacherRoute(req) && role !== 'TEACHER') {
-    return NextResponse.redirect(new URL('/unauthorized', req.url))
-  }
-
-  if (isStudentRoute(req) && role !== 'STUDENT') {
-    return NextResponse.redirect(new URL('/unauthorized', req.url))
-  }
-
-  return NextResponse.next()
 })
 
 export const config = {
