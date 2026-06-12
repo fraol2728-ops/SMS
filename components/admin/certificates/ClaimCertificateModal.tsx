@@ -19,6 +19,12 @@ interface ClaimCertificateModalProps {
   studentProfileId: string;
   courseId: string;
   courseTitle: string;
+  enrollments?: Array<{
+    id: string;
+    class?: {
+      course?: { id: string; title: string | null } | null;
+    } | null;
+  }>;
   enrollmentId: string;
   remainingBalance?: number | null;
   initialReceiptNumber?: string | null;
@@ -31,6 +37,7 @@ export function ClaimCertificateModal({
   studentProfileId,
   courseId,
   courseTitle,
+  enrollments,
   enrollmentId,
   remainingBalance,
   initialReceiptNumber,
@@ -41,9 +48,13 @@ export function ClaimCertificateModal({
   const [receiptNumber, setReceiptNumber] = useState(
     initialReceiptNumber ?? ""
   );
+  const [manualStudentName, setManualStudentName] = useState(
+    `${student.firstName} ${student.lastName}`,
+  );
   const [fullNameAmharic, setFullNameAmharic] = useState(
     student.fullNameAmharic ?? "",
   );
+  const [selectedCourseId, setSelectedCourseId] = useState(courseId);
   const [paymentStatus, setPaymentStatus] = useState<"PENDING" | "PAID">(
     "PENDING",
   );
@@ -52,8 +63,19 @@ export function ClaimCertificateModal({
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const availableCourses = (enrollments ?? [])
+    .map((enrollment) => ({
+      id: enrollment.class?.course?.id ?? "",
+      title: enrollment.class?.course?.title ?? "Unknown course",
+    }))
+    .filter((course, index, self) =>
+      course.id && self.findIndex((c) => c.id === course.id) === index,
+    );
   const hasRemaining = remainingBalance && remainingBalance > 0;
-  const fullName = `${student.firstName} ${student.lastName}`;
+  const fullName = manualStudentName;
+  const selectedCourseTitle =
+    availableCourses.find((course) => course.id === selectedCourseId)?.title ??
+    courseTitle;
 
   async function handleCreate() {
     if (!receiptNumber.trim()) {
@@ -64,11 +86,11 @@ export function ClaimCertificateModal({
     try {
       const formData = new FormData();
       formData.set("studentId", studentProfileId);
-      formData.set("courseId", courseId);
+      formData.set("courseId", selectedCourseId);
       formData.set("enrollmentId", enrollmentId);
       formData.set("receiptNumber", receiptNumber.trim());
       formData.set("fullNameAmharic", fullNameAmharic.trim());
-      formData.set("manualStudentName", fullName);
+      formData.set("manualStudentName", manualStudentName.trim());
       formData.set("paymentStatus", paymentStatus);
       formData.set("paymentAmount", paymentAmount);
       formData.set("paymentMethod", paymentMethod);
@@ -141,15 +163,18 @@ export function ClaimCertificateModal({
           <div className="space-y-1.5">
             <Label>Full Name</Label>
             <Input
-              value={fullName}
-              readOnly
-              className="bg-gray-50 dark:bg-gray-800 font-semibold cursor-not-allowed"
+              name="manualStudentName"
+              value={manualStudentName}
+              onChange={(e) => setManualStudentName(e.target.value)}
+              placeholder="Student full name"
+              required
             />
           </div>
 
           <div className="space-y-1.5">
             <Label>Full Name in Amharic</Label>
             <Input
+              name="fullNameAmharic"
               value={fullNameAmharic}
               onChange={(e) => setFullNameAmharic(e.target.value)}
               placeholder="ሙሉ ስም በአማርኛ"
@@ -158,11 +183,26 @@ export function ClaimCertificateModal({
 
           <div className="space-y-1.5">
             <Label>Course</Label>
-            <Input
-              value={courseTitle}
-              readOnly
-              className="bg-gray-50 dark:bg-gray-800 cursor-not-allowed"
-            />
+            {availableCourses.length > 0 ? (
+              <select
+                name="courseId"
+                value={selectedCourseId}
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                className="h-10 w-full rounded-xl border dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {availableCourses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                readOnly
+                value={courseTitle}
+                className="bg-gray-50 dark:bg-gray-800 cursor-not-allowed"
+              />
+            )}
           </div>
 
           <div className="space-y-1.5">

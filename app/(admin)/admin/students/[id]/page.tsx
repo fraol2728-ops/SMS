@@ -47,12 +47,14 @@ export default async function StudentDetailPage({
 
   if (!student?.studentProfile) notFound();
 
-  const activeEnrollment = student.studentProfile.enrollments.find(
-    (enrollment) => enrollment.status === "ACTIVE",
-  );
+  const enrollments = student.studentProfile.enrollments;
+  const activeEnrollment =
+    enrollments.find((enrollment) => enrollment.status === "ACTIVE") ??
+    enrollments[0] ??
+    null;
   const remaining =
     activeEnrollment?.paymentRemaining ??
-    student.studentProfile.enrollments.find(
+    enrollments.find(
       (enrollment) =>
         enrollment.paymentRemaining &&
         enrollment.paymentRemaining.status !== "PAID",
@@ -104,6 +106,7 @@ export default async function StudentDetailPage({
   return (
     <StudentInfoClient
       student={student}
+      enrollments={enrollments}
       activeEnrollment={activeEnrollment}
       remaining={remaining}
       hasRemaining={hasRemaining}

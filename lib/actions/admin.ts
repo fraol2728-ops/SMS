@@ -180,6 +180,15 @@ export async function createStudent(
       return err("At least one enrollment is required.");
     }
 
+    const selectedClassIds = enrollments
+      .map((enr) => enr.selectedClassId)
+      .filter(Boolean);
+    if (selectedClassIds.length !== new Set(selectedClassIds).size) {
+      return err(
+        "Each enrollment must use a different class section. Remove duplicate class selections and try again.",
+      );
+    }
+
     const v = studentSchema.parse({
       firstName: raw.firstName,
       lastName: raw.lastName,
@@ -497,10 +506,16 @@ export async function createStudent(
     return { success: true as const, studentCode };
   } catch (e) {
     if (e instanceof Error) {
-      if (e.message.includes("email") || e.message.includes("unique")) {
+      const message = e.message;
+      if (message.toLowerCase().includes("unique constraint")) {
+        return err(
+          "This student is already enrolled in one of the selected class sections. Please select different class sections or remove duplicates.",
+        );
+      }
+      if (message.includes("email") || message.toLowerCase().includes("unique")) {
         return err("A user with this email already exists.");
       }
-      return err(e.message);
+      return err(message);
     }
     return err("Failed to register student. Please try again.");
   }

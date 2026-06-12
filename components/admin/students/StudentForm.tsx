@@ -206,6 +206,17 @@ export function StudentForm({
           return;
         }
 
+        const selectedClassIds = enrollments
+          .map((enrollment) => enrollment.selectedClassId)
+          .filter(Boolean);
+        if (selectedClassIds.length !== new Set(selectedClassIds).size) {
+          toast.error(
+            "Each enrollment must use a different class section. Remove duplicate classes and try again.",
+          );
+          setLoading(false);
+          return;
+        }
+
         const res = await createStudent(formData, enrollments);
         if (res.success) {
           toast.success("Student registered successfully");
