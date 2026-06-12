@@ -109,6 +109,7 @@ export async function generateReport(
     newStudents,
     activeEnrollments,
     payments,
+    partialPaymentsData,
     remainingPayments,
     classes,
     campus,
@@ -167,6 +168,17 @@ export async function generateReport(
       },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.partialPayment.findMany({
+      where: {
+        createdAt: { gte: startDate },
+        paymentRemaining: {
+          enrollment: {
+            class: campusId ? { campusId } : undefined,
+          },
+        },
+      },
+      select: { amount: true },
+    }),
     prisma.paymentRemaining.findMany({
       where: {
         status: { not: "PAID" },
@@ -201,6 +213,7 @@ export async function generateReport(
     ReportStudent[],
     ReportEnrollment[],
     ReportPayment[],
+    { amount: number }[],
     ReportRemainingPayment[],
     ReportClass[],
     { name: string } | null,
@@ -209,10 +222,13 @@ export async function generateReport(
   const campusName = campus?.name ?? "All Campuses";
   const wb = XLSX.utils.book_new();
 
-  const totalRevenue = payments.reduce(
-    (sum, payment) => sum + payment.amount,
+  const partialRevenue = partialPaymentsData.reduce(
+    (sum, partial) => sum + partial.amount,
     0,
   );
+
+  const totalRevenue =
+    payments.reduce((sum, payment) => sum + payment.amount, 0) + partialRevenue;
 
   const outstandingBalance = remainingPayments.reduce(
     (sum, remaining) => sum + remaining.remainingAmount,
