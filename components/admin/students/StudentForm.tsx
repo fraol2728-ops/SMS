@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { QrCode, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { AssessmentSection } from "@/components/admin/students/AssessmentSection";
 import { EmailValidationInput } from "@/components/admin/students/EmailValidationInput";
+import { FaydaScanner } from "./FaydaScanner";
 import { EnrollmentSection } from "@/components/admin/students/EnrollmentSection";
 import { ProfilePhotoUpload } from "@/components/shared/ProfilePhotoUpload";
 import { Button } from "@/components/ui/button";
@@ -89,6 +91,34 @@ export function StudentForm({
   const [lastName, setLastName] = useState(
     defaultValues?.lastName ?? defaultPersonalValues?.lastName ?? "",
   );
+  const [gender, setGender] = useState(defaultValues?.gender ?? "");
+  const [dateOfBirth, setDateOfBirth] = useState(
+    defaultValues?.dateOfBirth?.slice(0, 10) ?? "",
+  );
+  const [notesValue, setNotesValue] = useState(defaultValues?.notes ?? "");
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanned, setScanned] = useState(false);
+
+  function handleFaydaScan(data: {
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    gender: "MALE" | "FEMALE";
+    dateOfBirth: string;
+    nationalId: string;
+  }) {
+    setFirstName(data.firstName);
+    setLastName(data.lastName);
+    setGender(data.gender);
+    setDateOfBirth(data.dateOfBirth);
+    setNotesValue(
+      `National ID: ${data.nationalId} | Full Name: ${data.fullName}`,
+    );
+    setScanned(true);
+    setShowScanner(false);
+    toast.success("Student info loaded from Fayda ID ✅");
+  }
+
   const isEdit = Boolean(defaultValues?.id);
 
   // Manage multiple enrollments
@@ -254,25 +284,89 @@ export function StudentForm({
           />
           <input type="hidden" name="profilePhoto" value={profilePhoto} />
         </div>
+
+        <div className="space-y-3 mb-6">
+          <button
+            type="button"
+            onClick={() => setShowScanner(true)}
+            className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all group"
+          >
+            <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-md">
+              <QrCode size={24} className="text-white" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="font-bold text-blue-700 dark:text-blue-400 text-sm">
+                Scan Fayda ID Card
+              </p>
+              <p className="text-blue-500 dark:text-blue-500 text-xs mt-0.5">
+                Auto-fill student info from national ID
+              </p>
+            </div>
+            <span className="text-xs bg-blue-500 text-white px-2.5 py-1 rounded-full font-semibold flex-shrink-0">
+              Fast ⚡
+            </span>
+          </button>
+
+          {scanned && (
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+              <CheckCircle size={16} className="text-green-600 flex-shrink-0" />
+              <p className="text-sm text-green-700 dark:text-green-400 font-medium">
+                Fayda ID scanned — fields auto-filled below
+              </p>
+            </div>
+          )}
+        </div>
+
+        {showScanner && (
+          <FaydaScanner
+            onScan={handleFaydaScan}
+            onClose={() => setShowScanner(false)}
+          />
+        )}
+
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
+            <Label htmlFor="firstName">
+              First Name
+              {scanned && firstName && (
+                <span className="ml-2 text-xs text-green-600 dark:text-green-400 font-medium">
+                  ✓ Auto-filled
+                </span>
+              )}
+            </Label>
             <Input
               id="firstName"
               name="firstName"
               required
               value={firstName}
               onChange={(event) => setFirstName(event.target.value)}
+              className={
+                scanned && firstName
+                  ? "border-green-400 dark:border-green-600"
+                  : ""
+              }
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
+            <Label htmlFor="lastName">
+              Last Name
+              {scanned && lastName && (
+                <span className="ml-2 text-xs text-green-600 dark:text-green-400 font-medium">
+                  ✓ Auto-filled
+                </span>
+              )}
+            </Label>
             <Input
               id="lastName"
               name="lastName"
               required
               value={lastName}
               onChange={(event) => setLastName(event.target.value)}
+              className={
+                scanned && lastName
+                  ? "border-green-400 dark:border-green-600"
+                  : ""
+              }
             />
           </div>
           <div className="space-y-2">
@@ -333,12 +427,24 @@ export function StudentForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="gender">Gender</Label>
+            <Label htmlFor="gender">
+              Gender
+              {scanned && gender && (
+                <span className="ml-2 text-xs text-green-600 dark:text-green-400 font-medium">
+                  ✓ Auto-filled
+                </span>
+              )}
+            </Label>
             <select
               id="gender"
               name="gender"
-              defaultValue={defaultValues?.gender ?? ""}
-              className="h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              value={gender}
+              onChange={(event) => setGender(event.target.value)}
+              className={`h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white ${
+                scanned && gender
+                  ? "border-green-400 dark:border-green-600"
+                  : ""
+              }`}
             >
               <option value="">Select gender</option>
               <option value="MALE">Male</option>
@@ -347,12 +453,25 @@ export function StudentForm({
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="dateOfBirth">Date of Birth</Label>
+            <Label htmlFor="dateOfBirth">
+              Date of Birth
+              {scanned && dateOfBirth && (
+                <span className="ml-2 text-xs text-green-600 dark:text-green-400 font-medium">
+                  ✓ Auto-filled
+                </span>
+              )}
+            </Label>
             <Input
               id="dateOfBirth"
               name="dateOfBirth"
               type="date"
-              defaultValue={defaultValues?.dateOfBirth?.slice(0, 10) ?? ""}
+              value={dateOfBirth}
+              onChange={(event) => setDateOfBirth(event.target.value)}
+              className={`h-10 w-full rounded-md border bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white ${
+                scanned && dateOfBirth
+                  ? "border-green-400 dark:border-green-600"
+                  : ""
+              }`}
             />
           </div>
           <div className="space-y-2 md:col-span-2">
@@ -418,7 +537,11 @@ export function StudentForm({
           id="notes"
           name="notes"
           rows={3}
-          defaultValue={defaultValues?.notes ?? ""}
+          value={notesValue}
+          onChange={(event) => setNotesValue(event.target.value)}
+          className={`rounded-xl ${
+            scanned && notesValue ? "border-green-400 dark:border-green-600" : ""
+          }`}
         />
       </section>
 
