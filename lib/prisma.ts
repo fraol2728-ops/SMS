@@ -1,57 +1,40 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from 'pg'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from '@prisma/client'
 
-const globalForPrisma = (globalThis as any) as {
-  prisma: PrismaClient;
-};
-
-function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL;
-
-  if (!connectionString) {
-    throw new Error(
-      "DATABASE_URL environment variable is not defined. Please check your .env.local file."
-    );
-  }
-
-  const adapter = new PrismaPg({ connectionString });
-  return new PrismaClient({ adapter });
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+  pool: Pool | undefined
 }
 
-// Ensure prisma is always initialized
-const prisma = globalForPrisma.prisma || createPrismaClient();
-
-// Only reuse prisma client in development
-if (process.env.NODE_ENV === "development") {
-  globalForPrisma.prisma = prisma;
+function createPool() {
+  return new Pool({
+    connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000,
+    max: 10,
+    ssl: { rejectUnauthorized: false },
+  })
 }
 
-// Helper to run queries with retry on timeout
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  retries = 3,
-  delay = 1000
-): Promise<T> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (error: any) {
-      const isTimeout =
-        error?.message?.includes("timed out") ||
-        error?.message?.includes("Authentication timed out") ||
-        error?.message?.includes("connection") ||
-        error?.code === "P1001" ||
-        error?.code === "P1002";
-
-      if (isTimeout && i < retries - 1) {
-        await new Promise((r) => setTimeout(r, delay * (i + 1)));
-        continue;
-      }
-      throw error;
-    }
-  }
-  throw new Error("Max retries reached");
+function createClient(pool: Pool) {
+  const adapter = new PrismaPg(pool)
+  return new PrismaClient({
+    adapter,
+    log:
+      process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+  })
 }
 
-export { prisma };
+export const prisma =
+  globalForPrisma.prisma ??
+  createClient(
+    globalForPrisma.pool ?? (globalForPrisma.pool = createPool()),
+  )
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}
+
+export { withRetry } from './db-retry'
 export default prisma;

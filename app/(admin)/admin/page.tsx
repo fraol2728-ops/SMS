@@ -35,19 +35,22 @@ type RecentPayment = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const { userId } = await auth();
-  await requireAdmin();
-  const campusId = await getCurrentUserCampusId();
-  const adminUser = userId
-    ? await prisma.user.findUnique({
-        where: { clerkId: userId },
-        select: {
-          firstName: true,
-          lastName: true,
-          campus: { select: { name: true } },
-        },
-      })
-    : null;
+  try {
+    const { userId } = await auth();
+    await requireAdmin();
+    const campusId = await getCurrentUserCampusId();
+    const adminUser = userId
+      ? await withRetry(() =>
+          prisma.user.findUnique({
+            where: { clerkId: userId },
+            select: {
+              firstName: true,
+              lastName: true,
+              campus: { select: { name: true } },
+            },
+          }),
+        )
+      : null;
   const dateLabel = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "2-digit",
@@ -269,8 +272,8 @@ export default async function AdminPage() {
   const tableRowClass =
     "border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/30";
 
-  return (
-    <div className="space-y-6 sm:space-y-8">
+    return (
+      <div className="space-y-6 sm:space-y-8">
       <DashboardHero
         adminName={adminName}
         campusName={adminUser?.campus?.name}
@@ -621,5 +624,40 @@ export default async function AdminPage() {
         </ActivityTableCard>
       </section>
     </div>
-  );
+  )
+  } catch (error: any) {
+    const msg = (error?.message ?? String(error)).toLowerCase();
+    const isDbError =
+      msg.includes("can't reach database") ||
+      msg.includes('etimedout') ||
+      msg.includes('connection') ||
+      msg.includes('p1001') ||
+      msg.includes('p1002');
+
+    if (isDbError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+          <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/20 rounded-3xl flex items-center justify-center">
+            <span className="text-3xl">🔌</span>
+          </div>
+          <div className="text-center">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+              Database Waking Up
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm max-w-sm">
+              The database server is starting up. This happens after periods of inactivity. Please wait a moment and refresh the page.
+            </p>
+          </div>
+          <Link
+            href="/admin"
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-2xl transition-colors"
+          >
+            Try Again
+          </Link>
+        </div>
+      )
+    }
+
+    throw error
+  }
 }

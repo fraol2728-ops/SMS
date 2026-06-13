@@ -25,6 +25,7 @@ if (process.env.NODE_ENV === "production") {
 
 const nextConfig: NextConfig = {
   /* config options here */
+  transpilePackages: ["html5-qrcode"],
   env: {
     NEXT_PUBLIC_CLERK_SIGN_IN_URL:
       process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/sign-in",
