@@ -65,6 +65,8 @@ interface StudentsFilterClientProps {
     hasRemaining: string;
     status: string;
   };
+  detailHrefPrefix?: string;
+  campusId?: string | null;
 }
 
 const PAGE_SIZE = 20;
@@ -78,6 +80,8 @@ export function StudentsFilterClient({
   courseStudentCounts,
   analytics,
   currentFilters,
+  detailHrefPrefix = "/admin/students",
+  campusId,
 }: StudentsFilterClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -95,6 +99,7 @@ export function StudentsFilterClient({
 
   function applyFilters(newFilters: typeof filters) {
     const params = new URLSearchParams();
+    if (campusId) params.set("campusId", campusId);
     if (newFilters.q) params.set("q", newFilters.q);
     if (newFilters.gender) params.set("gender", newFilters.gender);
     if (newFilters.courseId) params.set("courseId", newFilters.courseId);
@@ -134,6 +139,8 @@ export function StudentsFilterClient({
     filters.courseId ||
     filters.classType ||
     filters.hasRemaining;
+  const detailSuffix =
+    campusId !== undefined ? `?campusId=${campusId ?? ""}` : "";
 
   return (
     <div className="space-y-5">
@@ -379,7 +386,7 @@ export function StudentsFilterClient({
               return (
                 <Link
                   key={s.id}
-                  href={`/admin/students/${s.userId}`}
+                  href={`${detailHrefPrefix}/${s.userId}${detailSuffix}`}
                   className="group flex items-center gap-4 px-6 py-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
                 >
                   {s.user.profilePhoto ? (
