@@ -11,8 +11,10 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTopPerformingTeacher } from "@/lib/actions/performance";
 import { requireSuperAdmin } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma, withRetry } from "@/lib/prisma";
@@ -58,29 +60,27 @@ export default async function SuperAdminDashboard({
   const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
 
   // Batch 1 — core counts
-  const [
-    totalStudents,
-    totalTeachers,
-    onRegistration,
-    activeCourses,
-  ] = await withRetry(() => Promise.all([
-    prisma.user.count({
-      where: { role: "STUDENT", campusId: effectiveCampusId },
-    }),
-    prisma.user.count({
-      where: { role: "TEACHER", campusId: effectiveCampusId },
-    }),
-    prisma.class.count({
-      where: {
-        campusId: effectiveCampusId,
-        status: "REGISTRATION",
-        isActive: true,
-      },
-    }),
-    prisma.course.count({
-      where: { campusId: effectiveCampusId, isActive: true },
-    }),
-  ]));
+  const [totalStudents, totalTeachers, onRegistration, activeCourses] =
+    await withRetry(() =>
+      Promise.all([
+        prisma.user.count({
+          where: { role: "STUDENT", campusId: effectiveCampusId },
+        }),
+        prisma.user.count({
+          where: { role: "TEACHER", campusId: effectiveCampusId },
+        }),
+        prisma.class.count({
+          where: {
+            campusId: effectiveCampusId,
+            status: "REGISTRATION",
+            isActive: true,
+          },
+        }),
+        prisma.course.count({
+          where: { campusId: effectiveCampusId, isActive: true },
+        }),
+      ]),
+    );
 
   // Batch 2 — revenue, certificates, and lists
   const [
@@ -91,77 +91,83 @@ export default async function SuperAdminDashboard({
     todayAttendance,
     recentStudents,
     registrationClasses,
-  ] = await withRetry(() => Promise.all([
-    prisma.payment.aggregate({
-      where: {
-        createdAt: { gte: monthStart },
-        enrollment: {
-          class: { campusId: effectiveCampusId },
-        },
-      },
-      _sum: { amount: true },
-    }),
-    prisma.partialPayment.aggregate({
-      where: {
-        createdAt: { gte: monthStart },
-        paymentRemaining: {
+  ] = await withRetry(() =>
+    Promise.all([
+      prisma.payment.aggregate({
+        where: {
+          createdAt: { gte: monthStart },
           enrollment: {
             class: { campusId: effectiveCampusId },
           },
         },
-      },
-      _sum: { amount: true },
-    }),
-    prisma.paymentRemaining.aggregate({
-      where: {
-        status: { not: "PAID" },
-        enrollment: { class: { campusId: effectiveCampusId } },
-      },
-      _sum: { remainingAmount: true },
-    }),
-    prisma.certificate.count({
-      where: {
-        isDelivered: false,
-        student: {
-          user: { campusId: effectiveCampusId ?? undefined },
+        _sum: { amount: true },
+      }),
+      prisma.partialPayment.aggregate({
+        where: {
+          createdAt: { gte: monthStart },
+          paymentRemaining: {
+            enrollment: {
+              class: { campusId: effectiveCampusId },
+            },
+          },
         },
-      },
-    }),
-    prisma.attendance.count({
-      where: {
-        date: { gte: todayStart },
-        class: { campusId: effectiveCampusId },
-      },
-    }),
-    prisma.studentProfile.findMany({
-      where: { user: { campusId: effectiveCampusId } },
-      include: {
-        user: { select: { firstName: true, lastName: true, createdAt: true } },
-        enrollments: {
-          where: { status: "ACTIVE" },
-          include: { class: { include: { course: true } } },
-          take: 1,
+        _sum: { amount: true },
+      }),
+      prisma.paymentRemaining.aggregate({
+        where: {
+          status: { not: "PAID" },
+          enrollment: { class: { campusId: effectiveCampusId } },
         },
-      },
-      orderBy: { registrationDate: "desc" },
-      take: 5,
-    }),
-    prisma.class.findMany({
-      where: {
-        campusId: effectiveCampusId,
-        status: "REGISTRATION",
-        isActive: true,
-      },
-      include: {
-        course: true,
-        lab: true,
-        _count: {
-          select: { enrollments: { where: { status: "ACTIVE" } } },
+        _sum: { remainingAmount: true },
+      }),
+      prisma.certificate.count({
+        where: {
+          isDelivered: false,
+          student: {
+            user: { campusId: effectiveCampusId ?? undefined },
+          },
         },
-      },
-      orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
-    }),
-  ]));
+      }),
+      prisma.attendance.count({
+        where: {
+          date: { gte: todayStart },
+          class: { campusId: effectiveCampusId },
+        },
+      }),
+      prisma.studentProfile.findMany({
+        where: { user: { campusId: effectiveCampusId } },
+        include: {
+          user: {
+            select: { firstName: true, lastName: true, createdAt: true },
+          },
+          enrollments: {
+            where: { status: "ACTIVE" },
+            include: { class: { include: { course: true } } },
+            take: 1,
+          },
+        },
+        orderBy: { registrationDate: "desc" },
+        take: 5,
+      }),
+      prisma.class.findMany({
+        where: {
+          campusId: effectiveCampusId,
+          status: "REGISTRATION",
+          isActive: true,
+        },
+        include: {
+          course: true,
+          lab: true,
+          _count: {
+            select: { enrollments: { where: { status: "ACTIVE" } } },
+          },
+        },
+        orderBy: [{ lab: { name: "asc" } }, { timeSlot: "asc" }],
+      }),
+    ]),
+  );
+
+  const topTeacher = await getTopPerformingTeacher(effectiveCampusId);
 
   const kpis = [
     {
@@ -336,6 +342,95 @@ export default async function SuperAdminDashboard({
             ))}
           </div>
         </div>
+      )}
+
+      {topTeacher && (
+        <Link
+          href={`/super-admin/teachers/${topTeacher.teacher.id}?campusId=${effectiveCampusId}`}
+        >
+          <div className="rounded-3xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-indigo-700 p-5 text-white shadow-lg transition-opacity hover:opacity-95">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white/20 font-black text-xl">
+                  {topTeacher.teacher.user.profilePhoto ? (
+                    <Image
+                      src={topTeacher.teacher.user.profilePhoto}
+                      alt=""
+                      width={56}
+                      height={56}
+                      unoptimized
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      {topTeacher.teacher.user.firstName[0]}
+                      {topTeacher.teacher.user.lastName[0]}
+                    </>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-purple-100">
+                    Top Performing Teacher
+                  </p>
+                  <p className="text-lg font-black">
+                    {topTeacher.teacher.user.firstName}{" "}
+                    {topTeacher.teacher.user.lastName}
+                  </p>
+                  <p className="text-sm text-purple-100">
+                    {topTeacher.performance.grade}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-4xl font-black">
+                  {topTeacher.performance.totalScore}
+                </p>
+                <p className="text-xs text-purple-100">score</p>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+              {[
+                [
+                  "Rating",
+                  topTeacher.performance.components.feedbackRating.score,
+                  40,
+                ],
+                [
+                  "Feedback",
+                  topTeacher.performance.components.positiveFeedback.score,
+                  30,
+                ],
+                [
+                  "Attendance",
+                  topTeacher.performance.components.attendance.score,
+                  20,
+                ],
+                [
+                  "Retention",
+                  topTeacher.performance.components.retention.score,
+                  10,
+                ],
+              ].map(([label, value, max]) => (
+                <div key={label} className="rounded-2xl bg-white/10 p-3">
+                  <div className="mb-2 flex justify-between text-xs">
+                    <span>{label}</span>
+                    <b>
+                      {value}/{max}
+                    </b>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/20">
+                    <div
+                      className="h-full rounded-full bg-white"
+                      style={{
+                        width: `${(Number(value) / Number(max)) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Link>
       )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
