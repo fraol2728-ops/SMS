@@ -13,6 +13,7 @@ import {
   LogOut,
   Mail,
   Package,
+  TrendingUp,
   User,
   Users,
   X,
@@ -33,6 +34,7 @@ const NAV_LINKS = [
   { href: "/teacher/reports", label: "Reports", icon: FileText },
   { href: "/teacher/materials", label: "Materials", icon: FolderOpen },
   { href: "/teacher/inventory", label: "Inventory", icon: Package },
+  { href: "/teacher/performance", label: "My Performance", icon: TrendingUp },
   { href: "/teacher/profile", label: "My Profile", icon: User },
 ];
 
