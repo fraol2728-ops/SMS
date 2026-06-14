@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { TeacherPerformanceCard } from "@/components/shared/TeacherPerformanceCard";
+import { getTeacherPerformance } from "@/lib/actions/performance";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -11,13 +13,15 @@ export default async function SuperAdminTeacherDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ campusId?: string }>;
+  searchParams?: Promise<{ campusId?: string; tab?: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
   const { id } = await params;
-  const { campusId } = (await searchParams) ?? {};
+  const { campusId, tab } = (await searchParams) ?? {};
+  const activeTab = tab ?? "overview";
+  const tabs = ["Overview", "Classes", "Performance"];
 
   const teacherProfile = await prisma.teacherProfile.findUnique({
     where: { id },
@@ -38,6 +42,7 @@ export default async function SuperAdminTeacherDetailPage({
 
   if (!teacherProfile) notFound();
 
+  const performance = await getTeacherPerformance(teacherProfile.id);
   const user = teacherProfile.user;
 
   return (
@@ -132,6 +137,29 @@ export default async function SuperAdminTeacherDetailPage({
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border bg-white dark:border-gray-700 dark:bg-gray-900">
+        <div className="flex border-b px-6 dark:border-gray-700">
+          {tabs.map((tabName) => {
+            const key = tabName.toLowerCase();
+            const active = activeTab === key;
+            return (
+              <Link
+                key={tabName}
+                href={`/super-admin/teachers/${teacherProfile.id}?campusId=${campusId ?? ""}&tab=${key}`}
+                className={`px-4 py-3 text-sm font-bold ${active ? "border-blue-500 border-b-2 text-blue-600" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+              >
+                {tabName}
+              </Link>
+            );
+          })}
+        </div>
+        {activeTab === "performance" && (
+          <div className="p-6">
+            <TeacherPerformanceCard performance={performance} />
           </div>
         )}
       </div>

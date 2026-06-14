@@ -3,8 +3,10 @@ export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireSuperAdmin } from "@/lib/auth-check";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { PerformanceBadge } from "@/components/shared/PerformanceBadge";
+import { getTeacherPerformance } from "@/lib/actions/performance";
+import { requireSuperAdmin } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
 
 export default async function SuperAdminTeachersPage({
@@ -29,6 +31,12 @@ export default async function SuperAdminTeachersPage({
     orderBy: { firstName: "asc" },
   });
 
+  const performances = await Promise.all(
+    teachers.map((t) =>
+      t.teacherProfile?.id ? getTeacherPerformance(t.teacherProfile.id) : null,
+    ),
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -39,7 +47,7 @@ export default async function SuperAdminTeachersPage({
         }}
       />
       <div className="space-y-2 md:hidden">
-        {teachers.map((teacher) => (
+        {teachers.map((teacher, index) => (
           <Link
             key={teacher.id}
             href={`/super-admin/teachers/${teacher.teacherProfile?.id ?? ""}?campusId=${campusId ?? ""}`}
@@ -66,6 +74,7 @@ export default async function SuperAdminTeachersPage({
                     ))}
                 </div>
               </div>
+              <PerformanceBadge performance={performances[index]} />
               <span className="text-gray-400">›</span>
             </div>
           </Link>
@@ -81,20 +90,25 @@ export default async function SuperAdminTeachersPage({
         <table className="w-full text-sm">
           <thead className="border-gray-200 border-b bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
             <tr>
-              {["Teacher", "Code", "Specialties", "Classes", "Phone"].map(
-                (header) => (
-                  <th
-                    key={header}
-                    className="px-4 py-3 text-left font-medium text-gray-400 text-xs"
-                  >
-                    {header}
-                  </th>
-                ),
-              )}
+              {[
+                "Teacher",
+                "Performance",
+                "Code",
+                "Specialties",
+                "Classes",
+                "Phone",
+              ].map((header) => (
+                <th
+                  key={header}
+                  className="px-4 py-3 text-left font-medium text-gray-400 text-xs"
+                >
+                  {header}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {teachers.map((teacher) => (
+            {teachers.map((teacher, index) => (
               <tr
                 key={teacher.id}
                 className="border-gray-200 border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
@@ -113,6 +127,9 @@ export default async function SuperAdminTeachersPage({
                       </p>
                     </Link>
                   </div>
+                </td>
+                <td className="px-4 py-3">
+                  <PerformanceBadge performance={performances[index]} />
                 </td>
                 <td className="px-4 py-3">
                   <span className="rounded bg-gray-100 px-2 py-1 font-mono text-xs dark:bg-gray-700">
