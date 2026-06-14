@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import { BookOpen, Phone } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
+import { PerformanceBadge } from "@/components/shared/PerformanceBadge";
+import { getTeacherPerformance } from "@/lib/actions/performance";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +28,12 @@ export default async function TeachersPage() {
     orderBy: { firstName: "asc" },
   });
 
+  const performances = await Promise.all(
+    teachers.map((t) =>
+      t.teacherProfile?.id ? getTeacherPerformance(t.teacherProfile.id) : null,
+    ),
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -34,7 +42,7 @@ export default async function TeachersPage() {
         action={{ label: "Add Teacher", href: "/admin/teachers/new" }}
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {teachers.map((teacher) => {
+        {teachers.map((teacher, index) => {
           const specialties = teacher.teacherProfile?.specialties?.length
             ? teacher.teacherProfile.specialties
             : teacher.teacherProfile?.specialty
@@ -42,6 +50,9 @@ export default async function TeachersPage() {
               : [];
           const cardContent = (
             <>
+              <div className="absolute right-4 top-4">
+                <PerformanceBadge performance={performances[index]} />
+              </div>
               <div className="mb-4 flex items-center gap-4">
                 <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-green-400 to-teal-500 font-black text-white text-xl shadow-md transition-transform group-hover:scale-105">
                   {teacher.firstName[0]}
@@ -94,14 +105,14 @@ export default async function TeachersPage() {
             <Link
               key={teacher.id}
               href={`/admin/teachers/${teacher.teacherProfile.id}`}
-              className="group rounded-3xl border bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-800"
+              className="group relative rounded-3xl border bg-white p-5 pt-12 shadow-sm transition-all hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-800"
             >
               {cardContent}
             </Link>
           ) : (
             <div
               key={teacher.id}
-              className="group rounded-3xl border bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+              className="group relative rounded-3xl border bg-white p-5 pt-12 shadow-sm dark:border-gray-700 dark:bg-gray-900"
             >
               {cardContent}
             </div>

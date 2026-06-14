@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import { BookOpen, Building2, Phone } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { TeacherPerformanceCard } from "@/components/shared/TeacherPerformanceCard";
+import { getTeacherPerformance } from "@/lib/actions/performance";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
@@ -10,8 +12,10 @@ import { prisma } from "@/lib/prisma";
 
 export default async function TeacherDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   await requireAdmin();
   const { id } = await params;
@@ -64,6 +68,11 @@ export default async function TeacherDetailPage({
     if (!userWithProfile?.teacherProfile) notFound();
     redirect(`/admin/teachers/${userWithProfile.teacherProfile.id}`);
   }
+
+  const { tab } = await searchParams;
+  const activeTab = tab ?? "overview";
+  const tabs = ["Overview", "Classes", "Performance"];
+  const performance = await getTeacherPerformance(teacherProfile.id);
 
   const user = teacherProfile.user;
   const totalStudents = teacherProfile.classes.reduce(
@@ -182,73 +191,144 @@ export default async function TeacherDetailPage({
         ))}
       </div>
 
-      <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <h2 className="mb-4 font-bold text-gray-900 dark:text-white">
-          Personal Information
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            {
-              label: "Email",
-              value: user.email.includes("@exceed.local") ? "—" : user.email,
-            },
-            { label: "Phone", value: user.phone ?? "—" },
-            { label: "Gender", value: user.gender ?? "—" },
-            { label: "Address", value: user.address ?? "—" },
-            { label: "Telegram", value: user.telegram ?? "—" },
-            { label: "WhatsApp", value: user.whatsapp ?? "—" },
-            { label: "Bio", value: teacherProfile.bio ?? "—" },
-          ].map(({ label, value }) => (
-            <div
-              key={label}
-              className="rounded-2xl bg-gray-50 p-4 dark:bg-gray-800"
-            >
-              <p className="mb-1 font-semibold text-gray-400 text-xs uppercase tracking-wide">
-                {label}
-              </p>
-              <p className="font-semibold text-gray-900 text-sm dark:text-white">
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <h2 className="mb-4 font-bold text-gray-900 dark:text-white">
-          Active Classes ({teacherProfile.classes.length})
-        </h2>
-        {teacherProfile.classes.length === 0 ? (
-          <div className="py-8 text-center text-gray-400">
-            <BookOpen size={32} className="mx-auto mb-2 opacity-20" />
-            <p>No active classes assigned</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {teacherProfile.classes.map((c) => (
-              <Link key={c.id} href={`/admin/classes/${c.id}`}>
-                <div className="group flex items-center justify-between rounded-2xl bg-gray-50 p-4 transition-colors hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-blue-900/20">
-                  <div>
-                    <p className="font-semibold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white">
-                      {c.course.title}
-                    </p>
-                    <p className="mt-0.5 text-gray-400 text-xs">
-                      {c.lab?.name ?? "Online"} •{" "}
-                      {TIME_SLOTS[c.timeSlot as keyof typeof TIME_SLOTS] ??
-                        c.timeSlot}{" "}
-                      •{" "}
-                      {CLASS_DAYS[c.days as keyof typeof CLASS_DAYS] ?? c.days}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-gray-900 dark:text-white">
-                      {c._count.enrollments}/{c.capacity}
-                    </p>
-                    <p className="text-gray-400 text-xs">students</p>
-                  </div>
-                </div>
+      <div className="rounded-3xl border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <div className="flex border-b px-6 dark:border-gray-700">
+          {tabs.map((tabName) => {
+            const key = tabName.toLowerCase();
+            const active = activeTab === key;
+            return (
+              <Link
+                key={tabName}
+                href={`/admin/teachers/${teacherProfile.id}?tab=${key}`}
+                className={`px-4 py-3 text-sm font-bold ${active ? "border-blue-500 border-b-2 text-blue-600" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+              >
+                {tabName}
               </Link>
-            ))}
+            );
+          })}
+        </div>
+        {activeTab === "overview" && (
+          <>
+            <div className="p-6">
+              <h2 className="mb-4 font-bold text-gray-900 dark:text-white">
+                Personal Information
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  {
+                    label: "Email",
+                    value: user.email.includes("@exceed.local")
+                      ? "—"
+                      : user.email,
+                  },
+                  { label: "Phone", value: user.phone ?? "—" },
+                  { label: "Gender", value: user.gender ?? "—" },
+                  { label: "Address", value: user.address ?? "—" },
+                  { label: "Telegram", value: user.telegram ?? "—" },
+                  { label: "WhatsApp", value: user.whatsapp ?? "—" },
+                  { label: "Bio", value: teacherProfile.bio ?? "—" },
+                ].map(({ label, value }) => (
+                  <div
+                    key={label}
+                    className="rounded-2xl bg-gray-50 p-4 dark:bg-gray-800"
+                  >
+                    <p className="mb-1 font-semibold text-gray-400 text-xs uppercase tracking-wide">
+                      {label}
+                    </p>
+                    <p className="font-semibold text-gray-900 text-sm dark:text-white">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+              <h2 className="mb-4 font-bold text-gray-900 dark:text-white">
+                Active Classes ({teacherProfile.classes.length})
+              </h2>
+              {teacherProfile.classes.length === 0 ? (
+                <div className="py-8 text-center text-gray-400">
+                  <BookOpen size={32} className="mx-auto mb-2 opacity-20" />
+                  <p>No active classes assigned</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {teacherProfile.classes.map((c) => (
+                    <Link key={c.id} href={`/admin/classes/${c.id}`}>
+                      <div className="group flex items-center justify-between rounded-2xl bg-gray-50 p-4 transition-colors hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-blue-900/20">
+                        <div>
+                          <p className="font-semibold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white">
+                            {c.course.title}
+                          </p>
+                          <p className="mt-0.5 text-gray-400 text-xs">
+                            {c.lab?.name ?? "Online"} •{" "}
+                            {TIME_SLOTS[
+                              c.timeSlot as keyof typeof TIME_SLOTS
+                            ] ?? c.timeSlot}{" "}
+                            •{" "}
+                            {CLASS_DAYS[c.days as keyof typeof CLASS_DAYS] ??
+                              c.days}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-gray-900 dark:text-white">
+                            {c._count.enrollments}/{c.capacity}
+                          </p>
+                          <p className="text-gray-400 text-xs">students</p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+        {activeTab === "classes" && (
+          <div className="p-6">
+            <h2 className="mb-4 font-bold text-gray-900 dark:text-white">
+              Active Classes ({teacherProfile.classes.length})
+            </h2>
+            {teacherProfile.classes.length === 0 ? (
+              <div className="py-8 text-center text-gray-400">
+                <BookOpen size={32} className="mx-auto mb-2 opacity-20" />
+                <p>No active classes assigned</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {teacherProfile.classes.map((c) => (
+                  <Link key={c.id} href={`/admin/classes/${c.id}`}>
+                    <div className="group flex items-center justify-between rounded-2xl bg-gray-50 p-4 transition-colors hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-blue-900/20">
+                      <div>
+                        <p className="font-semibold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white">
+                          {c.course.title}
+                        </p>
+                        <p className="mt-0.5 text-gray-400 text-xs">
+                          {c.lab?.name ?? "Online"} •{" "}
+                          {TIME_SLOTS[c.timeSlot as keyof typeof TIME_SLOTS] ??
+                            c.timeSlot}{" "}
+                          •{" "}
+                          {CLASS_DAYS[c.days as keyof typeof CLASS_DAYS] ??
+                            c.days}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900 dark:text-white">
+                          {c._count.enrollments}/{c.capacity}
+                        </p>
+                        <p className="text-gray-400 text-xs">students</p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {activeTab === "performance" && (
+          <div className="p-6">
+            <TeacherPerformanceCard performance={performance} />
           </div>
         )}
       </div>
