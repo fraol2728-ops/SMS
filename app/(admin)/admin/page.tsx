@@ -38,6 +38,11 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   try {
+    if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
+      throw new Error(
+        "DATABASE_URL is not set in production. Please set it to connect to the database.",
+      );
+    }
     const { userId } = await auth();
     await requireAdmin();
     const campusId = await getCurrentUserCampusId();
@@ -765,4 +770,6 @@ export default async function AdminPage() {
 
     throw error;
   }
+
+  return <div>Admin Dashboard</div>;
 }

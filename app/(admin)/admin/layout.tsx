@@ -21,22 +21,26 @@ export default async function AdminLayout({
         adminSettings: true,
       },
     }),
-  ).catch(() => null);
+  ).catch(async () => {
+    return prisma.user.findUnique({
+      where: { clerkId: userId },
+      include: { campus: true },
+    });
+  });
 
   if (!dbUser) {
     redirect("/sign-in");
   }
 
   const settings = await getAdminSettings();
+  const sidebarTheme = (dbUser as any).adminSettings?.sidebarTheme ?? "dark";
+  const colorMode = (dbUser as any).adminSettings?.colorMode ?? "system";
+  const accentColor = (dbUser as any).adminSettings?.accentColor ?? "blue";
 
   return (
     <ThemeProvider
-      colorMode={
-        settings?.colorMode ?? dbUser.adminSettings?.colorMode ?? "system"
-      }
-      accentColor={
-        settings?.accentColor ?? dbUser.adminSettings?.accentColor ?? "blue"
-      }
+      colorMode={settings?.colorMode ?? colorMode}
+      accentColor={settings?.accentColor ?? accentColor}
     >
       <AdminShell user={dbUser} settings={settings}>
         {children}
