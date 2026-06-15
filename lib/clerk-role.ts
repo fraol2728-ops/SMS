@@ -1,10 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from '@clerk/nextjs/server'
 
-/** Read role from session JWT claims only — matches proxy.ts */
-export async function getAuthRole(): Promise<string | null> {
-  const { sessionClaims } = await auth();
-  
-  const role = (sessionClaims?.metadata as any)?.role as string | undefined;
-  
-  return role || null;
+export async function getAuthRole(): Promise<string | undefined> {
+  try {
+    const { sessionClaims } = await auth()
+    return (sessionClaims?.metadata as any)?.role as string | undefined
+  } catch {
+    return undefined
+  }
 }

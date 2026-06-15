@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/api/public(.*)',
   '/api/webhooks(.*)',
+  '/unauthorized',
   '/',
 ])
 
@@ -15,28 +16,24 @@ const isTeacherRoute = createRouteMatcher(['/teacher(.*)'])
 const isStudentRoute = createRouteMatcher(['/student(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
-  // Allow public routes without auth
   if (isPublicRoute(req)) return NextResponse.next()
 
   try {
     const { userId, sessionClaims } = await auth()
 
-    // Not logged in
     if (!userId) {
       return NextResponse.redirect(new URL('/sign-in', req.url))
     }
 
-    const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role
+    const role = (sessionClaims?.metadata as any)?.role as string | undefined
 
-    // No role — send to unauthorized not sign-in (prevents loop)
     if (!role) {
-      if (req.nextUrl.pathname === '/unauthorized') {
-        return NextResponse.next()
-      }
-      return NextResponse.redirect(new URL('/unauthorized', req.url))
+      // User is signed in but has no role
+      // Send to home page — NOT /unauthorized (that causes loop)
+      // Home page will show "Account Setup Needed" message
+      return NextResponse.redirect(new URL('/', req.url))
     }
 
-    // Role-based access control
     if (isSuperAdminRoute(req) && role !== 'SUPER_ADMIN') {
       return NextResponse.redirect(new URL('/unauthorized', req.url))
     }
@@ -51,17 +48,12 @@ export default clerkMiddleware(async (auth, req) => {
     }
 
     return NextResponse.next()
-  } catch (error) {
-    // If Clerk API is unreachable, allow the request through
-    // The layout will handle auth — better than crashing
-    console.error('Middleware auth error:', error)
 
-    // If going to sign-in already, let it through
+  } catch (error) {
+    console.error('Middleware auth error:', error)
     if (req.nextUrl.pathname.startsWith('/sign-in')) {
       return NextResponse.next()
     }
-
-    // For other routes, redirect to sign-in on auth failure
     return NextResponse.redirect(new URL('/sign-in', req.url))
   }
 })
