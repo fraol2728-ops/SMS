@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { TeacherPerformanceCard } from "@/components/shared/TeacherPerformanceCard";
+import { TerminateRoleButton } from "@/components/shared/TerminateRoleButton";
 import { getTeacherPerformance } from "@/lib/actions/performance";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -81,6 +82,14 @@ export default async function SuperAdminTeacherDetailPage({
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <TerminateRoleButton
+          userId={user.id}
+          userName={`${user.firstName} ${user.lastName}`}
+          userRole="TEACHER"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">

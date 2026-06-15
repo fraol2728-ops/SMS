@@ -3,7 +3,9 @@ export const dynamic = "force-dynamic";
 import { BookOpen, Building2, Phone } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { DeleteTeacherButton } from "@/components/admin/teachers/DeleteTeacherButton";
 import { TeacherPerformanceCard } from "@/components/shared/TeacherPerformanceCard";
+import { TerminateRoleButton } from "@/components/shared/TerminateRoleButton";
 import { getTeacherPerformance } from "@/lib/actions/performance";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
@@ -342,6 +344,15 @@ export default async function TeacherDetailPage({
             ✏️ Edit Teacher
           </button>
         </Link>
+        <TerminateRoleButton
+          userId={user.id}
+          userName={`${user.firstName} ${user.lastName}`}
+          userRole={user.role}
+        />
+        <DeleteTeacherButton
+          teacherUserId={user.id}
+          teacherName={`${user.firstName} ${user.lastName}`}
+        />
       </div>
     </div>
   );
