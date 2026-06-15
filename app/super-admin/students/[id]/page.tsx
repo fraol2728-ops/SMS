@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { SuperAdminClaimCertificateButton } from "@/components/admin/certificates/SuperAdminClaimCertificateButton";
 import { ContactButtons } from "@/components/shared/ContactButtons";
+import { TerminateRoleButton } from "@/components/shared/TerminateRoleButton";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -100,12 +101,17 @@ export default async function SuperAdminStudentDetailPage({
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-3">
           <ContactButtons
             phone={student.phone}
             telegram={student.telegram}
             whatsapp={student.whatsapp}
             showTelegramWhatsapp={true}
+          />
+          <TerminateRoleButton
+            userId={student.id}
+            userName={`${student.firstName} ${student.lastName}`}
+            userRole="STUDENT"
           />
         </div>
       </div>

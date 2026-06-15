@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { TerminateRoleButton } from "@/components/shared/TerminateRoleButton";
 import { deleteStudent, recordPartialPayment } from "@/lib/actions/admin";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { ClaimCertificateModal } from "../certificates/ClaimCertificateModal";
@@ -104,8 +105,9 @@ export function StudentInfoClient({
   }
 
   const selectedEnrollment =
-    enrollments?.find((enrollment: any) => enrollment.id === selectedEnrollmentId) ??
-    activeEnrollment;
+    enrollments?.find(
+      (enrollment: any) => enrollment.id === selectedEnrollmentId,
+    ) ?? activeEnrollment;
   const classInfo = selectedEnrollment?.class;
   const timeLabel = classInfo
     ? (TIME_SLOTS[classInfo.timeSlot as keyof typeof TIME_SLOTS] ??
@@ -118,7 +120,8 @@ export function StudentInfoClient({
   const selectedPayments = selectedEnrollment?.payments ?? [];
   const selectedRemaining =
     selectedEnrollment?.paymentRemaining ?? remaining ?? null;
-  const selectedHasRemaining = !!selectedRemaining && selectedRemaining.remainingAmount > 0;
+  const selectedHasRemaining =
+    !!selectedRemaining && selectedRemaining.remainingAmount > 0;
   const selectedDaysLeft = selectedRemaining?.dueDate
     ? Math.ceil(
         (new Date(selectedRemaining.dueDate).getTime() - Date.now()) /
@@ -133,7 +136,10 @@ export function StudentInfoClient({
       ? Math.round((presentSessions / selectedAttendanceRecords.length) * 100)
       : 0;
   const progressPercent = selectedRemaining?.originalFee
-    ? Math.min(100, (selectedRemaining.paidAmount / selectedRemaining.originalFee) * 100)
+    ? Math.min(
+        100,
+        (selectedRemaining.paidAmount / selectedRemaining.originalFee) * 100,
+      )
     : 0;
 
   return (
@@ -173,7 +179,8 @@ export function StudentInfoClient({
             </h2>
             <div className="flex flex-wrap gap-2">
               {enrollments.map((enrollment: any) => {
-                const courseTitle = enrollment.class?.course?.title ?? "Unknown course";
+                const courseTitle =
+                  enrollment.class?.course?.title ?? "Unknown course";
                 const labName = enrollment.class?.lab?.name
                   ? ` (${enrollment.class.lab.name})`
                   : "";
@@ -185,7 +192,8 @@ export function StudentInfoClient({
                     onClick={() => setSelectedEnrollmentId(enrollment.id)}
                     className={`rounded-2xl border px-3 py-2 text-sm font-medium transition ${isSelected ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"}`}
                   >
-                    {courseTitle}{labName}
+                    {courseTitle}
+                    {labName}
                   </button>
                 );
               })}
@@ -323,7 +331,8 @@ export function StudentInfoClient({
             <p className="mt-1 text-gray-500 text-xs">Total Paid</p>
             {selectedHasRemaining ? (
               <p className="mt-0.5 font-semibold text-amber-600 text-xs">
-                ETB {selectedRemaining.remainingAmount.toLocaleString()} remaining
+                ETB {selectedRemaining.remainingAmount.toLocaleString()}{" "}
+                remaining
               </p>
             ) : (
               <p className="mt-0.5 font-semibold text-green-600 text-xs">
@@ -703,7 +712,12 @@ export function StudentInfoClient({
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end gap-3">
+          <TerminateRoleButton
+            userId={student.id}
+            userName={`${student.firstName} ${student.lastName}`}
+            userRole="STUDENT"
+          />
           <button
             onClick={handleDelete}
             disabled={deleting}

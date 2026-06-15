@@ -13,9 +13,16 @@ type AdminLayoutUser = {
   campus?: { name: string } | null;
 };
 
-export function AdminHeader({ user }: { user: AdminLayoutUser }) {
+export function AdminHeader({
+  user,
+  onMenuClick,
+}: {
+  user: AdminLayoutUser;
+  onMenuClick?: () => void;
+}) {
   function openSidebar() {
-    document.getElementById("sidebar-toggle")?.click();
+    if (onMenuClick) onMenuClick();
+    else document.getElementById("sidebar-toggle")?.click();
   }
 
   const now = new Date();
