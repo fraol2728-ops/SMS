@@ -22,7 +22,6 @@ import {
   MessageSquare,
   MessageSquarePlus,
   Package,
-  Settings,
   UserMinus,
   Users,
   UserX,
@@ -53,7 +52,6 @@ const NAV_LINKS = [
   { href: "/admin/inventory", label: "Inventory", icon: Package },
   { href: "/admin/notifications", label: "Notifications", icon: Bell },
   { href: "/admin/events", label: "Events", icon: CalendarDays },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 const THEME_COLORS: Record<

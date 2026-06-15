@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { BookOpen, Phone } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { PerformanceBadge } from "@/components/shared/PerformanceBadge";
@@ -54,10 +55,21 @@ export default async function TeachersPage() {
                 <PerformanceBadge performance={performances[index]} />
               </div>
               <div className="mb-4 flex items-center gap-4">
-                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-green-400 to-teal-500 font-black text-white text-xl shadow-md transition-transform group-hover:scale-105">
-                  {teacher.firstName[0]}
-                  {teacher.lastName[0]}
-                </div>
+                {teacher.profilePhoto ? (
+                  <Image
+                    src={teacher.profilePhoto}
+                    alt=""
+                    width={56}
+                    height={56}
+                    unoptimized
+                    className="h-14 w-14 flex-shrink-0 rounded-2xl object-cover shadow-md transition-transform group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-green-400 to-teal-500 font-black text-white text-xl shadow-md transition-transform group-hover:scale-105">
+                    {teacher.firstName[0]}
+                    {teacher.lastName[0]}
+                  </div>
+                )}
                 <div className="min-w-0">
                   <p className="truncate font-bold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white">
                     {teacher.firstName} {teacher.lastName}

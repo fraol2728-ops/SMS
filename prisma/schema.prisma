@@ -331,9 +331,18 @@ model AdminSettings {
   dashboardCards         String[] @default(["students", "revenue", "classes", "teachers", "attendance"])
   dashboardDefaultView   String   @default("monthly")
   dashboardPinnedActions String[] @default(["add_student", "mark_attendance", "view_remaining"])
+  showTotalStudents    Boolean @default(true)
+  showActiveClasses    Boolean @default(true)
+  showMonthlyRevenue   Boolean @default(true)
+  showOutstanding      Boolean @default(true)
+  showAttendanceRate   Boolean @default(true)
+  showCertificates     Boolean @default(true)
+  pinnedActions        String[] @default([])
 
   // Notification preferences
   emailNotifications    Boolean @default(true)
+  emailOnPaymentDue    Boolean @default(true)
+  emailOnNewStudent    Boolean @default(true)
   notifyOverduePayments Boolean @default(true)
   notifyTeacherReports  Boolean @default(true)
   notifyClassEndingSoon Boolean @default(true)
