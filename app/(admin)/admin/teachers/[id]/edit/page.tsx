@@ -1,8 +1,10 @@
-import { notFound } from "next/navigation";
+export const dynamic = "force-dynamic";
+
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
-import { TeacherForm } from "@/components/admin/teachers/TeacherForm";
+import { TeacherEditForm } from "@/components/admin/teachers/TeacherEditForm";
 import { requireAdmin } from "@/lib/auth-check";
-import { getCurrentUserCampusId } from "@/lib/campus";
 import { prisma } from "@/lib/prisma";
 
 export default async function EditTeacherPage({
@@ -12,29 +14,35 @@ export default async function EditTeacherPage({
 }) {
   await requireAdmin();
   const { id } = await params;
-  const campusId = await getCurrentUserCampusId();
-  const teacher = await prisma.user.findFirst({
-    where: { id, role: "TEACHER", ...(campusId ? { campusId } : {}) },
-    include: { teacherProfile: true },
+
+  const teacherProfile = await prisma.teacherProfile.findUnique({
+    where: { id },
+    include: { user: true },
   });
-  if (!teacher) notFound();
+
+  if (!teacherProfile) {
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: { teacherProfile: true },
+    });
+    if (!user?.teacherProfile) notFound();
+    redirect(`/admin/teachers/${user.teacherProfile.id}/edit`);
+  }
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Edit teacher" />
-      <TeacherForm
-        defaultValues={{
-          id: teacher.id,
-          firstName: teacher.firstName,
-          lastName: teacher.lastName,
-          email: teacher.email,
-          phone: teacher.phone ?? "",
-          gender: teacher.gender ?? "",
-          specialty: teacher.teacherProfile?.specialty ?? "",
-          specialties: teacher.teacherProfile?.specialties ?? [],
-          bio: teacher.teacherProfile?.bio ?? "",
-          profilePhoto: teacher.profilePhoto,
-        }}
+    <div className="space-y-6 max-w-2xl">
+      <Link href={`/admin/teachers/${teacherProfile.id}`}>
+        <button
+          className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-2"
+          type="button"
+        >
+          ← Back to Teacher
+        </button>
+      </Link>
+      <PageHeader title="Edit Teacher" />
+      <TeacherEditForm
+        teacherProfile={teacherProfile}
+        user={teacherProfile.user}
       />
     </div>
   );

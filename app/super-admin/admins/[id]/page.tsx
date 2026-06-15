@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { Phone } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { TerminateRoleButton } from "@/components/shared/TerminateRoleButton";
 import { DeleteAdminButton } from "@/components/super-admin/DeleteAdminButton";
 import { prisma } from "@/lib/prisma";
 
@@ -96,6 +97,13 @@ export default async function SuperAdminAdminDetailPage({
               ✏️ Edit
             </button>
           </Link>
+          {admin.role !== "SUPER_ADMIN" && (
+            <TerminateRoleButton
+              userId={admin.id}
+              userName={`${admin.firstName} ${admin.lastName}`}
+              userRole={admin.role}
+            />
+          )}
           <DeleteAdminButton adminId={admin.id} />
         </div>
       </div>

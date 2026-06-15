@@ -5,7 +5,13 @@ import { Bell, Menu } from "lucide-react";
 import Link from "next/link";
 import { GlobalSearch } from "@/components/shared/GlobalSearch";
 
-export function TeacherHeader({ teacher }: { teacher: any }) {
+export function TeacherHeader({
+  teacher,
+  onMenuClick,
+}: {
+  teacher: any;
+  onMenuClick?: () => void;
+}) {
   const now = new Date();
   const hour = now.getHours();
   const greeting =
@@ -17,9 +23,10 @@ export function TeacherHeader({ teacher }: { teacher: any }) {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() =>
-            document.getElementById("teacher-sidebar-toggle")?.click()
-          }
+          onClick={() => {
+            if (onMenuClick) onMenuClick();
+            else document.getElementById("teacher-sidebar-toggle")?.click();
+          }}
           className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
           <Menu size={20} className="text-gray-600 dark:text-gray-300" />
