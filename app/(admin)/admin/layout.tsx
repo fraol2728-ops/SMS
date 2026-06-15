@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/layout/AdminShell";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { getAdminSettings } from "@/lib/actions/settings";
-import { prisma, withRetry } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export default async function AdminLayout({
   children,
@@ -13,20 +13,27 @@ export default async function AdminLayout({
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const dbUser = await withRetry(() =>
-    prisma.user.findUnique({
+  let dbUser: any = null
+  try {
+    dbUser = await prisma.user.findUnique({
       where: { clerkId: userId },
       include: {
         campus: true,
         adminSettings: true,
       },
-    }),
-  ).catch(async () => {
-    return prisma.user.findUnique({
-      where: { clerkId: userId },
-      include: { campus: true },
-    });
-  });
+    })
+  } catch {
+    // adminSettings columns missing in production DB
+    // fetch without adminSettings
+    try {
+      dbUser = await prisma.user.findUnique({
+        where: { clerkId: userId },
+        include: { campus: true },
+      })
+    } catch {
+      redirect('/sign-in')
+    }
+  }
 
   if (!dbUser) {
     redirect("/sign-in");
