@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   Award,
   Bell,
@@ -15,6 +14,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ExistingFeedback } from "../FeedbackForm";
@@ -23,6 +23,7 @@ import { FeedbackModal } from "../FeedbackModal";
 type StudentPortalUser = {
   firstName?: string | null;
   lastName?: string | null;
+  profilePhoto?: string | null;
   studentProfile?: {
     studentCode?: string | null;
     enrollments?: Array<{
@@ -155,10 +156,21 @@ function SidebarContent({
         </div>
         <div className="rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-4 text-white">
           <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-lg font-bold">
-              {user.firstName?.[0]}
-              {user.lastName?.[0]}
-            </div>
+            {user.profilePhoto ? (
+              <Image
+                src={user.profilePhoto}
+                alt=""
+                width={44}
+                height={44}
+                unoptimized
+                className="h-11 w-11 flex-shrink-0 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/20 text-lg font-bold">
+                {user.firstName?.[0]}
+                {user.lastName?.[0]}
+              </div>
+            )}
             <div className="min-w-0">
               <p className="truncate font-bold leading-tight">
                 {user.firstName} {user.lastName}

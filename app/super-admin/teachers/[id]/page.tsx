@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { TeacherPerformanceCard } from "@/components/shared/TeacherPerformanceCard";
@@ -59,10 +60,21 @@ export default async function SuperAdminTeacherDetailPage({
 
       <div className="rounded-2xl border bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center gap-5">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-100 font-bold text-2xl text-green-700 dark:bg-green-900/30 dark:text-green-400">
-            {user.firstName[0]}
-            {user.lastName[0]}
-          </div>
+          {user.profilePhoto ? (
+            <Image
+              src={user.profilePhoto}
+              alt=""
+              width={64}
+              height={64}
+              unoptimized
+              className="h-16 w-16 flex-shrink-0 rounded-2xl object-cover shadow-lg"
+            />
+          ) : (
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-green-400 to-teal-500 font-bold text-2xl text-white shadow-lg">
+              {user.firstName[0]}
+              {user.lastName[0]}
+            </div>
+          )}
           <div>
             <h1 className="font-bold text-2xl dark:text-white">
               {user.firstName} {user.lastName}
