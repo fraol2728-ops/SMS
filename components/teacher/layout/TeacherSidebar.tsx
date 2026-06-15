@@ -16,6 +16,7 @@ import {
   User,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -59,10 +60,21 @@ export function TeacherSidebar({
             collapsed ? `${teacher.firstName} ${teacher.lastName}` : undefined
           }
         >
-          <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-sm flex-shrink-0">
-            {teacher.firstName?.[0]}
-            {teacher.lastName?.[0]}
-          </div>
+          {teacher.profilePhoto ? (
+            <Image
+              src={teacher.profilePhoto}
+              alt=""
+              width={40}
+              height={40}
+              unoptimized
+              className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/20 font-bold text-blue-400 text-sm">
+              {teacher.firstName?.[0]}
+              {teacher.lastName?.[0]}
+            </div>
+          )}
           {!collapsed && (
             <div className="min-w-0">
               <p className="text-white text-sm font-medium truncate">

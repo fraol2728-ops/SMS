@@ -39,6 +39,39 @@ export async function getAdminSettings() {
   }
 }
 
+export async function saveAdminSettings(formData: FormData) {
+  try {
+    const userId = await getCurrentDbUserId();
+    if (!userId) return err("Not authenticated");
+
+    const data = {
+      showTotalStudents: formData.get("showTotalStudents") === "on",
+      showActiveClasses: formData.get("showActiveClasses") === "on",
+      showMonthlyRevenue: formData.get("showMonthlyRevenue") === "on",
+      showOutstanding: formData.get("showOutstanding") === "on",
+      showAttendanceRate: formData.get("showAttendanceRate") === "on",
+      showCertificates: formData.get("showCertificates") === "on",
+      accentColor: (formData.get("accentColor") as string) || "blue",
+      sidebarTheme: (formData.get("sidebarTheme") as string) || "dark",
+      dateFormat: (formData.get("dateFormat") as string) || "DD/MM/YYYY",
+      emailOnPaymentDue: formData.get("emailOnPaymentDue") === "on",
+      emailOnNewStudent: formData.get("emailOnNewStudent") === "on",
+    };
+
+    await prisma.adminSettings.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: data,
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/settings");
+    return ok;
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to save settings");
+  }
+}
+
 export async function updateProfileSettings(formData: FormData) {
   try {
     const userId = await getCurrentDbUserId();

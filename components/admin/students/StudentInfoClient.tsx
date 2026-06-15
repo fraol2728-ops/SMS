@@ -16,6 +16,7 @@ import {
   Phone,
   Trash2,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -206,17 +207,22 @@ export function StudentInfoClient({
           <div className="p-6">
             <div className="flex flex-col items-start gap-5 sm:flex-row">
               {student.profilePhoto ? (
-                <a
-                  href={student.profilePhoto}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-3xl shadow-lg transition-opacity hover:opacity-90"
+                  onClick={() =>
+                    window.open(student.profilePhoto ?? "", "_blank")
+                  }
                 >
-                  <img
+                  <Image
                     src={student.profilePhoto}
                     alt={`${student.firstName} ${student.lastName}`}
-                    className="h-20 w-20 cursor-pointer rounded-3xl object-cover shadow-lg"
+                    width={80}
+                    height={80}
+                    unoptimized
+                    className="h-full w-full object-cover"
                   />
-                </a>
+                </button>
               ) : (
                 <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 font-black text-2xl text-white shadow-lg">
                   {student.firstName[0]}
