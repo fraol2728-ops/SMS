@@ -512,7 +512,10 @@ export async function createStudent(
           "This student is already enrolled in one of the selected class sections. Please select different class sections or remove duplicates.",
         );
       }
-      if (message.includes("email") || message.toLowerCase().includes("unique")) {
+      if (
+        message.includes("email") ||
+        message.toLowerCase().includes("unique")
+      ) {
         return err("A user with this email already exists.");
       }
       return err(message);
@@ -718,37 +721,42 @@ export async function deleteStudent(userId: string) {
   }
 }
 
-export async function deleteTeacher(id: string) {
+export async function deleteTeacher(userId: string) {
   try {
     const { campusId, authenticated } = await getCurrentAdminCampusId();
     if (!authenticated) return err("Not authenticated");
 
     const teacher = await prisma.user.findFirst({
-      where: {
-        id,
-        role: "TEACHER",
-        ...(campusId ? { campusId } : {}),
-      },
+      where: { id: userId, role: "TEACHER", ...(campusId ? { campusId } : {}) },
       include: {
-        teacherProfile: {
-          include: {
-            classes: true,
-          },
-        },
+        teacherProfile: { include: { classes: { select: { id: true } } } },
       },
     });
+    if (!teacher) return err("Teacher not found");
 
-    if (!teacher || !teacher.teacherProfile) {
-      return err("Teacher not found.");
-    }
-
-    if (teacher.teacherProfile.classes.length > 0) {
+    if (teacher.teacherProfile?.classes.length) {
       return err(
         "Please reassign or remove this teacher from all classes before deleting.",
       );
     }
 
-    await prisma.user.delete({ where: { id } });
+    if (!teacher.clerkId.startsWith("pending_")) {
+      try {
+        const clerk = await clerkClient();
+        await clerk.users.deleteUser(teacher.clerkId);
+      } catch {
+        // Continue with local deletion if Clerk cleanup fails.
+      }
+    }
+
+    if (teacher.teacherProfile) {
+      await prisma.material.deleteMany({ where: { uploadedById: teacher.id } });
+      await prisma.teacherProfile.delete({
+        where: { id: teacher.teacherProfile.id },
+      });
+    }
+
+    await prisma.user.delete({ where: { id: userId } });
     revalidatePath("/admin/teachers");
     return ok;
   } catch (e) {
@@ -1068,39 +1076,65 @@ export async function updateTeacher(id: string, formData: FormData) {
     const adminId = await requireAdminAction();
     if (!adminId) return err("Not authenticated");
 
-    const normalized = actionInputToObject(formData);
-    const specialtiesRaw = normalized.specialties as string | undefined;
+    const raw = actionInputToObject(formData);
+    const firstName = String(raw.firstName ?? "").trim();
+    const lastName = String(raw.lastName ?? "").trim();
+    if (!firstName || !lastName) return err("First and last name are required");
+
+    const profileById = await prisma.teacherProfile.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
+    const userId = profileById?.userId ?? id;
+    const teacherProfileId = profileById?.id;
+
+    const specialtiesRaw = raw.specialties as string | undefined;
     const specialties = specialtiesRaw
       ? specialtiesRaw.split("||").filter(Boolean)
       : [];
-    const v = updateTeacherSchema.parse({
-      ...normalized,
-      gender: emptyToUndefined(normalized.gender),
-      phone: emptyToUndefined(normalized.phone),
-      specialty: specialties[0] ?? emptyToUndefined(normalized.specialty),
-      specialties: specialtiesRaw,
-      bio: emptyToUndefined(normalized.bio),
-    });
 
     await prisma.user.update({
-      where: { id },
+      where: { id: userId },
       data: {
-        firstName: v.firstName,
-        lastName: v.lastName,
-        email: v.email,
-        phone: v.phone,
-        gender: v.gender,
+        firstName,
+        lastName,
+        ...(typeof raw.email === "string" && raw.email.trim()
+          ? { email: raw.email.trim() }
+          : {}),
+        phone:
+          typeof raw.phone === "string" && raw.phone.trim()
+            ? raw.phone.trim()
+            : null,
+        address:
+          typeof raw.address === "string" && raw.address.trim()
+            ? raw.address.trim()
+            : null,
+        telegram:
+          typeof raw.telegram === "string" && raw.telegram.trim()
+            ? raw.telegram.trim()
+            : null,
+        ...(typeof raw.gender === "string" && raw.gender.trim()
+          ? { gender: raw.gender.trim() as any }
+          : {}),
+        profilePhoto:
+          typeof raw.profilePhoto === "string" && raw.profilePhoto.trim()
+            ? raw.profilePhoto.trim()
+            : null,
         teacherProfile: {
           update: {
-            specialties,
-            specialty: specialties[0] || v.specialty || null,
-            bio: v.bio,
+            ...(specialtiesRaw !== undefined
+              ? { specialties, specialty: specialties[0] ?? null }
+              : {}),
+            bio:
+              typeof raw.bio === "string" && raw.bio.trim()
+                ? raw.bio.trim()
+                : null,
           },
         },
       },
     });
 
-    revalidatePath(`/admin/teachers/${id}`);
+    revalidatePath(`/admin/teachers/${teacherProfileId ?? id}`);
     revalidatePath("/admin/teachers");
     return ok;
   } catch (e) {
@@ -2036,5 +2070,37 @@ export async function sendStudentNotification(formData: FormData) {
     return { success: true as const, count: studentIds.length };
   } catch (e) {
     return err(e instanceof Error ? e.message : "Failed to send notification");
+  }
+}
+
+export async function terminateUserRole(userId: string) {
+  try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return err("Not authenticated");
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { clerkId: true, role: true },
+    });
+    if (!user) return err("User not found");
+    if (user.role === "SUPER_ADMIN")
+      return err("Cannot terminate a Super Admin");
+
+    const clerk = await clerkClient();
+    await clerk.users.updateUser(user.clerkId, {
+      publicMetadata: { role: null },
+    });
+
+    revalidatePath("/admin/teachers");
+    revalidatePath("/admin/students");
+    revalidatePath("/super-admin/admins");
+    revalidatePath("/super-admin/teachers");
+    revalidatePath("/super-admin/students");
+    return {
+      success: true as const,
+      message: "Role removed. User can no longer access their portal.",
+    };
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Failed to terminate role");
   }
 }

@@ -9,7 +9,6 @@ import {
   Calendar,
   CalendarDays,
   CheckSquare,
-  ChevronRight,
   ClipboardCheck,
   Clock,
   CreditCard,
@@ -27,12 +26,9 @@ import {
   UserMinus,
   Users,
   UserX,
-  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ExceedLogo } from "@/components/brand/ExceedLogo";
 
 const NAV_LINKS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -131,68 +127,41 @@ type AdminLayoutUser = {
 export function AdminSidebar({
   user,
   theme = "dark",
+  collapsed = false,
 }: {
   user: AdminLayoutUser;
   theme?: string;
+  collapsed?: boolean;
 }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
   const colors = THEME_COLORS[theme] ?? THEME_COLORS.dark;
-
-  const [lastPathname, setLastPathname] = useState(pathname);
-
-  if (pathname !== lastPathname) {
-    setLastPathname(pathname);
-    if (open) setOpen(false);
-  }
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
     return pathname.startsWith(href);
   }
 
-  const SidebarContent = () => (
+  return (
     <div className={`${colors.bg} flex h-full flex-col`}>
-      <div
-        className={`flex flex-shrink-0 items-center justify-between border-b p-5 ${colors.header}`}
-      >
-        <ExceedLogo
-          subtitle={`${user.campus?.name ?? "Admin"} Portal`}
-          subtitleClassName="text-white/60"
-          imageClassName="max-h-11 max-w-[150px]"
-        />
-        <button
-          className="p-1 text-white opacity-60 hover:opacity-100 lg:hidden"
-          onClick={() => setOpen(false)}
-          type="button"
-        >
-          <X size={20} />
-        </button>
-      </div>
-      <div className={`flex-shrink-0 border-b px-4 py-3 ${colors.header}`}>
+      <div className={`flex-shrink-0 border-b px-3 py-3 ${colors.header}`}>
         <div
-          className={`flex items-center gap-3 rounded-xl p-3 ${colors.userBg}`}
+          className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} rounded-xl p-3 ${colors.userBg}`}
+          title={collapsed ? `${user.firstName} ${user.lastName}` : undefined}
         >
           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white">
             {user.firstName?.[0]}
             {user.lastName?.[0]}
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">
-              {user.firstName} {user.lastName}
-            </p>
-            <p className="truncate text-xs text-white opacity-60">
-              {user.role}
-            </p>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-white">
+                {user.firstName} {user.lastName}
+              </p>
+              <p className="truncate text-xs text-white opacity-60">
+                {user.role}
+              </p>
+            </div>
+          )}
         </div>
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -200,18 +169,13 @@ export function AdminSidebar({
           const active = isActive(href, exact);
           return (
             <Link
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${active ? colors.active : colors.text}`}
+              className={`flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-3"} rounded-lg py-2.5 text-sm font-medium transition-all ${active ? colors.active : colors.text}`}
               href={href}
               key={href}
+              title={collapsed ? label : undefined}
             >
               <Icon className="flex-shrink-0" size={17} />
-              <span className="truncate">{label}</span>
-              {active && (
-                <ChevronRight
-                  className="ml-auto flex-shrink-0 opacity-70"
-                  size={14}
-                />
-              )}
+              {!collapsed && <span className="truncate">{label}</span>}
             </Link>
           );
         })}
@@ -219,42 +183,15 @@ export function AdminSidebar({
       <div className={`flex-shrink-0 border-t p-3 ${colors.header}`}>
         <SignOutButton redirectUrl="/sign-in">
           <button
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${colors.text}`}
+            className={`flex w-full items-center ${collapsed ? "justify-center px-2" : "gap-3 px-3"} rounded-lg py-2.5 text-sm font-medium transition-all ${colors.text}`}
+            title={collapsed ? "Sign Out" : undefined}
             type="button"
           >
             <LogOut className="flex-shrink-0" size={17} />
-            <span>Sign Out</span>
+            {!collapsed && <span>Sign Out</span>}
           </button>
         </SignOutButton>
       </div>
     </div>
-  );
-
-  return (
-    <>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col overflow-hidden lg:flex">
-        <SidebarContent />
-      </aside>
-      {open && (
-        <button
-          aria-label="Close navigation overlay"
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-          onClick={() => setOpen(false)}
-          type="button"
-        />
-      )}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-hidden transition-transform duration-300 lg:hidden ${open ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <SidebarContent />
-      </aside>
-      <button
-        aria-label="Open menu"
-        className="hidden lg:hidden"
-        id="sidebar-toggle"
-        onClick={() => setOpen(true)}
-        type="button"
-      />
-    </>
   );
 }
