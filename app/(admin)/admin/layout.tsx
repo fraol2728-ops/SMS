@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/layout/AdminShell";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { getAdminSettings } from "@/lib/actions/settings";
 import { prisma, withRetry } from "@/lib/prisma";
 
 export default async function AdminLayout({
@@ -26,12 +27,20 @@ export default async function AdminLayout({
     redirect("/sign-in");
   }
 
+  const settings = await getAdminSettings();
+
   return (
     <ThemeProvider
-      colorMode={dbUser.adminSettings?.colorMode ?? "system"}
-      accentColor={dbUser.adminSettings?.accentColor ?? "blue"}
+      colorMode={
+        settings?.colorMode ?? dbUser.adminSettings?.colorMode ?? "system"
+      }
+      accentColor={
+        settings?.accentColor ?? dbUser.adminSettings?.accentColor ?? "blue"
+      }
     >
-      <AdminShell user={dbUser}>{children}</AdminShell>
+      <AdminShell user={dbUser} settings={settings}>
+        {children}
+      </AdminShell>
     </ThemeProvider>
   );
 }

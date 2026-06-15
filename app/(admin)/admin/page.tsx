@@ -9,6 +9,7 @@ import { KpiCard } from "@/components/admin/shared/KpiCard";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { TrendChart } from "@/components/admin/shared/TrendChart";
 import { getTopPerformingTeacher } from "@/lib/actions/performance";
+import { getAdminSettings } from "@/lib/actions/settings";
 import { requireAdmin } from "@/lib/auth-check";
 import { getCurrentUserCampusId } from "@/lib/campus";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
@@ -74,9 +75,6 @@ export default async function AdminPage() {
     const [
       totalStudents,
       activeEnrollments,
-      activeCourses,
-      revenue,
-      partialRevenue,
       monthlyPayments,
       monthlyPartialPayments,
       totalRemaining,
@@ -87,27 +85,6 @@ export default async function AdminPage() {
         }),
         prisma.enrollment.count({
           where: { status: "ACTIVE", ...campusCourseWhere },
-        }),
-        prisma.course.count({
-          where: { isActive: true, ...(campusId ? { campusId } : {}) },
-        }),
-        prisma.payment.aggregate({
-          where: {
-            enrollment: {
-              class: campusId ? { campusId } : undefined,
-            },
-          },
-          _sum: { amount: true },
-        }),
-        prisma.partialPayment.aggregate({
-          where: {
-            paymentRemaining: {
-              enrollment: {
-                class: campusId ? { campusId } : undefined,
-              },
-            },
-          },
-          _sum: { amount: true },
         }),
         prisma.payment.aggregate({
           where: {
@@ -263,12 +240,68 @@ export default async function AdminPage() {
       (item) => item.createdAt,
       () => 1,
     );
-    const totalRevenue =
-      (revenue._sum.amount ?? 0) + (partialRevenue._sum.amount ?? 0);
     const totalMonthlyRevenue =
       (monthlyPayments._sum.amount ?? 0) +
       (monthlyPartialPayments._sum.amount ?? 0);
     const outstandingRemaining = totalRemaining._sum.remainingAmount ?? 0;
+
+    const settings = await getAdminSettings();
+    const attendanceRate = 0;
+
+    const kpiCards = [
+      {
+        show: settings?.showTotalStudents ?? true,
+        title: "Total Students",
+        value: totalStudents,
+        icon: Users,
+        color: "blue" as const,
+        href: "/admin/students",
+        hint: "All registered students",
+      },
+      {
+        show: settings?.showActiveClasses ?? true,
+        title: "Active Classes",
+        value: activeEnrollments,
+        icon: BookOpen,
+        color: "green" as const,
+        hint: "Currently in progress",
+      },
+      {
+        show: settings?.showMonthlyRevenue ?? true,
+        title: "Monthly Revenue",
+        value: `ETB ${totalMonthlyRevenue.toLocaleString()}`,
+        icon: CreditCard,
+        color: "amber" as const,
+        href: "/admin/payments",
+        hint: "Paid this month",
+      },
+      {
+        show: settings?.showOutstanding ?? true,
+        title: "Outstanding",
+        value: `ETB ${outstandingRemaining.toLocaleString()}`,
+        icon: CreditCard,
+        color: "amber" as const,
+        href: "/admin/remaining",
+        hint: "Remaining balances",
+      },
+      {
+        show: settings?.showAttendanceRate ?? true,
+        title: "Attendance Rate (30d)",
+        value: `${attendanceRate}%`,
+        icon: GraduationCap,
+        color: "purple" as const,
+        hint: "Average attendance this month",
+      },
+      {
+        show: settings?.showCertificates ?? true,
+        title: "Certificates Pending",
+        value: pendingCertificates,
+        icon: GraduationCap,
+        color: "purple" as const,
+        href: "/admin/certificates",
+        hint: "Waiting for delivery",
+      },
+    ].filter((card) => card.show);
 
     const topTeacher = await getTopPerformingTeacher(campusId ?? undefined);
 
@@ -447,52 +480,26 @@ export default async function AdminPage() {
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Overview
           </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-            <KpiCard
-              title="Total Students"
-              value={totalStudents}
-              icon={Users}
-              color="blue"
-              href="/admin/students"
-              hint="All registered students"
-            />
-            <KpiCard
-              title="Active Enrollments"
-              value={activeEnrollments}
-              icon={BookOpen}
-              color="green"
-              hint="Currently in progress"
-            />
-            <KpiCard
-              title="Active Courses"
-              value={activeCourses}
-              icon={GraduationCap}
-              color="purple"
-              href="/admin/courses"
-            />
-            <KpiCard
-              title="Total Revenue"
-              value={`ETB ${totalRevenue.toLocaleString()}`}
-              icon={CreditCard}
-              color="amber"
-              href="/admin/payments"
-            />
-            <KpiCard
-              title="This Month"
-              value={`ETB ${totalMonthlyRevenue.toLocaleString()}`}
-              icon={CreditCard}
-              color="amber"
-              hint="Paid this month"
-            />
-            <KpiCard
-              title="Outstanding"
-              value={`ETB ${outstandingRemaining.toLocaleString()}`}
-              icon={CreditCard}
-              color="amber"
-              href="/admin/remaining"
-              hint="Remaining balances"
-            />
-          </div>
+          {kpiCards.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+              {kpiCards.map((card) => (
+                <KpiCard
+                  key={card.title}
+                  title={card.title}
+                  value={card.value}
+                  icon={card.icon}
+                  color={card.color}
+                  href={card.href}
+                  hint={card.hint}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed bg-white p-6 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+              All dashboard KPI cards are hidden. Open Settings to turn them
+              back on.
+            </div>
+          )}
         </section>
 
         {nextEvent && (
