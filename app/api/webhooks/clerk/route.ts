@@ -4,23 +4,17 @@ import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
-
-type ClerkUserCreatedData = {
-  id: string;
-  email_addresses?: Array<{ email_address?: string }>;
-};
-
-type ClerkWebhookEvent = {
+type ClerkUserCreatedEvent = {
   type: string;
-  data: ClerkUserCreatedData;
+  data: {
+    id: string;
+    email_addresses?: Array<{ email_address?: string }>;
+  };
 };
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
-
   if (!WEBHOOK_SECRET) {
-    console.error("CLERK_WEBHOOK_SECRET not set");
     return NextResponse.json(
       { error: "Webhook secret not configured" },
       { status: 500 },
@@ -43,16 +37,15 @@ export async function POST(req: Request) {
   const body = JSON.stringify(payload);
 
   const wh = new Webhook(WEBHOOK_SECRET);
-  let evt: ClerkWebhookEvent;
+  let evt: ClerkUserCreatedEvent;
 
   try {
     evt = wh.verify(body, {
       "svix-id": svix_id,
       "svix-timestamp": svix_timestamp,
       "svix-signature": svix_signature,
-    }) as ClerkWebhookEvent;
-  } catch (err) {
-    console.error("Webhook verification failed:", err);
+    }) as ClerkUserCreatedEvent;
+  } catch {
     return NextResponse.json(
       { error: "Invalid webhook signature" },
       { status: 400 },
@@ -62,54 +55,60 @@ export async function POST(req: Request) {
   const eventType = evt.type;
 
   if (eventType === "user.created") {
-    const { id: clerkId, email_addresses } = evt.data;
-
+    const { id: clerkUserId, email_addresses } = evt.data;
     const email = email_addresses?.[0]?.email_address?.toLowerCase();
 
     if (!email) {
-      console.warn("No email found in webhook payload");
-      return NextResponse.json({ received: true });
+      return NextResponse.json({ message: "No email in payload" });
     }
 
-    try {
-      const dbUser = await prisma.user.findUnique({
+    // Find pre-registered user in DB by email
+    const dbUser = await prisma.user
+      .findUnique({
         where: { email },
-        select: { id: true, role: true, clerkId: true, campusId: true },
+        select: { id: true, role: true, clerkId: true },
+      })
+      .catch(() => null);
+
+    if (!dbUser) {
+      // Email not in our DB — this is an unauthorized signup
+      // Delete the Clerk user immediately
+      try {
+        const clerk = await clerkClient();
+        await clerk.users.deleteUser(clerkUserId);
+      } catch {}
+
+      return NextResponse.json(
+        { message: "Email not authorized. Account removed." },
+        { status: 200 },
+      );
+    }
+
+    // User found — update clerkId and set role in Clerk
+    try {
+      // 1. Update DB with new clerkId
+      await prisma.user.update({
+        where: { email },
+        data: { clerkId: clerkUserId },
       });
 
-      if (!dbUser) {
-        console.warn(`User not found in DB for email: ${email}`);
-        return NextResponse.json({ received: true });
-      }
-
-      if (dbUser.clerkId.startsWith("pending_") || dbUser.clerkId !== clerkId) {
-        await prisma.user.update({
-          where: { email },
-          data: { clerkId },
-        });
-      }
-
+      // 2. Set role in Clerk publicMetadata immediately
       const clerk = await clerkClient();
-
-      const metadataToSet: Record<string, unknown> = {
-        role: dbUser.role,
-      };
-
-      if (
-        (dbUser.role === "ADMIN" || dbUser.role === "STUDENT") &&
-        dbUser.campusId
-      ) {
-        metadataToSet.campusId = dbUser.campusId;
-      }
-
-      await clerk.users.updateUser(clerkId, {
-        publicMetadata: metadataToSet,
+      await clerk.users.updateUser(clerkUserId, {
+        publicMetadata: { role: dbUser.role },
       });
-    } catch (error) {
-      console.error("Webhook processing error:", error);
-      return NextResponse.json({ received: true, error: String(error) });
+    } catch (e) {
+      console.error("Webhook error:", e);
+      return NextResponse.json(
+        { error: "Failed to sync user" },
+        { status: 500 },
+      );
     }
   }
 
-  return NextResponse.json({ received: true });
+  return NextResponse.json({ message: "Webhook processed" });
+}
+
+export async function GET() {
+  return NextResponse.json({ message: "Webhook endpoint active" });
 }

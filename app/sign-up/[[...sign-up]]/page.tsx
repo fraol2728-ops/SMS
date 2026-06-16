@@ -9,13 +9,17 @@ export default function SignUpPage() {
           <p className="text-gray-500 mt-2">
             Training Center Management System
           </p>
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <p className="text-sm text-blue-800 font-medium">
+              🔒 Invitation Only
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Only pre-registered emails can create an account. Contact your
+              administrator if you need access.
+            </p>
+          </div>
         </div>
-        <SignUp
-          routing="path"
-          path="/sign-up"
-          signInUrl="/sign-in"
-          forceRedirectUrl="/"
-        />
+        <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" />
       </div>
     </div>
   );
