@@ -9,7 +9,12 @@ declare module "xlsx" {
       worksheet: WorkSheet,
       name: string,
     ): void;
+    sheet_to_json<T = Record<string, unknown>>(worksheet: WorkSheet): T[];
   };
+  export function read(
+    data: unknown,
+    options?: { type: string },
+  ): { SheetNames: string[]; Sheets: Record<string, WorkSheet> };
   export function write(
     workbook: WorkBook,
     options: { type: "buffer"; bookType: "xlsx" },
