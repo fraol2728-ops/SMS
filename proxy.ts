@@ -6,7 +6,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/api/public(.*)',
   '/api/webhooks(.*)',
-  '/unauthorized',
+  '/unauthorized(.*)',
   '/',
 ])
 
@@ -16,46 +16,46 @@ const isTeacherRoute = createRouteMatcher(['/teacher(.*)'])
 const isStudentRoute = createRouteMatcher(['/student(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
+  // Always allow public routes through
   if (isPublicRoute(req)) return NextResponse.next()
 
-  try {
-    const { userId, sessionClaims } = await auth()
+  // For all protected routes — check authentication only
+  const { userId, sessionClaims } = await auth()
 
-    if (!userId) {
-      return NextResponse.redirect(new URL('/sign-in', req.url))
-    }
-
-    const role = (sessionClaims?.metadata as any)?.role as string | undefined
-
-    if (!role) {
-      // User is signed in but has no role
-      // Send to home page — NOT /unauthorized (that causes loop)
-      // Home page will show "Account Setup Needed" message
-      return NextResponse.redirect(new URL('/', req.url))
-    }
-
-    if (isSuperAdminRoute(req) && role !== 'SUPER_ADMIN') {
-      return NextResponse.redirect(new URL('/unauthorized', req.url))
-    }
-    if (isAdminRoute(req) && !['ADMIN', 'SUPER_ADMIN'].includes(role)) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url))
-    }
-    if (isTeacherRoute(req) && role !== 'TEACHER') {
-      return NextResponse.redirect(new URL('/unauthorized', req.url))
-    }
-    if (isStudentRoute(req) && role !== 'STUDENT') {
-      return NextResponse.redirect(new URL('/unauthorized', req.url))
-    }
-
-    return NextResponse.next()
-
-  } catch (error) {
-    console.error('Middleware auth error:', error)
-    if (req.nextUrl.pathname.startsWith('/sign-in')) {
-      return NextResponse.next()
-    }
+  // Not signed in at all → send to sign in
+  if (!userId) {
     return NextResponse.redirect(new URL('/sign-in', req.url))
   }
+
+  // Read role from session claims
+  const metadata = sessionClaims?.metadata as Record<string, unknown> | undefined
+  const role = metadata?.role as string | undefined
+
+  // CRITICAL FIX:
+  // If role is missing from claims DO NOT redirect to /
+  // Clerk session claims can be stale on client navigation
+  // The layout files handle proper DB-based authorization
+  // Just let the request through — layout will handle it
+  if (!role) {
+    return NextResponse.next()
+  }
+
+  // Only block access when role EXISTS but is wrong
+  // (not when role is missing — that's handled by layouts)
+  if (isSuperAdminRoute(req) && role !== 'SUPER_ADMIN') {
+    return NextResponse.redirect(new URL('/unauthorized', req.url))
+  }
+  if (isAdminRoute(req) && !['ADMIN', 'SUPER_ADMIN'].includes(role)) {
+    return NextResponse.redirect(new URL('/unauthorized', req.url))
+  }
+  if (isTeacherRoute(req) && role !== 'TEACHER') {
+    return NextResponse.redirect(new URL('/unauthorized', req.url))
+  }
+  if (isStudentRoute(req) && role !== 'STUDENT') {
+    return NextResponse.redirect(new URL('/unauthorized', req.url))
+  }
+
+  return NextResponse.next()
 })
 
 export const config = {
