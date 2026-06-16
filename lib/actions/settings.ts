@@ -25,15 +25,25 @@ export async function getAdminSettings() {
     const userId = await getCurrentDbUserId();
     if (!userId) return null;
 
-    const settings = await prisma.adminSettings.findUnique({
-      where: { userId },
-    });
+    let settings = null;
+
+    try {
+      settings = await prisma.adminSettings.findUnique({
+        where: { userId },
+      });
+    } catch {
+      return null;
+    }
 
     if (settings) return settings;
 
-    return await prisma.adminSettings.create({
-      data: { userId },
-    });
+    try {
+      return await prisma.adminSettings.create({
+        data: { userId },
+      });
+    } catch {
+      return null;
+    }
   } catch {
     return null;
   }
