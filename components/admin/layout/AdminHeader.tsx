@@ -34,11 +34,11 @@ export function AdminHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center gap-3 border-b bg-white px-4 dark:border-gray-700 dark:bg-gray-900 sm:px-6">
+      <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center justify-between gap-3 border-b bg-white/80 px-4 shadow-sm backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/80 sm:px-6">
         <div className="flex items-center gap-3">
           <button
             aria-label="Open navigation"
-            className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
+            className="rounded-xl p-2 transition-all duration-200 hover:scale-105 hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
             onClick={openSidebar}
             type="button"
           >
@@ -63,14 +63,14 @@ export function AdminHeader({
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <Link href="/admin/notifications">
             <button
-              className="relative rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="relative rounded-xl p-2 transition-all duration-200 hover:scale-105 hover:bg-gray-100 dark:hover:bg-gray-800"
               type="button"
             >
               <Bell className="text-gray-600 dark:text-gray-300" size={20} />
             </button>
           </Link>
           <button
-            className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="rounded-xl p-2 transition-all duration-200 hover:scale-105 hover:bg-gray-100 dark:hover:bg-gray-800"
             onClick={() => setSettingsOpen(true)}
             title="Settings"
             type="button"

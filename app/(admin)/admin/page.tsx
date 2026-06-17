@@ -1,5 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
-import { BookOpen, CreditCard, GraduationCap, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  CreditCard,
+  GraduationCap,
+  Inbox,
+  Users,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { ActivityTableCard } from "@/components/admin/dashboard/ActivityTableCard";
@@ -317,10 +324,19 @@ export default async function AdminPage() {
     const tableHeadClass =
       "text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground";
     const tableRowClass =
-      "border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/30";
+      "border-b border-border/60 transition-colors last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800/50";
 
     return (
       <div className="space-y-6 sm:space-y-8">
+        <style>{`
+          @keyframes dashboard-fade-in-up {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .dashboard-kpi-card {
+            animation: dashboard-fade-in-up 500ms ease-out both;
+          }
+        `}</style>
         <DashboardHero
           adminName={adminName}
           campusName={adminUser?.campus?.name}
@@ -443,14 +459,19 @@ export default async function AdminPage() {
 
         {registrationClasses.length > 0 && (
           <div className="space-y-3">
-            <h2 className="flex items-center gap-2 font-bold text-gray-700 dark:text-gray-300">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-blue-500" />
-              Open for Registration ({registrationClasses.length})
-            </h2>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-500" />
+              </span>
+              <h2 className="font-bold text-gray-700 text-sm dark:text-gray-300">
+                Open for Registration ({registrationClasses.length})
+              </h2>
+            </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {registrationClasses.map((c) => (
                 <Link key={c.id} href={`/admin/classes/${c.id}`}>
-                  <div className="rounded-2xl border-2 border-blue-100 bg-white p-4 transition-all hover:border-blue-300 dark:border-blue-900/30 dark:bg-gray-900 dark:hover:border-blue-600">
+                  <div className="relative overflow-hidden rounded-2xl border bg-white p-4 transition-all duration-300 before:absolute before:left-0 before:top-0 before:h-full before:w-0 before:bg-blue-500 before:transition-all before:duration-300 hover:border-blue-300 hover:shadow-md hover:before:w-1 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-blue-700">
                     <div className="mb-2 flex items-start justify-between">
                       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/30">
                         <span className="font-black text-blue-600 text-sm">
@@ -487,16 +508,23 @@ export default async function AdminPage() {
           </p>
           {kpiCards.length > 0 ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-              {kpiCards.map((card) => (
-                <KpiCard
+              {kpiCards.map((card, index) => (
+                <div
+                  className="dashboard-kpi-card"
                   key={card.title}
-                  title={card.title}
-                  value={card.value}
-                  icon={card.icon}
-                  color={card.color}
-                  href={card.href}
-                  hint={card.hint}
-                />
+                  style={{ animationDelay: `${index * 60}ms` }}
+                >
+                  <KpiCard
+                    key={card.title}
+                    title={card.title}
+                    value={card.value}
+                    icon={card.icon}
+                    color={card.color}
+                    href={card.href}
+                    hint={card.hint}
+                    animationDelay={`${index * 60}ms`}
+                  />
+                </div>
               ))}
             </div>
           ) : (
@@ -509,7 +537,8 @@ export default async function AdminPage() {
 
         {nextEvent && (
           <Link href="/admin/events">
-            <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 p-4 transition-opacity hover:opacity-90">
+            <div className="group relative flex items-center justify-between overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 p-5 shadow-lg shadow-purple-500/20 transition-shadow duration-300 hover:shadow-purple-500/30">
+              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
               <div className="flex items-center gap-3">
                 {nextEvent.thumbnailUrl ? (
                   <Image
@@ -518,19 +547,21 @@ export default async function AdminPage() {
                     width={48}
                     height={48}
                     unoptimized
-                    className="h-12 w-12 rounded-xl object-cover"
+                    className="relative z-10 h-12 w-12 rounded-2xl object-cover"
                   />
                 ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 text-2xl">
+                  <div className="relative z-10 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl">
                     🎉
                   </div>
                 )}
-                <div>
-                  <p className="font-medium text-purple-200 text-xs">
+                <div className="relative z-10">
+                  <p className="font-semibold text-violet-200 text-xs uppercase tracking-wide">
                     Upcoming Event
                   </p>
-                  <p className="font-bold text-white">{nextEvent.title}</p>
-                  <p className="text-purple-200 text-xs">
+                  <p className="font-black text-lg text-white">
+                    {nextEvent.title}
+                  </p>
+                  <p className="text-violet-200 text-xs">
                     {new Date(nextEvent.date).toLocaleDateString("en-GB", {
                       day: "2-digit",
                       month: "short",
@@ -540,7 +571,10 @@ export default async function AdminPage() {
                   </p>
                 </div>
               </div>
-              <span className="text-white text-xl">→</span>
+              <ArrowRight
+                className="relative z-10 text-white transition-transform group-hover:translate-x-1"
+                size={20}
+              />
             </div>
           </Link>
         )}
@@ -615,27 +649,35 @@ export default async function AdminPage() {
                   </tbody>
                 </table>
               ) : (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  No enrollments this week yet.
-                </p>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 dark:bg-gray-800">
+                    <Inbox
+                      className="text-gray-300 dark:text-gray-600"
+                      size={20}
+                    />
+                  </div>
+                  <p className="text-gray-400 text-sm">
+                    No enrollments this week yet.
+                  </p>
+                </div>
               )}
             </ActivityTableCard>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm sm:rounded-3xl sm:p-5">
+              <div className="rounded-2xl border bg-white p-5 transition-shadow duration-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
                 <p className="text-sm font-semibold text-foreground">
                   Enrollments by day
                 </p>
-                <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
+                <div className="mt-4 grid grid-cols-7 gap-2">
                   {weeklyEnrollmentSeries.map((point) => (
                     <div
                       key={point.label}
-                      className="rounded-xl border border-border/50 bg-muted/30 px-1.5 py-2.5 text-center"
+                      className="rounded-xl bg-gray-50 p-2 text-center transition-all duration-200 hover:scale-105 hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-blue-900/20"
                     >
-                      <p className="text-base font-bold text-foreground">
+                      <p className="font-black text-gray-900 text-lg dark:text-white">
                         {point.value}
                       </p>
-                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      <p className="mt-0.5 text-[10px] text-gray-400">
                         {point.label}
                       </p>
                     </div>
@@ -663,34 +705,48 @@ export default async function AdminPage() {
             subtitle="Latest student course activity"
             badge={`${recentEnrollments.length} entries`}
           >
-            <table className="min-w-full text-sm">
-              <thead className={tableHeadClass}>
-                <tr>
-                  <th className="pb-3 pr-4">Student</th>
-                  <th className="pb-3 pr-4">Course</th>
-                  <th className="pb-3 pr-4">Start</th>
-                  <th className="pb-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="text-foreground">
-                {(recentEnrollments as RecentEnrollment[]).map((e) => (
-                  <tr key={e.id} className={tableRowClass}>
-                    <td className="py-3 pr-4 font-medium">
-                      {e.student.user.firstName} {e.student.user.lastName}
-                    </td>
-                    <td className="py-3 pr-4 text-muted-foreground">
-                      {e.course.title}
-                    </td>
-                    <td className="py-3 pr-4 text-muted-foreground">
-                      {e.startDate.toLocaleDateString()}
-                    </td>
-                    <td className="py-3">
-                      <StatusBadge status={e.status} />
-                    </td>
+            {recentEnrollments.length > 0 ? (
+              <table className="min-w-full text-sm">
+                <thead className={tableHeadClass}>
+                  <tr>
+                    <th className="pb-3 pr-4">Student</th>
+                    <th className="pb-3 pr-4">Course</th>
+                    <th className="pb-3 pr-4">Start</th>
+                    <th className="pb-3">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="text-foreground">
+                  {(recentEnrollments as RecentEnrollment[]).map((e) => (
+                    <tr key={e.id} className={tableRowClass}>
+                      <td className="py-3 pr-4 font-medium">
+                        {e.student.user.firstName} {e.student.user.lastName}
+                      </td>
+                      <td className="py-3 pr-4 text-muted-foreground">
+                        {e.course.title}
+                      </td>
+                      <td className="py-3 pr-4 text-muted-foreground">
+                        {e.startDate.toLocaleDateString()}
+                      </td>
+                      <td className="py-3">
+                        <StatusBadge status={e.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 dark:bg-gray-800">
+                  <Inbox
+                    className="text-gray-300 dark:text-gray-600"
+                    size={20}
+                  />
+                </div>
+                <p className="text-gray-400 text-sm">
+                  No recent enrollments yet.
+                </p>
+              </div>
+            )}
           </ActivityTableCard>
 
           <ActivityTableCard
@@ -698,44 +754,58 @@ export default async function AdminPage() {
             subtitle="Most recent student transactions"
             badge={`${recentPayments.length} payments`}
           >
-            <table className="min-w-full text-sm">
-              <thead className={tableHeadClass}>
-                <tr>
-                  <th className="pb-3 pr-4">Student</th>
-                  <th className="pb-3 pr-4">Course</th>
-                  <th className="pb-3 pr-4">Amount</th>
-                  <th className="pb-3 pr-4 hidden sm:table-cell">Method</th>
-                  <th className="pb-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="text-foreground">
-                {(recentPayments as RecentPayment[]).map((p) => (
-                  <tr key={p.id} className={tableRowClass}>
-                    <td className="py-3 pr-4 font-medium">
-                      {p.user.firstName} {p.user.lastName}
-                    </td>
-                    <td className="py-3 pr-4 text-muted-foreground">
-                      {p.enrollment.course.title}
-                    </td>
-                    <td className="py-3 pr-4 font-medium">
-                      ETB {p.amount.toLocaleString()}
-                    </td>
-                    <td className="hidden py-3 pr-4 text-muted-foreground sm:table-cell">
-                      {p.method ?? "-"}
-                    </td>
-                    <td className="py-3">
-                      <StatusBadge status={p.status} />
-                    </td>
+            {recentPayments.length > 0 ? (
+              <table className="min-w-full text-sm">
+                <thead className={tableHeadClass}>
+                  <tr>
+                    <th className="pb-3 pr-4">Student</th>
+                    <th className="pb-3 pr-4">Course</th>
+                    <th className="pb-3 pr-4">Amount</th>
+                    <th className="hidden pb-3 pr-4 sm:table-cell">Method</th>
+                    <th className="pb-3">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="text-foreground">
+                  {(recentPayments as RecentPayment[]).map((p) => (
+                    <tr key={p.id} className={tableRowClass}>
+                      <td className="py-3 pr-4 font-medium">
+                        {p.user.firstName} {p.user.lastName}
+                      </td>
+                      <td className="py-3 pr-4 text-muted-foreground">
+                        {p.enrollment.course.title}
+                      </td>
+                      <td className="py-3 pr-4 font-medium">
+                        ETB {p.amount.toLocaleString()}
+                      </td>
+                      <td className="hidden py-3 pr-4 text-muted-foreground sm:table-cell">
+                        {p.method ?? "-"}
+                      </td>
+                      <td className="py-3">
+                        <StatusBadge status={p.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 dark:bg-gray-800">
+                  <Inbox
+                    className="text-gray-300 dark:text-gray-600"
+                    size={20}
+                  />
+                </div>
+                <p className="text-gray-400 text-sm">No recent payments yet.</p>
+              </div>
+            )}
           </ActivityTableCard>
         </section>
       </div>
     );
-  } catch (error: any) {
-    const msg = (error?.message ?? String(error)).toLowerCase();
+  } catch (error: unknown) {
+    const msg = (
+      error instanceof Error ? error.message : String(error)
+    ).toLowerCase();
     const isDbError =
       msg.includes("can't reach database") ||
       msg.includes("etimedout") ||
@@ -770,6 +840,4 @@ export default async function AdminPage() {
 
     throw error;
   }
-
-  return <div>Admin Dashboard</div>;
 }
