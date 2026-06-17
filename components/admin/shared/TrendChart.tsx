@@ -46,22 +46,26 @@ export function TrendChart({
   return (
     <Card
       className={cn(
-        "overflow-hidden border-border/70 shadow-sm transition-shadow hover:shadow-md",
+        "overflow-hidden rounded-2xl border bg-white p-5 shadow-none transition-shadow duration-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900",
         className,
       )}
     >
-      <CardHeader className="border-b border-border/50 bg-muted/20 pb-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <CardHeader className="p-0 pb-4">
+        <div className="mb-1 flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base sm:text-lg">{title}</CardTitle>
-            <CardDescription>{subtitle}</CardDescription>
+            <CardTitle className="font-bold text-gray-900 text-sm dark:text-white">
+              {title}
+            </CardTitle>
+            <CardDescription className="text-gray-400 text-xs">
+              {subtitle}
+            </CardDescription>
           </div>
-          <div className="rounded-xl bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground ring-1 ring-border/60">
+          <span className="rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-500 text-xs dark:bg-gray-800 dark:text-gray-400">
             Peak {maxValue.toLocaleString()}
-          </div>
+          </span>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 pt-5">
+      <CardContent className="space-y-4 p-0">
         <div>
           <p className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {value}
@@ -78,7 +82,11 @@ export function TrendChart({
               style={{ top: `${y}%` }}
             />
           ))}
-          <svg viewBox="0 0 100 80" className="relative h-full w-full">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 100 80"
+            className="relative h-full w-full"
+          >
             <defs>
               <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
                 <stop offset="0%" stopColor={accent} stopOpacity="0.4" />

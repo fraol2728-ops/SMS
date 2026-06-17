@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Footer } from "@/components/shared/Footer";
 import { AdminHeader } from "./AdminHeader";
@@ -57,30 +57,32 @@ export function AdminShell({
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden
-          bg-gray-900 border-r border-gray-800
-          transition-all duration-300
+          border-gray-800 border-r bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950
+          transition-all duration-300 ease-out
           ${mounted && collapsed ? "w-16" : "w-64"}
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
         `}
       >
         <div
-          className={`flex items-center gap-3 p-4 border-b border-gray-800 flex-shrink-0 ${
+          className={`flex flex-shrink-0 items-center gap-3 border-gray-800 border-b p-4 ${
             mounted && collapsed ? "justify-center" : ""
           }`}
         >
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-black text-sm">E</span>
+          <div className="flex h-9 w-9 flex-shrink-0 animate-pulse items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/20 shadow-lg">
+            <span className="font-black text-sm text-white">E</span>
           </div>
           {(!mounted || !collapsed) && (
             <div>
-              <h1 className="text-white font-bold leading-none">Exceed</h1>
+              <h1 className="bg-gradient-to-r from-white to-blue-200 bg-clip-text font-bold leading-none text-transparent">
+                Exceed
+              </h1>
               <p className="text-gray-400 text-xs">Admin Portal</p>
             </div>
           )}
           <button
             onClick={() => setMobileOpen(false)}
-            className="lg:hidden ml-auto text-gray-400 hover:text-white p-1"
+            className="ml-auto p-1 text-gray-400 transition-colors hover:text-white lg:hidden"
             type="button"
           >
             ×
@@ -91,15 +93,14 @@ export function AdminShell({
 
         <button
           onClick={toggleCollapse}
-          className="hidden lg:flex items-center justify-center p-3 border-t border-gray-800 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors flex-shrink-0"
+          className="hidden flex-shrink-0 items-center justify-center border-gray-800 border-t p-3 text-gray-400 transition-all duration-300 ease-out hover:bg-white/5 hover:text-white lg:flex"
           title={collapsed ? "Expand" : "Collapse"}
           type="button"
         >
-          {mounted && collapsed ? (
-            <ChevronRight size={18} />
-          ) : (
-            <ChevronLeft size={18} />
-          )}
+          <ChevronLeft
+            className={`transition-transform duration-300 ${mounted && collapsed ? "rotate-180" : ""}`}
+            size={16}
+          />
           {(!mounted || !collapsed) && (
             <span className="ml-2 text-xs">Collapse</span>
           )}
