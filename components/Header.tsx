@@ -7,7 +7,7 @@ import {
   SignedOut,
   SignInButton,
   UserButton,
-  useAuth,
+  useUser,
 } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,9 +34,9 @@ const loggedOutLinks = [
 
 export function Header() {
   const pathname = usePathname();
-  const { has } = useAuth();
+  const { user } = useUser();
 
-  const isUltra = has?.({ plan: "ultra" });
+  const isUltra = user?.publicMetadata?.plan === "ultra";
 
   const loggedInLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

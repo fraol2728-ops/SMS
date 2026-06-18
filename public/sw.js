@@ -1,5 +1,5 @@
-const CACHE_NAME = "exceed-v1";
-const STATIC_CACHE = "exceed-static-v1";
+const CACHE_NAME = "exceed-v2";
+const STATIC_CACHE = "exceed-static-v2";
 
 const PRECACHE_ASSETS = [
   "/",

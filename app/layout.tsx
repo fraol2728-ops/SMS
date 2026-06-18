@@ -1,6 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import { PWAInstallBanner } from "@/components/shared/PWAInstallBanner";
 import { ServiceWorkerRegistration } from "@/components/shared/ServiceWorkerRegistration";

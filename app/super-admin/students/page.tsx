@@ -29,7 +29,6 @@ export default async function SuperAdminStudentsPage({
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
-
   const params = (await searchParams) ?? {};
   const campusId = params.campusId ?? null;
   const PAGE_SIZE = 20;
