@@ -66,6 +66,7 @@ const NAV_LINKS = [
   { href: "/student/notifications", label: "Notifications", icon: Bell },
   { href: "/student/events", label: "Events", icon: CalendarDays },
   { href: "/student/profile", label: "My Profile", icon: User },
+  { href: "/student/docs", label: "Docs", icon: BookOpen },
 ];
 
 export function StudentSidebar({
