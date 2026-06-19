@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { TeacherShell } from "@/components/teacher/layout/TeacherShell";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 
 export default async function TeacherLayout({
@@ -8,14 +8,12 @@ export default async function TeacherLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId, sessionClaims } = await auth();
-  if (!userId) redirect("/sign-in");
-
-  const role = (sessionClaims?.metadata as any)?.role as string | undefined;
-  if (role !== "TEACHER") redirect("/unauthorized");
+  const user = await getCurrentUser();
+  if (!user) redirect("/sign-in");
+  if (user.role !== "TEACHER") redirect("/unauthorized");
 
   const dbUser = await prisma.user.findUnique({
-    where: { clerkId: userId },
+    where: { clerkId: user.clerkId },
     include: {
       teacherProfile: {
         include: {

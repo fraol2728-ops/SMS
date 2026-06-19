@@ -1,15 +1,14 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { deleteClass } from "@/lib/actions/admin";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, sessionClaims } = await auth();
-    if (!userId) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-    if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) {
+    if (!["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

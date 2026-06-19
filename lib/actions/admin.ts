@@ -3,7 +3,8 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import type { PaymentMethod, PaymentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/campus";
+import { getCurrentUser as getCampusCurrentUser } from "@/lib/campus";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { generateReport } from "@/lib/reports";
@@ -99,34 +100,25 @@ async function getCurrentAdminUserId(): Promise<string | null> {
 }
 
 async function requireAdminAction() {
-  const { userId, sessionClaims } = await auth();
-  if (!userId) return null;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
-  if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) return null;
-  return userId;
+  const user = await getCurrentUser();
+  if (!user || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) return null;
+  return user.clerkId;
 }
 
 async function getCurrentAdminCampusId(): Promise<{
   campusId: string | null;
   authenticated: boolean;
 }> {
-  const { userId: clerkId, sessionClaims } = await auth();
-  if (!clerkId) return { campusId: null, authenticated: false };
-
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
-  if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) {
+  const user = await getCurrentUser();
+  if (!user || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
     return { campusId: null, authenticated: false };
   }
 
-  if (role === "SUPER_ADMIN") {
+  if (user.role === "SUPER_ADMIN") {
     return { campusId: null, authenticated: true };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { clerkId },
-    select: { campusId: true },
-  });
-  return { campusId: user?.campusId ?? null, authenticated: true };
+  return { campusId: user.campusId, authenticated: true };
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
@@ -212,7 +204,7 @@ export async function createStudent(
       paymentMethod: enrollments[0].paymentMethod,
     });
 
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCampusCurrentUser();
     if (!currentUser || !["ADMIN", "SUPER_ADMIN"].includes(currentUser.role)) {
       return err("Not authorized.");
     }
@@ -865,7 +857,7 @@ export async function changeStudentClass(
 
 export async function getReportPreview(type: "daily" | "weekly" | "monthly") {
   try {
-    const user = await getCurrentUser();
+    const user = await getCampusCurrentUser();
     if (!user) return err("Not authenticated");
 
     const campusId = user.role === "SUPER_ADMIN" ? null : user.campusId;
@@ -892,7 +884,7 @@ export async function createCourse(input: ActionInput) {
       isActive: parseBoolean(raw.isActive, true),
     });
 
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCampusCurrentUser();
     const adminCampus = await getCurrentAdminCampusId();
     const campusId =
       currentUser?.role === "SUPER_ADMIN"
