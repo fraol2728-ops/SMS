@@ -180,18 +180,27 @@ export default async function StudentsPage({
     },
   });
 
-  const enrollmentCounts = await prisma.enrollment.groupBy({
-    by: ["courseId"],
+  const enrollmentRows = await prisma.enrollment.findMany({
     where: {
       status: "ACTIVE",
       class: { ...(campusId ? { campusId } : {}) },
       student: { user: { role: "STUDENT" } },
     },
-    _count: { studentId: true },
+    select: { courseId: true, studentId: true },
   });
 
+  const studentsByCourse = new Map<string, Set<string>>();
+  for (const row of enrollmentRows) {
+    const set = studentsByCourse.get(row.courseId) ?? new Set<string>();
+    set.add(row.studentId);
+    studentsByCourse.set(row.courseId, set);
+  }
+
   const studentCountsByCourse = new Map(
-    enrollmentCounts.map((count) => [count.courseId, count._count.studentId]),
+    Array.from(studentsByCourse.entries()).map(([courseId, students]) => [
+      courseId,
+      students.size,
+    ]),
   );
 
   const courseStudentCounts = courses.map((course) => ({
