@@ -1,22 +1,22 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { userId, sessionClaims } = await auth();
-    if (!userId) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-    if (role !== "SUPER_ADMIN") {
+    if (user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const clerk = await clerkClient();
-    const clerkUser = await clerk.users.getUser(userId);
+    const clerkUser = await clerk.users.getUser(user.clerkId);
     const email = clerkUser.emailAddresses[0]?.emailAddress?.toLowerCase();
 
     if (!email) {
@@ -39,10 +39,10 @@ export async function GET() {
       );
     }
 
-    if (dbUser.clerkId !== userId) {
+    if (dbUser.clerkId !== user.clerkId) {
       await prisma.user.update({
         where: { email },
-        data: { clerkId: userId },
+        data: { clerkId: user.clerkId },
       });
     }
 
@@ -56,7 +56,7 @@ export async function GET() {
       metadataToSet.campusId = dbUser.campusId;
     }
 
-    await clerk.users.updateUser(userId, {
+    await clerk.users.updateUser(user.clerkId, {
       publicMetadata: metadataToSet,
     });
 

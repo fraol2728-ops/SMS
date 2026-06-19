@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser as getAuthorizedUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 
 const ok = { success: true as const };
@@ -66,10 +67,9 @@ export async function createEvent(formData: FormData) {
 
 export async function deleteEvent(eventId: string) {
   try {
-    const { userId, sessionClaims } = await auth();
-    if (!userId) return err("Not authenticated");
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-    if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) {
+    const user = await getAuthorizedUser();
+    if (!user) return err("Not authenticated");
+    if (!["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
       return err("Forbidden");
     }
 
@@ -85,10 +85,9 @@ export async function deleteEvent(eventId: string) {
 
 export async function updateEvent(eventId: string, formData: FormData) {
   try {
-    const { userId, sessionClaims } = await auth();
-    if (!userId) return err("Not authenticated");
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-    if (!role || !["ADMIN", "SUPER_ADMIN"].includes(role)) {
+    const user = await getAuthorizedUser();
+    if (!user) return err("Not authenticated");
+    if (!["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
       return err("Forbidden");
     }
 

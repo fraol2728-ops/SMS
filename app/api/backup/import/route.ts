@@ -1,7 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
 import { AssetCategory, AssetCondition, ClassType } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 
 const slugify = (value: string) =>
@@ -26,11 +26,10 @@ const enumValue = <T extends Record<string, string>>(
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, sessionClaims } = await auth();
-    if (!userId)
+    const currentUser = await getCurrentUser();
+    if (!currentUser)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const role = (sessionClaims?.metadata as any)?.role;
-    if (!["ADMIN", "SUPER_ADMIN"].includes(role))
+    if (!["ADMIN", "SUPER_ADMIN"].includes(currentUser.role))
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const formData = await req.formData();
@@ -52,12 +51,9 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
 
-    let effectiveCampusId = role === "SUPER_ADMIN" ? requestedCampusId : null;
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      select: { id: true, campusId: true },
-    });
-    if (role === "ADMIN") effectiveCampusId = user?.campusId ?? null;
+    let effectiveCampusId =
+      currentUser.role === "SUPER_ADMIN" ? requestedCampusId : null;
+    if (currentUser.role === "ADMIN") effectiveCampusId = currentUser.campusId;
     if (!effectiveCampusId && type !== "students")
       return NextResponse.json(
         { error: "Campus is required for this import" },
@@ -157,7 +153,7 @@ export async function POST(req: NextRequest) {
         }
       }
     } else if (type === "inventory") {
-      if (!user?.id)
+      if (!currentUser?.id)
         return NextResponse.json(
           { error: "User profile not found" },
           { status: 400 },
@@ -201,7 +197,7 @@ export async function POST(req: NextRequest) {
             await prisma.asset.update({ where: { id: existing.id }, data });
           else
             await prisma.asset.create({
-              data: { ...data, labId: lab.id, addedById: user.id },
+              data: { ...data, labId: lab.id, addedById: currentUser.id },
             });
           imported++;
         } catch (e) {

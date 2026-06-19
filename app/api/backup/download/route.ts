@@ -1,12 +1,11 @@
-import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { getBackupData } from "@/lib/actions/backup";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import {
   buildWorkbook,
   SHEET_CONVERTERS,
   workbookToBuffer,
 } from "@/lib/backup-excel";
-import { prisma } from "@/lib/prisma";
 
 const ALL_TYPES = [
   "students",
@@ -27,23 +26,19 @@ const ALL_TYPES = [
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId, sessionClaims } = await auth();
-    if (!userId)
+    const user = await getCurrentUser();
+    if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const role = (sessionClaims?.metadata as any)?.role;
-    if (!["ADMIN", "SUPER_ADMIN"].includes(role))
+    if (!["ADMIN", "SUPER_ADMIN"].includes(user.role))
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type") ?? "all";
     const requestedCampusId = searchParams.get("campusId") ?? null;
-    let effectiveCampusId = role === "SUPER_ADMIN" ? requestedCampusId : null;
-    if (role === "ADMIN") {
-      const user = await prisma.user.findUnique({
-        where: { clerkId: userId },
-        select: { campusId: true },
-      });
-      effectiveCampusId = user?.campusId ?? null;
+    let effectiveCampusId =
+      user.role === "SUPER_ADMIN" ? requestedCampusId : null;
+    if (user.role === "ADMIN") {
+      effectiveCampusId = user.campusId;
     }
     const date = new Date().toISOString().slice(0, 10);
 
