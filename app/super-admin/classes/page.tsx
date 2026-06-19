@@ -97,25 +97,38 @@ export default async function SuperAdminClassesPage({
     }),
   ]);
 
-  const courseStudentCounts = await Promise.all(
-    courses.map(async (course) => {
-      const activeStudents = await prisma.enrollment.count({
-        where: {
-          status: "ACTIVE",
-          class: { campusId: campusId ?? undefined, courseId: course.id },
-        },
-      });
-      const totalClasses = await prisma.class.count({
-        where: {
-          campusId: campusId ?? undefined,
-          courseId: course.id,
-          isActive: true,
-          status: "STARTED",
-        },
-      });
-      return { ...course, activeStudents, totalClasses };
+  const [activeStudentCounts, totalClassCounts] = await Promise.all([
+    prisma.enrollment.groupBy({
+      by: ["courseId"],
+      where: {
+        status: "ACTIVE",
+        class: { campusId: campusId ?? undefined },
+      },
+      _count: true,
     }),
+    prisma.class.groupBy({
+      by: ["courseId"],
+      where: {
+        campusId: campusId ?? undefined,
+        isActive: true,
+        status: "STARTED",
+      },
+      _count: true,
+    }),
+  ]);
+
+  const activeStudentsByCourse = new Map(
+    activeStudentCounts.map((count) => [count.courseId, count._count]),
   );
+  const totalClassesByCourse = new Map(
+    totalClassCounts.map((count) => [count.courseId, count._count]),
+  );
+
+  const courseStudentCounts = courses.map((course) => ({
+    ...course,
+    activeStudents: activeStudentsByCourse.get(course.id) ?? 0,
+    totalClasses: totalClassesByCourse.get(course.id) ?? 0,
+  }));
 
   const timeSlotCounts = await Promise.all(
     Object.keys(TIME_SLOTS).map(async (slot) => {
