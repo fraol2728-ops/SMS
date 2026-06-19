@@ -100,6 +100,7 @@ const NAV_GROUPS: { label: string; links: NavLink[] }[] = [
     links: [
       { href: "/admin/notifications", label: "Notifications", icon: Bell },
       { href: "/admin/events", label: "Events", icon: CalendarDays },
+      { href: "/admin/docs", label: "Docs", icon: BookOpen },
     ],
   },
 ];
