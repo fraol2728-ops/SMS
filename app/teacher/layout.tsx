@@ -9,8 +9,28 @@ export default async function TeacherLayout({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
-  if (user.role !== "TEACHER") redirect("/unauthorized");
+  if (!user) {
+    console.log("[LAYOUT:teacher]", {
+      reason: "no-db-user",
+      userId: user?.id,
+      clerkId: user?.clerkId,
+      role: user?.role,
+      pathname: "/teacher",
+      timestamp: new Date().toISOString(),
+    });
+    redirect("/sign-in");
+  }
+  if (user.role !== "TEACHER") {
+    console.log("[LAYOUT:teacher]", {
+      reason: "role-not-authorized",
+      userId: user.id,
+      clerkId: user.clerkId,
+      role: user.role,
+      pathname: "/teacher",
+      timestamp: new Date().toISOString(),
+    });
+    redirect("/unauthorized");
+  }
 
   const dbUser = await prisma.user.findUnique({
     where: { clerkId: user.clerkId },
@@ -32,7 +52,17 @@ export default async function TeacherLayout({
     },
   });
 
-  if (!dbUser) redirect("/unauthorized");
+  if (!dbUser) {
+    console.log("[LAYOUT:teacher]", {
+      reason: "no-teacher-db-user",
+      userId: user.id,
+      clerkId: user.clerkId,
+      role: user.role,
+      pathname: "/teacher",
+      timestamp: new Date().toISOString(),
+    });
+    redirect("/unauthorized");
+  }
 
   return (
     <TeacherShell
