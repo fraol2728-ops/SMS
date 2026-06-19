@@ -4,8 +4,8 @@ import {
   getFeedbackForEnrollment,
   shouldShowFeedbackModal,
 } from "@/lib/actions/feedback";
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { prisma } from "@/lib/prisma";
 
 const studentUserInclude = {
   studentProfile: {
@@ -34,8 +34,26 @@ export default async function StudentLayout({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) {
+    console.log("[LAYOUT:student]", {
+      reason: "no-db-user",
+      userId: user?.id,
+      clerkId: user?.clerkId,
+      role: user?.role,
+      pathname: "/student",
+      timestamp: new Date().toISOString(),
+    });
+    redirect("/sign-in");
+  }
   if (user.role !== "STUDENT") {
+    console.log("[LAYOUT:student]", {
+      reason: "role-not-authorized",
+      userId: user.id,
+      clerkId: user.clerkId,
+      role: user.role,
+      pathname: "/student",
+      timestamp: new Date().toISOString(),
+    });
     redirect("/unauthorized?reason=not-student");
   }
 
@@ -45,10 +63,27 @@ export default async function StudentLayout({
   });
 
   if (!dbUser) {
+    console.log("[LAYOUT:student]", {
+      reason: "no-student-db-user",
+      userId: user.id,
+      clerkId: user.clerkId,
+      role: user.role,
+      pathname: "/student",
+      timestamp: new Date().toISOString(),
+    });
     redirect("/unauthorized?reason=no-profile");
   }
 
   if (!dbUser.studentProfile) {
+    console.log("[LAYOUT:student]", {
+      reason: "no-student-profile",
+      userId: user.id,
+      dbUserId: dbUser.id,
+      clerkId: user.clerkId,
+      role: user.role,
+      pathname: "/student",
+      timestamp: new Date().toISOString(),
+    });
     redirect("/unauthorized?reason=no-profile");
   }
 
