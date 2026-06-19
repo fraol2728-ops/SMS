@@ -57,6 +57,7 @@ const CAMPUS_NAV = [
   { href: "/inventory", label: "Inventory", icon: Package },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/events", label: "Events", icon: CalendarDays },
+  { href: "/docs", label: "Docs", icon: BookOpen },
 ];
 
 const SUPER_ADMIN_NAV = [
