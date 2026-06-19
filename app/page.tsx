@@ -9,10 +9,50 @@ export default async function HomePage() {
     return <HomeClient />;
   }
 
-  if (user.role === "SUPER_ADMIN") redirect("/super-admin");
-  if (user.role === "ADMIN") redirect("/admin");
-  if (user.role === "TEACHER") redirect("/teacher");
-  if (user.role === "STUDENT") redirect("/student");
+  if (user.role === "SUPER_ADMIN") {
+    console.log("[LAYOUT:app/page]", {
+      reason: "role-redirect-super-admin",
+      userId: user.id,
+      clerkId: user.clerkId,
+      role: user.role,
+      pathname: "/",
+      timestamp: new Date().toISOString(),
+    });
+    redirect("/super-admin");
+  }
+  if (user.role === "ADMIN") {
+    console.log("[LAYOUT:app/page]", {
+      reason: "role-redirect-admin",
+      userId: user.id,
+      clerkId: user.clerkId,
+      role: user.role,
+      pathname: "/",
+      timestamp: new Date().toISOString(),
+    });
+    redirect("/admin");
+  }
+  if (user.role === "TEACHER") {
+    console.log("[LAYOUT:app/page]", {
+      reason: "role-redirect-teacher",
+      userId: user.id,
+      clerkId: user.clerkId,
+      role: user.role,
+      pathname: "/",
+      timestamp: new Date().toISOString(),
+    });
+    redirect("/teacher");
+  }
+  if (user.role === "STUDENT") {
+    console.log("[LAYOUT:app/page]", {
+      reason: "role-redirect-student",
+      userId: user.id,
+      clerkId: user.clerkId,
+      role: user.role,
+      pathname: "/",
+      timestamp: new Date().toISOString(),
+    });
+    redirect("/student");
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

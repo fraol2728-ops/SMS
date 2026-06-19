@@ -10,8 +10,28 @@ export default async function SuperAdminLayout({
 }) {
   const user = await getCurrentUser();
 
-  if (!user) redirect("/sign-in");
-  if (user.role !== "SUPER_ADMIN") redirect("/unauthorized");
+  if (!user) {
+    console.log("[LAYOUT:super-admin]", {
+      reason: "no-db-user",
+      userId: user?.id,
+      clerkId: user?.clerkId,
+      role: user?.role,
+      pathname: "/super-admin",
+      timestamp: new Date().toISOString(),
+    });
+    redirect("/sign-in");
+  }
+  if (user.role !== "SUPER_ADMIN") {
+    console.log("[LAYOUT:super-admin]", {
+      reason: "role-not-authorized",
+      userId: user.id,
+      clerkId: user.clerkId,
+      role: user.role,
+      pathname: "/super-admin",
+      timestamp: new Date().toISOString(),
+    });
+    redirect("/unauthorized");
+  }
 
   // NOTE: This layout NO LONGER creates or promotes users.
   // Super admin accounts must be created explicitly through an admin action,
