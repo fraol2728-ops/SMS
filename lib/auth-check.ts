@@ -7,9 +7,6 @@ export async function requireRole(roles: string[]) {
     console.log("[AUTH-CHECK:requireRole]", {
       reason: "no-db-user",
       roles,
-      userId: user?.id,
-      clerkId: user?.clerkId,
-      role: user?.role,
       pathname: "unknown",
       timestamp: new Date().toISOString(),
     });
