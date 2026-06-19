@@ -1,5 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +14,9 @@ type SearchResult = {
 
 export async function GET(req: Request) {
   try {
-    const { userId, sessionClaims } = await auth();
-    if (!userId) return NextResponse.json({ results: [] });
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-    if (!role || !["ADMIN", "SUPER_ADMIN", "TEACHER"].includes(role)) {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ results: [] });
+    if (!["ADMIN", "SUPER_ADMIN", "TEACHER"].includes(user.role)) {
       return NextResponse.json({ results: [] });
     }
 
@@ -32,7 +31,7 @@ export async function GET(req: Request) {
 
     if (portal === "teacher") {
       const teacher = await prisma.user.findUnique({
-        where: { clerkId: userId },
+        where: { clerkId: user.clerkId },
         include: {
           teacherProfile: {
             include: { classes: { select: { id: true } } },

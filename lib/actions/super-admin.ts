@@ -2,17 +2,17 @@
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 
 const ok = { success: true as const };
 const err = (error: string) => ({ success: false as const, error });
 
 async function requireSuperAdminAction() {
-  const { userId, sessionClaims } = await auth();
-  if (!userId) throw new Error("Not authenticated");
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
-  if (role !== "SUPER_ADMIN") throw new Error("Forbidden");
-  return userId;
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  if (user.role !== "SUPER_ADMIN") throw new Error("Forbidden");
+  return user.id;
 }
 
 export async function createCampus(formData: FormData) {

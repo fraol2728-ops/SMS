@@ -1,76 +1,21 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { SuperAdminShell } from "@/components/super-admin/layout/SuperAdminShell";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { prisma, withRetry } from "@/lib/prisma";
-
-const dbUserSelect = {
-  id: true,
-  firstName: true,
-  lastName: true,
-  email: true,
-  role: true,
-} as const;
 
 export default async function SuperAdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { userId, sessionClaims } = await auth();
-  if (!userId) redirect("/sign-in");
+  const user = await getCurrentUser();
 
-  const claims = sessionClaims as Record<string, unknown> | undefined;
-  const email = (claims?.email as string | undefined)?.toLowerCase();
-  const firstName = (claims?.first_name as string | undefined) ?? "Super";
-  const lastName = (claims?.last_name as string | undefined) ?? "Admin";
+  if (!user) redirect("/sign-in");
+  if (user.role !== "SUPER_ADMIN") redirect("/unauthorized");
 
-  let dbUser = await withRetry(() =>
-    prisma.user.findUnique({
-      where: { clerkId: userId },
-      select: dbUserSelect,
-    }),
-  ).catch(() => null);
-
-  if (!dbUser && email) {
-    const byEmail = await withRetry(() =>
-      prisma.user.findUnique({ where: { email } }),
-    ).catch(() => null);
-
-    if (byEmail) {
-      dbUser = await withRetry(() =>
-        prisma.user.update({
-          where: { email },
-          data: { clerkId: userId, role: "SUPER_ADMIN" },
-          select: dbUserSelect,
-        }),
-      ).catch(() => null);
-    } else {
-      dbUser = await withRetry(() =>
-        prisma.user.create({
-          data: {
-            clerkId: userId,
-            firstName,
-            lastName,
-            email,
-            role: "SUPER_ADMIN",
-          },
-          select: dbUserSelect,
-        }),
-      ).catch(() => null);
-    }
-  }
-
-  if (dbUser && dbUser.role !== "SUPER_ADMIN") {
-    dbUser = await withRetry(() =>
-      prisma.user.update({
-        where: { id: dbUser!.id },
-        data: { role: "SUPER_ADMIN" },
-        select: dbUserSelect,
-      }),
-    ).catch(() => dbUser);
-  }
-
-  if (!dbUser) redirect("/unauthorized");
+  // NOTE: This layout NO LONGER creates or promotes users.
+  // Super admin accounts must be created explicitly through an admin action,
+  // seed script, or controlled process — never automatically from rendering.
 
   const campuses = await withRetry(() =>
     prisma.campus.findMany({
@@ -81,16 +26,14 @@ export default async function SuperAdminLayout({
         name: true,
         color: true,
         _count: {
-          select: {
-            users: { where: { role: "STUDENT" } },
-          },
+          select: { users: { where: { role: "STUDENT" } } },
         },
       },
     }),
   ).catch(() => []);
 
   return (
-    <SuperAdminShell campuses={campuses} admin={dbUser}>
+    <SuperAdminShell campuses={campuses} admin={user}>
       {children}
     </SuperAdminShell>
   );
