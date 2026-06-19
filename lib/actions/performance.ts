@@ -79,34 +79,22 @@ function countOptions(
     .slice(0, 3);
 }
 
-export async function getTeacherPerformance(
-  teacherProfileId: string,
-): Promise<TeacherPerformance> {
-  const [classes, feedbacks, attendanceStats, enrollments] = await Promise.all([
-    prisma.class.findMany({
-      where: { teacherId: teacherProfileId, isActive: true },
-      select: { id: true },
-    }),
-    prisma.studentFeedback.findMany({
-      where: { class: { teacherId: teacherProfileId } },
-      select: {
-        rating: true,
-        ratedAt: true,
-        createdAt: true,
-        teacherFeedback: true,
-      },
-    }),
-    prisma.attendance.groupBy({
-      by: ["status"],
-      where: { class: { teacherId: teacherProfileId } },
-      _count: true,
-    }),
-    prisma.enrollment.findMany({
-      where: { class: { teacherId: teacherProfileId } },
-      select: { id: true, status: true, studentId: true },
-    }),
-  ]);
-
+function calculateTeacherPerformance({
+  classes,
+  feedbacks,
+  attendanceStats,
+  enrollments,
+}: {
+  classes: { id: string }[];
+  feedbacks: {
+    rating: number | null;
+    ratedAt: Date | null;
+    createdAt: Date;
+    teacherFeedback: string[];
+  }[];
+  attendanceStats: { status: string; _count: number }[];
+  enrollments: { id: string; status: string; studentId: string }[];
+}): TeacherPerformance {
   const rated = feedbacks.filter((f) => typeof f.rating === "number");
   const avgRating = rated.length
     ? rated.reduce((sum, f) => sum + (f.rating ?? 0), 0) / rated.length
@@ -216,17 +204,147 @@ export async function getTeacherPerformance(
   };
 }
 
+export async function getTeacherPerformance(
+  teacherProfileId: string,
+): Promise<TeacherPerformance> {
+  const [classes, feedbacks, attendanceStats, enrollments] = await Promise.all([
+    prisma.class.findMany({
+      where: { teacherId: teacherProfileId, isActive: true },
+      select: { id: true },
+    }),
+    prisma.studentFeedback.findMany({
+      where: { class: { teacherId: teacherProfileId } },
+      select: {
+        rating: true,
+        ratedAt: true,
+        createdAt: true,
+        teacherFeedback: true,
+      },
+    }),
+    prisma.attendance.groupBy({
+      by: ["status"],
+      where: { class: { teacherId: teacherProfileId } },
+      _count: true,
+    }),
+    prisma.enrollment.findMany({
+      where: { class: { teacherId: teacherProfileId } },
+      select: { id: true, status: true, studentId: true },
+    }),
+  ]);
+
+  return calculateTeacherPerformance({
+    classes,
+    feedbacks,
+    attendanceStats,
+    enrollments,
+  });
+}
+
 export async function getTopPerformingTeacher(campusId?: string) {
   const teachers = await prisma.teacherProfile.findMany({
     where: campusId ? { user: { campusId } } : undefined,
     include: { user: true },
   });
-  const scored = await Promise.all(
-    teachers.map(async (teacher) => ({
-      teacher,
-      performance: await getTeacherPerformance(teacher.id),
-    })),
-  );
+  const teacherIds = teachers.map((teacher) => teacher.id);
+
+  if (teacherIds.length === 0) return null;
+
+  const [classes, feedbacks, attendanceRecords, enrollments] =
+    await Promise.all([
+      prisma.class.findMany({
+        where: { teacherId: { in: teacherIds }, isActive: true },
+        select: { id: true, teacherId: true },
+      }),
+      prisma.studentFeedback.findMany({
+        where: { class: { teacherId: { in: teacherIds } } },
+        select: {
+          rating: true,
+          ratedAt: true,
+          createdAt: true,
+          teacherFeedback: true,
+          class: { select: { teacherId: true } },
+        },
+      }),
+      prisma.attendance.findMany({
+        where: { class: { teacherId: { in: teacherIds } } },
+        select: { status: true, class: { select: { teacherId: true } } },
+      }),
+      prisma.enrollment.findMany({
+        where: { class: { teacherId: { in: teacherIds } } },
+        select: {
+          id: true,
+          status: true,
+          studentId: true,
+          class: { select: { teacherId: true } },
+        },
+      }),
+    ]);
+
+  const classesByTeacher = new Map<string, { id: string }[]>();
+  const feedbacksByTeacher = new Map<string, typeof feedbacks>();
+  const attendanceByTeacher = new Map<
+    string,
+    Map<string, { status: string; _count: number }>
+  >();
+  const enrollmentsByTeacher = new Map<
+    string,
+    { id: string; status: string; studentId: string }[]
+  >();
+
+  for (const cls of classes) {
+    const teacherClasses = classesByTeacher.get(cls.teacherId) ?? [];
+    teacherClasses.push({ id: cls.id });
+    classesByTeacher.set(cls.teacherId, teacherClasses);
+  }
+
+  for (const feedback of feedbacks) {
+    const teacherId = feedback.class.teacherId;
+    const teacherFeedbacks = feedbacksByTeacher.get(teacherId) ?? [];
+    teacherFeedbacks.push(feedback);
+    feedbacksByTeacher.set(teacherId, teacherFeedbacks);
+  }
+
+  for (const record of attendanceRecords) {
+    if (!record.class) continue;
+
+    const teacherId = record.class.teacherId;
+    const teacherAttendance =
+      attendanceByTeacher.get(teacherId) ??
+      new Map<string, { status: string; _count: number }>();
+    const current = teacherAttendance.get(record.status) ?? {
+      status: record.status,
+      _count: 0,
+    };
+    current._count += 1;
+    teacherAttendance.set(record.status, current);
+    attendanceByTeacher.set(teacherId, teacherAttendance);
+  }
+
+  for (const enrollment of enrollments) {
+    if (!enrollment.class) continue;
+
+    const teacherId = enrollment.class.teacherId;
+    const teacherEnrollments = enrollmentsByTeacher.get(teacherId) ?? [];
+    teacherEnrollments.push({
+      id: enrollment.id,
+      status: enrollment.status,
+      studentId: enrollment.studentId,
+    });
+    enrollmentsByTeacher.set(teacherId, teacherEnrollments);
+  }
+
+  const scored = teachers.map((teacher) => ({
+    teacher,
+    performance: calculateTeacherPerformance({
+      classes: classesByTeacher.get(teacher.id) ?? [],
+      feedbacks: feedbacksByTeacher.get(teacher.id) ?? [],
+      attendanceStats: Array.from(
+        attendanceByTeacher.get(teacher.id)?.values() ?? [],
+      ),
+      enrollments: enrollmentsByTeacher.get(teacher.id) ?? [],
+    }),
+  }));
+
   return (
     scored
       .filter((item) => item.performance.hasData)

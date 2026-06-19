@@ -181,19 +181,24 @@ export default async function SuperAdminStudentsPage({
     },
   });
 
-  const courseStudentCounts = await Promise.all(
-    courses.map(async (course) => {
-      const studentCount = await prisma.studentProfile.count({
-        where: {
-          user: { ...(campusId ? { campusId } : {}), role: "STUDENT" },
-          enrollments: {
-            some: { status: "ACTIVE", class: { courseId: course.id } },
-          },
-        },
-      });
-      return { ...course, studentCount };
-    }),
+  const enrollmentCounts = await prisma.enrollment.groupBy({
+    by: ["courseId"],
+    where: {
+      status: "ACTIVE",
+      class: { ...(campusId ? { campusId } : {}) },
+      student: { user: { role: "STUDENT" } },
+    },
+    _count: { studentId: true },
+  });
+
+  const studentCountsByCourse = new Map(
+    enrollmentCounts.map((count) => [count.courseId, count._count.studentId]),
   );
+
+  const courseStudentCounts = courses.map((course) => ({
+    ...course,
+    studentCount: studentCountsByCourse.get(course.id) ?? 0,
+  }));
 
   return (
     <div className="space-y-6">
