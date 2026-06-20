@@ -60,6 +60,7 @@ export function AdminSidebarClient({
           <Link
             key={href}
             href={href}
+            prefetch={false}
             className={cn(
               "flex items-center gap-2 rounded px-3 py-2 text-sm",
               path === href

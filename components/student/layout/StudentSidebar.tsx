@@ -199,6 +199,7 @@ function SidebarContent({
             <Link
               key={href}
               href={href}
+              prefetch={false}
               className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
                 active
                   ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-200"

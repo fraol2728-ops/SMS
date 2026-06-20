@@ -137,6 +137,7 @@ export function CampusRail({
               <Link
                 href="/super-admin/campuses/new"
                 onClick={() => setShowPlusMenu(false)}
+                prefetch={false}
                 className="flex items-center gap-3 px-4 py-3 text-gray-300 text-sm transition-colors hover:bg-gray-700 hover:text-white"
               >
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-600">
@@ -147,6 +148,7 @@ export function CampusRail({
               <Link
                 href="/super-admin/admins/new"
                 onClick={() => setShowPlusMenu(false)}
+                prefetch={false}
                 className="flex items-center gap-3 border-gray-700 border-t px-4 py-3 text-gray-300 text-sm transition-colors hover:bg-gray-700 hover:text-white"
               >
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-600">
@@ -161,6 +163,7 @@ export function CampusRail({
         <Link
           href="/super-admin/settings"
           title="Settings"
+          prefetch={false}
           className="shrink-0"
         >
           <button
