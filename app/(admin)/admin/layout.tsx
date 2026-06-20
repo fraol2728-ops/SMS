@@ -14,9 +14,6 @@ export default async function AdminLayout({
   if (!user) {
     console.log("[LAYOUT:admin]", {
       reason: "no-db-user",
-      userId: user?.id,
-      clerkId: user?.clerkId,
-      role: user?.role,
       pathname: "/admin",
       timestamp: new Date().toISOString(),
     });
