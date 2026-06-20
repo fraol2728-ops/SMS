@@ -169,6 +169,7 @@ export function AdminSidebar({
                   }`}
                   href={href}
                   key={href}
+                  prefetch={false}
                   title={collapsed ? label : undefined}
                 >
                   <Icon
