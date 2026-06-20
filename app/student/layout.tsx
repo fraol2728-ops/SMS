@@ -37,9 +37,6 @@ export default async function StudentLayout({
   if (!user) {
     console.log("[LAYOUT:student]", {
       reason: "no-db-user",
-      userId: user?.id,
-      clerkId: user?.clerkId,
-      role: user?.role,
       pathname: "/student",
       timestamp: new Date().toISOString(),
     });

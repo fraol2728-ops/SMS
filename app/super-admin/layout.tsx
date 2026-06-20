@@ -13,9 +13,6 @@ export default async function SuperAdminLayout({
   if (!user) {
     console.log("[LAYOUT:super-admin]", {
       reason: "no-db-user",
-      userId: user?.id,
-      clerkId: user?.clerkId,
-      role: user?.role,
       pathname: "/super-admin",
       timestamp: new Date().toISOString(),
     });
