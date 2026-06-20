@@ -208,6 +208,7 @@ export function SuperAdminSidebar({
                 key={href}
                 href={fullHref}
                 onClick={onClose}
+                prefetch={false}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-sm transition-all ${
                   active
                     ? colors.active
@@ -239,6 +240,7 @@ export function SuperAdminSidebar({
                   key={href}
                   href={href}
                   onClick={onClose}
+                  prefetch={false}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-sm transition-all ${
                     active
                       ? "bg-purple-600 text-white"
