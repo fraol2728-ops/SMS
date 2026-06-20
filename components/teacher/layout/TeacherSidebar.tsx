@@ -115,6 +115,7 @@ export function TeacherSidebar({
             <Link
               key={href}
               href={href}
+              prefetch={false}
               title={collapsed ? label : undefined}
               className={`flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-3"} py-2.5 rounded-lg text-sm font-medium transition-all ${
                 active
