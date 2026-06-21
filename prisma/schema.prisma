@@ -160,6 +160,13 @@ enum RequestStatus {
   DECLINED
 }
 
+enum PostStatus {
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
 model Campus {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -178,6 +185,7 @@ model Campus {
   courseRequests       CourseRequest[]
   studentNotifications StudentNotification[]
   events               Event[]
+  telegramChannels     TelegramChannel[]
 }
 
 model Lab {
@@ -253,24 +261,24 @@ model Class {
 }
 
 model User {
-  id          String    @id @default(cuid())
-  clerkId     String    @unique
-  role        Role
-  firstName   String
-  lastName    String
-  email       String    @unique
-  phone       String?
-  telegram    String?
-  whatsapp    String?
-  avatar      String?
+  id           String    @id @default(cuid())
+  clerkId      String    @unique
+  role         Role
+  firstName    String
+  lastName     String
+  email        String    @unique
+  phone        String?
+  telegram     String?
+  whatsapp     String?
+  avatar       String?
   profilePhoto String?
-  gender      Gender?
-  dateOfBirth DateTime?
-  address     String?
-  campusId    String?
-  campus      Campus?   @relation(fields: [campusId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  gender       Gender?
+  dateOfBirth  DateTime?
+  address      String?
+  campusId     String?
+  campus       Campus?   @relation(fields: [campusId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   studentProfile StudentProfile?
   teacherProfile TeacherProfile?
@@ -296,6 +304,47 @@ model User {
   createdNotifications   StudentNotification[] @relation("NotificationCreator")
   createdEvents          Event[]               @relation("EventCreator")
   studentFeedbacks       StudentFeedback[]     @relation("StudentFeedbacks")
+  scheduledPosts         ScheduledPost[]       @relation("PostCreatedBy")
+  schedulerAccess        SchedulerAccess?
+}
+
+model TelegramChannel {
+  id        String          @id @default(cuid())
+  name      String
+  chatId    String
+  botToken  String
+  campusId  String?
+  campus    Campus?         @relation(fields: [campusId], references: [id])
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  posts     ScheduledPost[]
+}
+
+model ScheduledPost {
+  id           String          @id @default(cuid())
+  channelId    String
+  channel      TelegramChannel @relation(fields: [channelId], references: [id])
+  content      String
+  imageUrl     String?
+  scheduledFor DateTime
+  status       PostStatus      @default(SCHEDULED)
+  publishedAt  DateTime?
+  errorMessage String?
+  createdById  String
+  createdBy    User            @relation("PostCreatedBy", fields: [createdById], references: [id])
+  aiGenerated  Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model SchedulerAccess {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  canView     Boolean  @default(true)
+  canCreate   Boolean  @default(false)
+  grantedAt   DateTime @default(now())
+  grantedById String?
 }
 
 model Event {
@@ -331,18 +380,18 @@ model AdminSettings {
   dashboardCards         String[] @default(["students", "revenue", "classes", "teachers", "attendance"])
   dashboardDefaultView   String   @default("monthly")
   dashboardPinnedActions String[] @default(["add_student", "mark_attendance", "view_remaining"])
-  showTotalStudents    Boolean @default(true)
-  showActiveClasses    Boolean @default(true)
-  showMonthlyRevenue   Boolean @default(true)
-  showOutstanding      Boolean @default(true)
-  showAttendanceRate   Boolean @default(true)
-  showCertificates     Boolean @default(true)
-  pinnedActions        String[] @default([])
+  showTotalStudents      Boolean  @default(true)
+  showActiveClasses      Boolean  @default(true)
+  showMonthlyRevenue     Boolean  @default(true)
+  showOutstanding        Boolean  @default(true)
+  showAttendanceRate     Boolean  @default(true)
+  showCertificates       Boolean  @default(true)
+  pinnedActions          String[] @default([])
 
   // Notification preferences
   emailNotifications    Boolean @default(true)
-  emailOnPaymentDue    Boolean @default(true)
-  emailOnNewStudent    Boolean @default(true)
+  emailOnPaymentDue     Boolean @default(true)
+  emailOnNewStudent     Boolean @default(true)
   notifyOverduePayments Boolean @default(true)
   notifyTeacherReports  Boolean @default(true)
   notifyClassEndingSoon Boolean @default(true)
