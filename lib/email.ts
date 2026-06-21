@@ -75,7 +75,7 @@ export async function sendOverdueNotification(
         html: body,
       }),
     });
-  } catch (error) {
-    console.error("Failed to send email notification:", error);
+  } catch (_error) {
+    // Debug logging intentionally suppressed.
   }
 }

@@ -68,15 +68,15 @@ async function validateEmailDomain(domain: string): Promise<boolean> {
       // DNS lookup failed or timed out
       // For unknown domains, we'll be lenient and allow them
       // This prevents blocking legitimate corporate/custom domains
-      console.warn(`DNS lookup failed for ${domain}:`, dnsError);
+      // Debug logging intentionally suppressed.
 
       // Only reject if it looks like a clear invalid domain
       // (no TLD or obviously malformed)
       const hasValidTld = /\.\w{2,}$/.test(domain);
       return hasValidTld;
     }
-  } catch (error) {
-    console.error("Error validating email domain:", error);
+  } catch (_error) {
+    // Debug logging intentionally suppressed.
     // If all else fails, be lenient
     return true;
   }
@@ -137,8 +137,8 @@ export async function POST(request: Request) {
       available: true,
       message: "Email is valid and available",
     });
-  } catch (error) {
-    console.error("Error checking email:", error);
+  } catch (_error) {
+    // Debug logging intentionally suppressed.
     // On server error, be lenient and allow the email if format is valid
     return Response.json(
       { available: true, message: "Email validation passed" },

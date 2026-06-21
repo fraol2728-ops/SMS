@@ -11,22 +11,9 @@ export default async function SuperAdminLayout({
   const user = await getCurrentUser();
 
   if (!user) {
-    console.log("[LAYOUT:super-admin]", {
-      reason: "no-db-user",
-      pathname: "/super-admin",
-      timestamp: new Date().toISOString(),
-    });
     redirect("/sign-in");
   }
   if (user.role !== "SUPER_ADMIN") {
-    console.log("[LAYOUT:super-admin]", {
-      reason: "role-not-authorized",
-      userId: user.id,
-      clerkId: user.clerkId,
-      role: user.role,
-      pathname: "/super-admin",
-      timestamp: new Date().toISOString(),
-    });
     redirect("/unauthorized");
   }
 

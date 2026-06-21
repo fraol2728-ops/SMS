@@ -56,7 +56,7 @@ export function ProfilePhotoUpload({
 
       if (!res.ok) {
         const errData = await res.json();
-        console.error("Cloudinary error response:", errData);
+        // Debug logging intentionally suppressed.
         throw new Error(errData.error?.message ?? "Upload failed");
       }
 
@@ -64,7 +64,7 @@ export function ProfilePhotoUpload({
       setPreview(data.secure_url);
       onUpload(data.secure_url);
     } catch (e: any) {
-      console.error("Upload error:", e);
+      // Debug logging intentionally suppressed.
       setError(e?.message ?? "Upload failed — please try again");
     } finally {
       setUploading(false);

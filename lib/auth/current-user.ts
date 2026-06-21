@@ -17,17 +17,9 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const { userId } = await auth();
 
   if (!userId) {
-    console.log("[AUTH:getCurrentUser]", {
-      clerkUserId: userId,
-      dbUserFound: false,
-      dbUserRole: null,
-      prismaQueryMs: 0,
-      timestamp: new Date().toISOString(),
-    });
     return null;
   }
 
-  const queryStartedAt = Date.now();
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
     select: {
@@ -39,15 +31,6 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       lastName: true,
       email: true,
     },
-  });
-  const prismaQueryMs = Date.now() - queryStartedAt;
-
-  console.log("[AUTH:getCurrentUser]", {
-    clerkUserId: userId,
-    dbUserFound: !!user,
-    dbUserRole: user?.role ?? null,
-    prismaQueryMs,
-    timestamp: new Date().toISOString(),
   });
 
   return user;

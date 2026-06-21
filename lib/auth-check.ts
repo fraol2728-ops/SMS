@@ -4,24 +4,9 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 export async function requireRole(roles: string[]) {
   const user = await getCurrentUser();
   if (!user) {
-    console.log("[AUTH-CHECK:requireRole]", {
-      reason: "no-db-user",
-      roles,
-      pathname: "unknown",
-      timestamp: new Date().toISOString(),
-    });
     redirect("/sign-in");
   }
   if (!roles.includes(user.role)) {
-    console.log("[AUTH-CHECK:requireRole]", {
-      reason: "role-not-authorized",
-      roles,
-      userId: user.id,
-      clerkId: user.clerkId,
-      role: user.role,
-      pathname: "unknown",
-      timestamp: new Date().toISOString(),
-    });
     redirect("/unauthorized");
   }
   return user;
