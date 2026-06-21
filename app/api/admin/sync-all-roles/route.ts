@@ -115,7 +115,7 @@ export async function GET() {
       results,
     });
   } catch (error) {
-    console.error("Bulk sync error:", error);
+    // Debug logging intentionally suppressed.
     return NextResponse.json(
       {
         error: "Failed",

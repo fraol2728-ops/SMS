@@ -51,8 +51,8 @@ export async function GET(req: NextRequest) {
               name: t.charAt(0).toUpperCase() + t.slice(1),
               rows: SHEET_CONVERTERS[t]?.(data as any[]) ?? [],
             };
-          } catch (error) {
-            console.error(`Backup sheet error (${t}):`, error);
+          } catch (_error) {
+            // Debug logging intentionally suppressed.
             return { name: t, rows: [] };
           }
         }),
@@ -83,8 +83,8 @@ export async function GET(req: NextRequest) {
         "Content-Disposition": `attachment; filename="exceed-${type}-${date}.xlsx"`,
       },
     });
-  } catch (e) {
-    console.error("Backup download error:", e);
+  } catch (_e) {
+    // Debug logging intentionally suppressed.
     return NextResponse.json(
       { error: "Failed to generate backup" },
       { status: 500 },

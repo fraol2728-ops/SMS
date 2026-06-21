@@ -35,22 +35,9 @@ export default async function StudentLayout({
 }) {
   const user = await getCurrentUser();
   if (!user) {
-    console.log("[LAYOUT:student]", {
-      reason: "no-db-user",
-      pathname: "/student",
-      timestamp: new Date().toISOString(),
-    });
     redirect("/sign-in");
   }
   if (user.role !== "STUDENT") {
-    console.log("[LAYOUT:student]", {
-      reason: "role-not-authorized",
-      userId: user.id,
-      clerkId: user.clerkId,
-      role: user.role,
-      pathname: "/student",
-      timestamp: new Date().toISOString(),
-    });
     redirect("/unauthorized?reason=not-student");
   }
 
@@ -60,27 +47,10 @@ export default async function StudentLayout({
   });
 
   if (!dbUser) {
-    console.log("[LAYOUT:student]", {
-      reason: "no-student-db-user",
-      userId: user.id,
-      clerkId: user.clerkId,
-      role: user.role,
-      pathname: "/student",
-      timestamp: new Date().toISOString(),
-    });
     redirect("/unauthorized?reason=no-profile");
   }
 
   if (!dbUser.studentProfile) {
-    console.log("[LAYOUT:student]", {
-      reason: "no-student-profile",
-      userId: user.id,
-      dbUserId: dbUser.id,
-      clerkId: user.clerkId,
-      role: user.role,
-      pathname: "/student",
-      timestamp: new Date().toISOString(),
-    });
     redirect("/unauthorized?reason=no-profile");
   }
 

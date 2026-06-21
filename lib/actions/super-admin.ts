@@ -99,8 +99,8 @@ export async function createAdmin(formData: FormData) {
           ignoreExisting: true,
         });
       }
-    } catch (clerkError) {
-      console.error("Clerk error:", clerkError);
+    } catch (_clerkError) {
+      // Debug logging intentionally suppressed.
     }
 
     revalidatePath("/super-admin/admins");
@@ -161,7 +161,7 @@ export async function deleteAdmin(adminId: string) {
       if (admin.clerkId && !admin.clerkId.startsWith("pending_")) {
         await clerk.users.deleteUser(admin.clerkId);
       }
-    } catch (clerkError) {
+    } catch (_clerkError) {
       // Continue even if Clerk delete fails
     }
 

@@ -37,8 +37,8 @@ export async function GET(req: Request) {
         "Content-Disposition": `attachment; filename="${report.filename}"`,
       },
     });
-  } catch (error) {
-    console.error("Report generation error:", error);
+  } catch (_error) {
+    // Debug logging intentionally suppressed.
     return NextResponse.json(
       { error: "Failed to generate report" },
       { status: 500 },
