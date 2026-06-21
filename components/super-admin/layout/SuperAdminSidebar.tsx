@@ -23,6 +23,7 @@ import {
   MessageSquare,
   MessageSquarePlus,
   Package,
+  Send,
   Settings,
   Shield,
   UserMinus,
@@ -62,6 +63,7 @@ const CAMPUS_NAV = [
 
 const SUPER_ADMIN_NAV = [
   { href: "/super-admin/admins", label: "All Admins", icon: Shield },
+  { href: "/super-admin/scheduler", label: "Scheduler", icon: Send },
   {
     href: "/super-admin/campuses",
     label: "Campus Management",
