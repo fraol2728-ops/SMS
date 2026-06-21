@@ -208,8 +208,8 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ results });
-  } catch (error) {
-    console.error("Search error:", error);
+  } catch (_error) {
+    // Debug logging intentionally suppressed.
     return NextResponse.json({ results: [] });
   }
 }

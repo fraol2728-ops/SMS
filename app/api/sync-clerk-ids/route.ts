@@ -69,7 +69,7 @@ export async function GET() {
         "Please sign out and sign back in for the changes to take effect.",
     });
   } catch (error) {
-    console.error("Sync error:", error);
+    // Debug logging intentionally suppressed.
     return NextResponse.json(
       {
         error: "Failed to sync",

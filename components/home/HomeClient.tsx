@@ -97,23 +97,6 @@ export function HomeClient() {
           </p>
 
           {/* Feature pills */}
-          {/* <div className="flex flex-wrap gap-2 mb-8">
-            {[
-              "👥 Student Management",
-              "📚 Class Scheduling",
-              "✅ Attendance Tracking",
-              "💳 Payment System",
-              "📊 Reports",
-              "🏫 Multi-Campus",
-            ].map((feature) => (
-              <span
-                key={feature}
-                className="text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded-full border dark:border-gray-700"
-              >
-                {feature}
-              </span>
-            ))}
-          </div> */}
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">

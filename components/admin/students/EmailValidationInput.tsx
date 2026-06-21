@@ -69,8 +69,8 @@ export function EmailValidationInput({
           setStatus("invalid");
           setReason(data.reason || null);
         }
-      } catch (error) {
-        console.error("Error checking email:", error);
+      } catch (_error) {
+        // Debug logging intentionally suppressed.
         // If API fails, still allow the form to be submitted if format is valid
         setStatus("valid");
         setReason(null);
