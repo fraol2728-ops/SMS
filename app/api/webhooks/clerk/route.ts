@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
-    console.error("CLERK_WEBHOOK_SECRET not set");
+    // Debug logging intentionally suppressed.
     return NextResponse.json(
       { error: "Webhook secret not configured" },
       { status: 500 },
@@ -51,8 +51,8 @@ export async function POST(req: Request) {
       "svix-timestamp": svix_timestamp,
       "svix-signature": svix_signature,
     }) as ClerkWebhookEvent;
-  } catch (err) {
-    console.error("Webhook verification failed:", err);
+  } catch (_err) {
+    // Debug logging intentionally suppressed.
     return NextResponse.json(
       { error: "Invalid webhook signature" },
       { status: 400 },
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
     const email = email_addresses?.[0]?.email_address?.toLowerCase();
 
     if (!email) {
-      console.warn("No email found in webhook payload");
+      // Debug logging intentionally suppressed.
       return NextResponse.json({ received: true });
     }
 
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       });
 
       if (!dbUser) {
-        console.warn(`User not found in DB for email: ${email}`);
+        // Debug logging intentionally suppressed.
         return NextResponse.json({ received: true });
       }
 
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
         publicMetadata: metadataToSet,
       });
     } catch (error) {
-      console.error("Webhook processing error:", error);
+      // Debug logging intentionally suppressed.
       return NextResponse.json({ received: true, error: String(error) });
     }
   }

@@ -28,7 +28,7 @@ export function ServiceWorkerRegistration() {
             });
           })
           .catch((err) => {
-            console.warn("SW registration failed:", err);
+            // Debug logging intentionally suppressed.
           });
       };
 

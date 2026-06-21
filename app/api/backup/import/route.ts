@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
       message: `Import complete: ${imported} processed, ${skipped} skipped`,
     });
   } catch (e) {
-    console.error("Import error:", e);
+    // Debug logging intentionally suppressed.
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Import failed" },
       { status: 500 },

@@ -97,8 +97,8 @@ export async function GET() {
         "Content-Disposition": `attachment; filename="exceed-payments-${new Date().toISOString().slice(0, 10)}.xlsx"`,
       },
     });
-  } catch (error) {
-    console.error("Export error:", error);
+  } catch (_error) {
+    // Debug logging intentionally suppressed.
     return NextResponse.json({ error: "Export failed" }, { status: 500 });
   }
 }

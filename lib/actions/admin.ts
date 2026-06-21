@@ -708,7 +708,7 @@ export async function deleteStudent(userId: string) {
     revalidatePath("/super-admin/students");
     return ok;
   } catch (e) {
-    console.error("Delete student error:", e);
+    // Debug logging intentionally suppressed.
     return err(e instanceof Error ? e.message : "Failed to delete student");
   }
 }
@@ -1389,7 +1389,7 @@ export async function replyToReport(reportId: string, content: string) {
     });
     revalidatePath(`/admin/reports/${reportId}`);
     return ok;
-  } catch (_e) {
+  } catch (e) {
     return err("Failed");
   }
 }
@@ -1408,7 +1408,7 @@ export async function markReportRead(reportId: string) {
     }
     revalidatePath("/admin/reports");
     return { success: true as const };
-  } catch (_e) {
+  } catch (e) {
     return { success: false as const, error: "Failed" };
   }
 }
@@ -1424,7 +1424,7 @@ export async function dropEnrollment(enrollmentId: string) {
     });
     revalidatePath("/admin/students");
     return ok;
-  } catch (_e) {
+  } catch (e) {
     return err("Failed");
   }
 }
@@ -1433,7 +1433,7 @@ export async function dropEnrollmentFormAction(enrollmentId: string) {
   try {
     await dropEnrollment(enrollmentId);
   } catch (e) {
-    console.error("dropEnrollmentFormAction error:", e);
+    // Debug logging intentionally suppressed.
   }
 }
 
@@ -1445,7 +1445,7 @@ export async function toggleCourseStatus(courseId: string, isActive: boolean) {
     await prisma.course.update({ where: { id: courseId }, data: { isActive } });
     revalidatePath("/admin/courses");
     return ok;
-  } catch (_e) {
+  } catch (e) {
     return err("Failed");
   }
 }

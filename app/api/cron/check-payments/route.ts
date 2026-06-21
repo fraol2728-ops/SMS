@@ -71,8 +71,8 @@ export async function GET(req: Request) {
       success: true,
       message: "Payment notifications sent",
     });
-  } catch (error) {
-    console.error("Cron job error:", error);
+  } catch (_error) {
+    // Debug logging intentionally suppressed.
     return NextResponse.json({ error: "Cron job failed" }, { status: 500 });
   }
 }
