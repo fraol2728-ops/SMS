@@ -97,7 +97,7 @@ export function HomeClient() {
           </p>
 
           {/* Feature pills */}
-          <div className="flex flex-wrap gap-2 mb-8">
+          {/* <div className="flex flex-wrap gap-2 mb-8">
             {[
               "👥 Student Management",
               "📚 Class Scheduling",
@@ -113,7 +113,7 @@ export function HomeClient() {
                 {feature}
               </span>
             ))}
-          </div>
+          </div> */}
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
