@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 
 const ok = { success: true as const };
@@ -36,6 +37,11 @@ export async function publishToTelegram(
   content: string,
   imageUrl?: string,
 ) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "SUPER_ADMIN") {
+    throw new Error("Unauthorized");
+  }
+
   try {
     const channel = await prisma.telegramChannel.findUnique({
       where: { id: channelId },
