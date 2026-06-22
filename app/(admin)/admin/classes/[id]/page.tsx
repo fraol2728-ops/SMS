@@ -11,11 +11,11 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClassStatusControls } from "@/components/admin/classes/ClassStatusControls";
+import { DropEnrollmentButton } from "@/components/admin/classes/DropEnrollmentButton";
 import { DeleteConfirmDialog } from "@/components/admin/shared/DeleteConfirmDialog";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { dropEnrollmentFormAction } from "@/lib/actions/admin";
 import { requireAdmin } from "@/lib/auth-check";
 import { CLASS_DAYS, TIME_SLOTS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -391,16 +391,9 @@ export default async function ClassDetailPage({
                                 View
                               </Link>
                             </Button>
-                            <form
-                              action={dropEnrollmentFormAction.bind(
-                                null,
-                                enrollment.id,
-                              )}
-                            >
-                              <Button type="submit" size="sm" variant="outline">
-                                Drop
-                              </Button>
-                            </form>
+                            <DropEnrollmentButton
+                              enrollmentId={enrollment.id}
+                            />
                           </div>
                         </td>
                       </tr>
