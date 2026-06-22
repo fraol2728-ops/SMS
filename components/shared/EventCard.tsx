@@ -2,6 +2,7 @@
 
 import { Clock, MapPin, Users } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 interface EventCardProps {
   event: {
@@ -26,13 +27,27 @@ export function EventCard({
   onDelete,
   isAdmin,
 }: EventCardProps) {
-  const eventDate = new Date(event.date);
-  const now = new Date();
-  const isPast = eventDate < now;
-  const isToday = eventDate.toDateString() === now.toDateString();
-  const daysUntil = Math.ceil(
-    (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const [mounted, setMounted] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [eventDate, setEventDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setCurrentDate(new Date());
+    setEventDate(new Date(event.date));
+  }, [event.date]);
+
+  const isPast = currentDate && eventDate ? eventDate < currentDate : false;
+  const isToday =
+    currentDate && eventDate
+      ? eventDate.toDateString() === currentDate.toDateString()
+      : false;
+  const daysUntil =
+    currentDate && eventDate
+      ? Math.ceil(
+          (eventDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24),
+        )
+      : 0;
 
   return (
     <div
@@ -50,24 +65,28 @@ export function EventCard({
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
           <div className="absolute top-3 left-3 rounded-xl bg-white px-3 py-1.5 shadow-sm dark:bg-gray-900">
             <p className="font-bold text-gray-900 text-xs dark:text-white">
-              {eventDate.toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-              })}
+              {mounted && eventDate
+                ? eventDate.toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                  })
+                : ""}
             </p>
-            <p className="text-gray-400 text-xs">{eventDate.getFullYear()}</p>
+            <p className="text-gray-400 text-xs">
+              {mounted && eventDate ? eventDate.getFullYear() : ""}
+            </p>
           </div>
-          {isToday && (
+          {mounted && isToday && (
             <div className="absolute top-3 right-3 rounded-full bg-green-500 px-3 py-1 font-bold text-white text-xs">
               TODAY
             </div>
           )}
-          {!isPast && !isToday && daysUntil <= 7 && (
+          {mounted && !isPast && !isToday && daysUntil <= 7 && (
             <div className="absolute top-3 right-3 rounded-full bg-amber-500 px-3 py-1 font-bold text-white text-xs">
               {daysUntil}d away
             </div>
           )}
-          {isPast && (
+          {mounted && isPast && (
             <div className="absolute top-3 right-3 rounded-full bg-gray-500 px-3 py-1 font-bold text-white text-xs">
               PAST
             </div>
@@ -78,14 +97,16 @@ export function EventCard({
           <span className="text-5xl">🎉</span>
           <div className="absolute top-3 left-3 rounded-xl bg-white/20 px-3 py-1.5 backdrop-blur-sm">
             <p className="font-bold text-white text-xs">
-              {eventDate.toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
+              {mounted && eventDate
+                ? eventDate.toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : ""}
             </p>
           </div>
-          {isToday && (
+          {mounted && isToday && (
             <div className="absolute top-3 right-3 rounded-full bg-green-500 px-3 py-1 font-bold text-white text-xs">
               TODAY
             </div>

@@ -2,7 +2,7 @@
 
 import { BookOpen, Calendar, Clock, MapPin, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,13 @@ export function EventForm({
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [targetAll, setTargetAll] = useState(true);
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setCurrentDate(new Date());
+  }, []);
 
   function toggleClass(id: string) {
     setSelectedClassIds((prev) =>
@@ -105,7 +112,11 @@ export function EventForm({
             name="date"
             type="date"
             required
-            min={new Date().toISOString().slice(0, 10)}
+            min={
+              mounted && currentDate
+                ? currentDate.toISOString().slice(0, 10)
+                : ""
+            }
             className="h-10 w-full rounded-xl border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
           />
         </div>
