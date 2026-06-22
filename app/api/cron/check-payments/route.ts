@@ -6,6 +6,9 @@ export const dynamic = "force-dynamic";
 
 // This route is called by Vercel Cron daily at 8am.
 export async function GET(req: Request) {
+  if (!process.env.CRON_SECRET)
+    return new Response("Server misconfiguration", { status: 500 });
+
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
