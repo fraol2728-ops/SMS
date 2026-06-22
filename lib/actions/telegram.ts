@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { decryptToken, encryptToken } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
 
 const ok = { success: true as const };
@@ -48,9 +49,10 @@ export async function publishToTelegram(
     });
     if (!channel) return err("Channel not found");
 
+    const botToken = decryptToken(channel.botToken);
     const endpoint = imageUrl
-      ? `https://api.telegram.org/bot${channel.botToken}/sendPhoto`
-      : `https://api.telegram.org/bot${channel.botToken}/sendMessage`;
+      ? `https://api.telegram.org/bot${botToken}/sendPhoto`
+      : `https://api.telegram.org/bot${botToken}/sendMessage`;
     const body = imageUrl
       ? { chat_id: channel.chatId, photo: imageUrl, caption: content }
       : { chat_id: channel.chatId, text: content };
@@ -151,7 +153,7 @@ export async function createTelegramChannel(formData: FormData) {
       data: {
         name: name.trim(),
         chatId: chatId.trim(),
-        botToken: botToken.trim(),
+        botToken: encryptToken(botToken.trim()),
         campusId: campusId || null,
       },
     });
