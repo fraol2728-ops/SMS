@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 
 async function getCampusId(): Promise<string | null> {
@@ -14,6 +15,12 @@ async function getCampusId(): Promise<string | null> {
 }
 
 export async function getBackupData(type: string, campusId?: string | null) {
+  const user = await getCurrentUser();
+  if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+    throw new Error("Unauthorized");
+  }
+  if (user.role !== "SUPER_ADMIN") campusId = user.campusId;
+
   const effectiveCampusId = campusId ?? (await getCampusId());
   const userFilter = effectiveCampusId ? { campusId: effectiveCampusId } : {};
   const classFilter = effectiveCampusId

@@ -42,6 +42,16 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
 
+    const isXlsx =
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      (file.type === "application/octet-stream" &&
+        file.name.toLowerCase().endsWith(".xlsx"));
+    const maxFileSize = 10 * 1024 * 1024;
+    if (!isXlsx || file.size > maxFileSize) {
+      return NextResponse.json({ error: "Invalid file" }, { status: 400 });
+    }
+
     const wb = XLSX.read(await file.arrayBuffer(), { type: "buffer" });
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows: any[] = XLSX.utils.sheet_to_json(ws);
