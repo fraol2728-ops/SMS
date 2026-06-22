@@ -3,6 +3,9 @@ import { publishToTelegram } from "@/lib/actions/telegram";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
+  if (!process.env.CRON_SECRET)
+    return new Response("Server misconfiguration", { status: 500 });
+
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`)
     return new NextResponse("Unauthorized", { status: 401 });
