@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { requireSuperAdmin } from "@/lib/auth-check";
 import { prisma } from "@/lib/prisma";
@@ -105,6 +105,11 @@ export default async function SuperAdminCampusesPage() {
             </div>
           </div>
         ))}
+        {campuses.length === 0 && (
+          <div className="rounded-2xl border border-gray-200 bg-white py-16 text-center text-gray-400 dark:border-gray-700 dark:bg-gray-900 md:col-span-2">
+            No campuses found. Add your first campus to get started.
+          </div>
+        )}
       </div>
     </div>
   );

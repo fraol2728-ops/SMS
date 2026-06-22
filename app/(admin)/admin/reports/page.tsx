@@ -55,6 +55,11 @@ export default async function ReportsPage() {
             </div>
           </Link>
         ))}
+        {reports.length === 0 && (
+          <div className="rounded-xl border bg-white p-8 text-center text-muted-foreground">
+            No reports found.
+          </div>
+        )}
       </div>
       <ReportGenerator />
     </div>

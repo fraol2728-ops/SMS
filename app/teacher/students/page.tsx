@@ -170,6 +170,11 @@ export default async function TeacherStudentsPage() {
           </table>
         </div>
       </div>
+      {allEnrollments.length === 0 && (
+        <div className="rounded-xl border bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+          No students assigned yet.
+        </div>
+      )}
     </div>
   );
 }

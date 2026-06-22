@@ -3,6 +3,7 @@
 import { UserButton } from "@clerk/nextjs";
 import { Bell, Menu } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export function StudentHeader({
   user,
@@ -13,10 +14,23 @@ export function StudentHeader({
   unreadCount: number;
   onMenuClick: () => void;
 }) {
-  const now = new Date();
-  const hour = now.getHours();
+  const [mounted, setMounted] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setCurrentDate(new Date());
+  }, []);
+
+  const hour = currentDate?.getHours();
   const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    hour == null
+      ? ""
+      : hour < 12
+        ? "Good morning"
+        : hour < 17
+          ? "Good afternoon"
+          : "Good evening";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-100 bg-white/80 px-4 backdrop-blur-sm sm:px-6">
@@ -30,14 +44,16 @@ export function StudentHeader({
         </button>
         <div className="hidden sm:block">
           <p className="text-sm font-semibold text-gray-900">
-            {greeting}, {user.firstName} 👋
+            {mounted && currentDate ? `${greeting}, ${user.firstName} 👋` : ""}
           </p>
           <p className="text-xs text-gray-400">
-            {now.toLocaleDateString("en-GB", {
-              weekday: "long",
-              day: "2-digit",
-              month: "long",
-            })}
+            {mounted && currentDate
+              ? currentDate.toLocaleDateString("en-GB", {
+                  weekday: "long",
+                  day: "2-digit",
+                  month: "long",
+                })
+              : ""}
           </p>
         </div>
       </div>

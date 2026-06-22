@@ -131,9 +131,8 @@ export default async function TeachersPage() {
           );
         })}
         {teachers.length === 0 && (
-          <div className="py-16 text-center text-gray-400 sm:col-span-2 lg:col-span-3 rounded-3xl border bg-white dark:border-gray-700 dark:bg-gray-900">
-            <p className="mb-3 text-4xl">👨‍🏫</p>
-            <p className="font-semibold">No teachers yet</p>
+          <div className="rounded-3xl border bg-white py-16 text-center text-gray-400 dark:border-gray-700 dark:bg-gray-900 sm:col-span-2 lg:col-span-3">
+            No teachers found.
           </div>
         )}
       </div>
