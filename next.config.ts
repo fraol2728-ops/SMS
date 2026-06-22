@@ -5,7 +5,11 @@ function validateEnv() {
   const required = [
     "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
     "CLERK_SECRET_KEY",
+    "CLERK_WEBHOOK_SECRET",
     "DATABASE_URL",
+    "NEXT_PUBLIC_APP_URL",
+    "CRON_SECRET",
+    "TELEGRAM_TOKEN_SECRET",
   ];
 
   const missing = required.filter((env) => !process.env[env]);
@@ -13,7 +17,8 @@ function validateEnv() {
   if (missing.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missing.join(", ")}. ` +
-        `Please check your .env.local file.`
+        `Please check your deployment platform environment settings ` +
+        `(or .env.local for local development).`,
     );
   }
 }
@@ -61,6 +66,15 @@ const nextConfig: NextConfig = {
           {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains",
+          },
+          {
+            key: "Content-Security-Policy",
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.com https://*.clerk.accounts.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://res.cloudinary.com https://cdn.sanity.io; font-src 'self'; connect-src 'self' https://clerk.com https://*.clerk.accounts.dev; frame-src https://clerk.com https://*.clerk.accounts.dev;",
           },
         ],
       },
