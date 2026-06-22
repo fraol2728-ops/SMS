@@ -1,4 +1,9 @@
-import { AssetCategory, AssetCondition, ClassType } from "@prisma/client";
+import {
+  AssetCategory,
+  AssetCondition,
+  ClassType,
+  type Prisma,
+} from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -75,6 +80,22 @@ export async function POST(req: NextRequest) {
     const errors: string[] = [];
 
     if (type === "students") {
+      const allStudentCodes = Array.from(
+        new Set(
+          rows
+            .map((row) => row["Student Code"]?.toString().trim())
+            .filter(Boolean),
+        ),
+      );
+      const existingStudents = await prisma.studentProfile.findMany({
+        where: { studentCode: { in: allStudentCodes } },
+        include: { user: true },
+      });
+      const studentsByCode = new Map(
+        existingStudents.map((student) => [student.studentCode, student]),
+      );
+      const updateOperations: Prisma.PrismaPromise<unknown>[] = [];
+
       for (const row of rows) {
         try {
           const studentCode = row["Student Code"]?.toString().trim();
@@ -87,9 +108,7 @@ export async function POST(req: NextRequest) {
             );
             continue;
           }
-          const existing = await prisma.studentProfile.findUnique({
-            where: { studentCode },
-          });
+          const existing = studentsByCode.get(studentCode);
           if (!existing) {
             skipped++;
             errors.push(
@@ -97,26 +116,28 @@ export async function POST(req: NextRequest) {
             );
             continue;
           }
-          await prisma.user.update({
-            where: { id: existing.userId },
-            data: {
-              firstName,
-              lastName,
-              phone: row["Phone"]?.toString().trim() || null,
-              email: row["Email"]?.toString().trim() || undefined,
-              address: row["Address"]?.toString().trim() || null,
-              telegram: row["Telegram"]?.toString().trim() || null,
-              whatsapp: row["WhatsApp"]?.toString().trim() || null,
-            },
-          });
-          await prisma.studentProfile.update({
-            where: { id: existing.id },
-            data: {
-              guardianName: row["Guardian Name"]?.toString().trim() || null,
-              guardianPhone: row["Guardian Phone"]?.toString().trim() || null,
-              notes: row["Notes"]?.toString().trim() || null,
-            },
-          });
+          updateOperations.push(
+            prisma.user.update({
+              where: { id: existing.userId },
+              data: {
+                firstName,
+                lastName,
+                phone: row["Phone"]?.toString().trim() || null,
+                email: row["Email"]?.toString().trim() || undefined,
+                address: row["Address"]?.toString().trim() || null,
+                telegram: row["Telegram"]?.toString().trim() || null,
+                whatsapp: row["WhatsApp"]?.toString().trim() || null,
+              },
+            }),
+            prisma.studentProfile.update({
+              where: { id: existing.id },
+              data: {
+                guardianName: row["Guardian Name"]?.toString().trim() || null,
+                guardianPhone: row["Guardian Phone"]?.toString().trim() || null,
+                notes: row["Notes"]?.toString().trim() || null,
+              },
+            }),
+          );
           imported++;
         } catch (e) {
           skipped++;
@@ -125,7 +146,23 @@ export async function POST(req: NextRequest) {
           );
         }
       }
+
+      if (updateOperations.length > 0) {
+        await prisma.$transaction(updateOperations);
+      }
     } else if (type === "courses") {
+      const allTitles = Array.from(
+        new Set(
+          rows.map((row) => row["Title"]?.toString().trim()).filter(Boolean),
+        ),
+      );
+      const existingCourses = await prisma.course.findMany({
+        where: { title: { in: allTitles }, campusId: effectiveCampusId! },
+      });
+      const coursesByTitle = new Map(
+        existingCourses.map((course) => [course.title, course]),
+      );
+
       for (const row of rows) {
         try {
           const title = row["Title"]?.toString().trim();
@@ -133,9 +170,7 @@ export async function POST(req: NextRequest) {
             skipped++;
             continue;
           }
-          const existing = await prisma.course.findFirst({
-            where: { title, campusId: effectiveCampusId! },
-          });
+          const existing = coursesByTitle.get(title);
           const baseSlug = slugify(title);
           const data = {
             title,
@@ -153,7 +188,10 @@ export async function POST(req: NextRequest) {
           };
           if (existing)
             await prisma.course.update({ where: { id: existing.id }, data });
-          else await prisma.course.create({ data });
+          else {
+            const created = await prisma.course.create({ data });
+            coursesByTitle.set(created.title, created);
+          }
           imported++;
         } catch (e) {
           skipped++;
@@ -177,6 +215,22 @@ export async function POST(req: NextRequest) {
           { error: "No lab found for selected campus" },
           { status: 400 },
         );
+      const allSerialNumbers = Array.from(
+        new Set(
+          rows
+            .map((row) => row["Serial Number"]?.toString().trim())
+            .filter(Boolean),
+        ),
+      );
+      const existingAssets = await prisma.asset.findMany({
+        where: { serialNumber: { in: allSerialNumbers } },
+      });
+      const assetsBySerialNumber = new Map(
+        existingAssets.flatMap((asset) =>
+          asset.serialNumber ? [[asset.serialNumber, asset]] : [],
+        ),
+      );
+
       for (const row of rows) {
         try {
           const name = row["Name"]?.toString().trim();
@@ -186,7 +240,7 @@ export async function POST(req: NextRequest) {
           }
           const serialNumber = row["Serial Number"]?.toString().trim() || null;
           const existing = serialNumber
-            ? await prisma.asset.findUnique({ where: { serialNumber } })
+            ? assetsBySerialNumber.get(serialNumber)
             : await prisma.asset.findFirst({ where: { name, labId: lab.id } });
           const data = {
             name,
@@ -205,10 +259,14 @@ export async function POST(req: NextRequest) {
           };
           if (existing)
             await prisma.asset.update({ where: { id: existing.id }, data });
-          else
-            await prisma.asset.create({
+          else {
+            const created = await prisma.asset.create({
               data: { ...data, labId: lab.id, addedById: currentUser.id },
             });
+            if (created.serialNumber) {
+              assetsBySerialNumber.set(created.serialNumber, created);
+            }
+          }
           imported++;
         } catch (e) {
           skipped++;
