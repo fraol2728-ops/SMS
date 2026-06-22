@@ -2,6 +2,7 @@
 
 import { UserButton } from "@clerk/nextjs";
 import { Bell, Menu } from "lucide-react";
+import { useEffect, useState } from "react";
 import { SuperAdminSearchWrapper } from "./SuperAdminSearchWrapper";
 
 type Campus = { id: string; name: string; color: string };
@@ -27,7 +28,13 @@ export function SuperAdminHeader({
   admin: Admin;
   onMenuClick: () => void;
 }) {
-  const now = new Date();
+  const [mounted, setMounted] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setCurrentDate(new Date());
+  }, []);
 
   return (
     <header className="sticky top-14 z-20 flex h-16 flex-shrink-0 items-center gap-3 border-gray-200 border-b bg-white px-4 dark:border-gray-700 dark:bg-gray-900 sm:px-6 lg:top-0">
@@ -52,12 +59,14 @@ export function SuperAdminHeader({
             </span>
           </div>
           <p className="mt-0.5 hidden text-gray-400 text-xs sm:block">
-            {now.toLocaleDateString("en-GB", {
-              weekday: "long",
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-            })}
+            {mounted && currentDate
+              ? currentDate.toLocaleDateString("en-GB", {
+                  weekday: "long",
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })
+              : ""}
           </p>
         </div>
       </div>

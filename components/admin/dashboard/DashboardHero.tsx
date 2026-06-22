@@ -1,5 +1,8 @@
+"use client";
+
 import { ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export function DashboardHero({
   campusName,
@@ -10,7 +13,15 @@ export function DashboardHero({
   adminName: string;
   dateLabel: string;
 }) {
-  const greeting = getGreeting();
+  const [mounted, setMounted] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setCurrentDate(new Date());
+  }, []);
+
+  const greeting = getGreeting(currentDate);
   const firstName = adminName.split(" ")[0];
 
   return (
@@ -22,7 +33,13 @@ export function DashboardHero({
         <div>
           <p className="text-gray-400 text-sm">{dateLabel}</p>
           <h1 className="mt-1 font-black text-3xl text-white tracking-tight sm:text-4xl">
-            {greeting}, <span className="text-blue-400">{firstName}</span>
+            {mounted && currentDate ? (
+              <>
+                {greeting}, <span className="text-blue-400">{firstName}</span>
+              </>
+            ) : (
+              ""
+            )}
           </h1>
           <p className="mt-1 text-gray-400 text-sm">
             {campusName
@@ -55,8 +72,9 @@ export function DashboardHero({
   );
 }
 
-function getGreeting() {
-  const hour = new Date().getHours();
+function getGreeting(currentDate: Date | null) {
+  if (!currentDate) return "";
+  const hour = currentDate.getHours();
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
