@@ -1,3 +1,4 @@
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 // List of disposable/temporary email domains
@@ -83,6 +84,11 @@ async function validateEmailDomain(domain: string): Promise<boolean> {
 }
 
 export async function POST(request: Request) {
+  const { userId } = await auth();
+  if (!userId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { email } = await request.json();
 
