@@ -24,12 +24,13 @@ export function AdminHeader({
   onMenuClick?: () => void;
   settings: any;
 }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   function openSidebar() {
     if (onMenuClick) onMenuClick();
     else document.getElementById("sidebar-toggle")?.click();
   }
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const now = new Date();
 
   return (

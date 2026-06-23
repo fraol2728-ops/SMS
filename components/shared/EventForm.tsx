@@ -32,11 +32,11 @@ export function EventForm({
   const [targetAll, setTargetAll] = useState(true);
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
   const [mounted, setMounted] = useState(false);
-  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    setCurrentDate(new Date());
+    setNow(new Date());
   }, []);
 
   function toggleClass(id: string) {
@@ -113,9 +113,7 @@ export function EventForm({
             type="date"
             required
             min={
-              mounted && currentDate
-                ? currentDate.toISOString().slice(0, 10)
-                : ""
+              mounted && now ? now.toISOString().slice(0, 10) : ""
             }
             className="h-10 w-full rounded-xl border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
           />

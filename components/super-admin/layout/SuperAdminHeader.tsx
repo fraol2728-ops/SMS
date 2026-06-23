@@ -29,11 +29,11 @@ export function SuperAdminHeader({
   onMenuClick: () => void;
 }) {
   const [mounted, setMounted] = useState(false);
-  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    setCurrentDate(new Date());
+    setNow(new Date());
   }, []);
 
   return (
@@ -59,8 +59,8 @@ export function SuperAdminHeader({
             </span>
           </div>
           <p className="mt-0.5 hidden text-gray-400 text-xs sm:block">
-            {mounted && currentDate
-              ? currentDate.toLocaleDateString("en-GB", {
+            {mounted && now
+              ? now.toLocaleDateString("en-GB", {
                   weekday: "long",
                   day: "2-digit",
                   month: "long",

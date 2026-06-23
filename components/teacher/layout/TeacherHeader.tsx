@@ -14,14 +14,14 @@ export function TeacherHeader({
   onMenuClick?: () => void;
 }) {
   const [mounted, setMounted] = useState(false);
-  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    setCurrentDate(new Date());
+    setNow(new Date());
   }, []);
 
-  const hour = currentDate?.getHours();
+  const hour = now?.getHours();
   const greeting =
     hour == null
       ? ""
@@ -47,11 +47,11 @@ export function TeacherHeader({
         </button>
         <div className="hidden sm:block">
           <p className="text-sm font-medium text-gray-900 dark:text-white">
-            {mounted && currentDate ? `${greeting}, ${teacher.firstName}` : ""}
+            {mounted && now ? `${greeting}, ${teacher.firstName}` : ""}
           </p>
           <p className="text-xs text-gray-400">
-            {mounted && currentDate
-              ? currentDate.toLocaleDateString("en-GB", {
+            {mounted && now
+              ? now.toLocaleDateString("en-GB", {
                   weekday: "long",
                   day: "2-digit",
                   month: "long",

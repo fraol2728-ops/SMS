@@ -14,14 +14,14 @@ export function DashboardHero({
   dateLabel: string;
 }) {
   const [mounted, setMounted] = useState(false);
-  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    setCurrentDate(new Date());
+    setNow(new Date());
   }, []);
 
-  const greeting = getGreeting(currentDate);
+  const greeting = getGreeting(now);
   const firstName = adminName.split(" ")[0];
 
   return (
@@ -33,7 +33,7 @@ export function DashboardHero({
         <div>
           <p className="text-gray-400 text-sm">{dateLabel}</p>
           <h1 className="mt-1 font-black text-3xl text-white tracking-tight sm:text-4xl">
-            {mounted && currentDate ? (
+            {mounted && now ? (
               <>
                 {greeting}, <span className="text-blue-400">{firstName}</span>
               </>

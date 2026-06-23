@@ -28,24 +28,22 @@ export function EventCard({
   isAdmin,
 }: EventCardProps) {
   const [mounted, setMounted] = useState(false);
-  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
   const [eventDate, setEventDate] = useState<Date | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    setCurrentDate(new Date());
+    setNow(new Date());
     setEventDate(new Date(event.date));
   }, [event.date]);
 
-  const isPast = currentDate && eventDate ? eventDate < currentDate : false;
+  const isPast = now && eventDate ? eventDate < now : false;
   const isToday =
-    currentDate && eventDate
-      ? eventDate.toDateString() === currentDate.toDateString()
-      : false;
+    now && eventDate ? eventDate.toDateString() === now.toDateString() : false;
   const daysUntil =
-    currentDate && eventDate
+    now && eventDate
       ? Math.ceil(
-          (eventDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24),
+          (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
         )
       : 0;
 

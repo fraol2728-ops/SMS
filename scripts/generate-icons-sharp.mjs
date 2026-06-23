@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 
-const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+const sizes = [72, 96, 128, 144, 152, 180, 192, 384, 512];
 const iconsDir = join(process.cwd(), "public", "icons");
 mkdirSync(iconsDir, { recursive: true });
 
@@ -121,5 +121,47 @@ for (const size of sizes) {
   writeFileSync(join(iconsDir, `icon-${size}x${size}.png`), makeIcon(size));
   console.log(`✓ icon-${size}x${size}.png`);
 }
+
+// Generate maskable icon (padding-safe)
+writeFileSync(join(iconsDir, `maskable-icon.png`), makeIcon(512));
+console.log(`✓ maskable-icon.png`);
+
+// Generate screenshots
+const screenshotsDir = join(process.cwd(), "public", "screenshots");
+mkdirSync(screenshotsDir, { recursive: true });
+
+function makeScreenshot(width, height) {
+  const stride = width * 4 + 1;
+  const data = Buffer.alloc(stride * height);
+  for (let y = 0; y < height; y += 1) {
+    data[y * stride] = 0;
+    for (let x = 0; x < width; x += 1) {
+      setPixel(data, width, x, y, 15, 31, 61);
+    }
+  }
+  // Draw some basic shape
+  fillRect(data, width, Math.round(width/2) - 50, Math.round(height/2) - 50, 100, 100, [26, 86, 219]);
+
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  ihdr[10] = 0;
+  ihdr[11] = 0;
+  ihdr[12] = 0;
+
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflateSync(data)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+writeFileSync(join(screenshotsDir, `screenshot-desktop.png`), makeScreenshot(1280, 720));
+console.log(`✓ screenshot-desktop.png`);
+writeFileSync(join(screenshotsDir, `screenshot-mobile.png`), makeScreenshot(750, 1334));
+console.log(`✓ screenshot-mobile.png`);
 
 console.log("Done!");
